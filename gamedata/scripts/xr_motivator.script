@@ -43,7 +43,7 @@ end
 ----------------------------------------------------------------------------------------------------------------------
 class "motivator_binder" (object_binder)
 
-function motivator_binder:__init (obj) super(obj)
+function motivator_binder:__init (obj) super(self, obj)
 	self.loaded = false
 	self.last_update = 0
 	----memusage.collect_info(self.object, "__init")
@@ -569,6 +569,40 @@ function motivator_binder:load(reader)
 	end
 
 	set_save_marker(reader, "load", true, "motivator_binder")
+end
+
+function motivator_binder:Serialize(Object)
+	if not Object:IsSave() then
+		self.loaded = true
+	end
+	Object:ForChunk("motivator_binder", function()
+		xr_logic.Serialize_obj(self.object, Object)
+		trade_manager.Serialize(self.object, Object)
+		xr_sound.Serialize_npc(Object, self.object:id())
+
+		if Object:IsSave() then
+			local i = 0
+			for k,v in pairs(self.opened_doors) do
+				i = i + 1
+			end
+			Object:s_u8(i)
+			Object:ForArray(function()
+				for k,v in pairs(self.opened_doors) do
+					Object:s_u32(k)
+				end
+			end)
+		else
+			local i = 0
+			i = Object:s_u8(i)
+			Object:ForArray(function()
+				for k = 1,i do
+					local key = 0
+					key = Object:s_u32(key)
+					self.opened_doors[key] = true
+				end
+			end)
+		end
+	end)
 end
 
 function motivator_binder:hear_callback(self, who_id, sound_type, sound_position, sound_power)

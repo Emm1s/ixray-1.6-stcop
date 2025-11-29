@@ -27,7 +27,7 @@ end
 
 ---------------------------------------------------------------------------------------------
 class "generic_physics_binder" (object_binder)
-function generic_physics_binder:__init(obj) super(obj)
+function generic_physics_binder:__init(obj) super(self, obj)
 	self.initialized = false
 	self.loaded = false
 end
@@ -146,6 +146,15 @@ function generic_physics_binder:load(reader)
 	set_save_marker(reader, "load", false, "physics_binder")
 	xr_logic.load_obj(self.object, reader)
 	set_save_marker(reader, "load", true, "physics_binder")
+end
+
+function generic_physics_binder:Serialize(Object)
+	if not Object:IsSave() then
+		self.loaded = true
+	end
+	Object:ForChunk("physics_binder", function()
+		xr_logic.Serialize_obj(self.object, Object)
+	end)
 end
 
 function generic_physics_binder:use_callback(obj, who)

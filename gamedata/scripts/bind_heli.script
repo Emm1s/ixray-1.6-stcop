@@ -24,7 +24,7 @@ end
 ---------------------------------------------------------------------------------------------
 class "heli_binder" ( object_binder )
 
-function heli_binder:__init( obj, ini ) super( obj )
+function heli_binder:__init( obj, ini ) super( self, obj )
 	self.ini         = ini
 	self.initialized = false
 	self.loaded      = false
@@ -135,6 +135,18 @@ function heli_binder:load( packet )
 	xr_logic.load_obj( self.object, packet )
 	set_save_marker(packet, "load", true, "heli_binder")
 	self.st.combat:load( packet )
+end
+
+function heli_binder:Serialize( Object )
+	if not Object:IsSave() then
+		self.loaded = true
+	end
+	Object:ForChunk("heli_binder", function()
+		Object:ForChunk("heli_binder:data", function()
+			xr_logic.Serialize_obj( self.object, Object )
+			self.st.combat:Serialize( Object )
+		end)
+	end)
 end
 
 function heli_binder:check_health()

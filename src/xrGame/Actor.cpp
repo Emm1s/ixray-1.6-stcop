@@ -46,6 +46,8 @@
 #include "Wound.h"
 #include "inventory_space.h"
 #include "nvg.h"
+#include "helicopter.h"
+#include "Cutscenes/CutsceneManager.h"
 
 u16 old_slot = 0;
 bool need_restore_detector = false;
@@ -1744,6 +1746,8 @@ void CActor::UpdateCL()
 
 	UpdateInventoryOwner(Device.dwTimeDelta);
 	
+	CHeliFlareManager::GetInstance().Update(Device.fTimeDelta); // Definitely need to find more suitable place for such updates... 
+
 	float current_fov = currentFOV();
 
 	if (g_Alive() && m_holder == nullptr)
@@ -3129,7 +3133,7 @@ float CActor::HitArtefactsOnBeltLegacy(float hit_power, ALife::EHitType hit_type
 	{
 		if (CArtefact* artefact = item->cast_artefact())
 		{
-			res_hit_power_k += artefact->m_ArtefactHitImmunities.AffectHit(1.0f, hit_type);
+			res_hit_power_k += artefact->AffectHit(1.0f, hit_type);
 			_af_count += 1.0f;
 		}
 	}

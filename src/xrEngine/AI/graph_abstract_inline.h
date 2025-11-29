@@ -183,7 +183,7 @@ IC	bool CAbstractGraph::is_accessible	(const _vertex_id_type vertex_index) const
 }
 
 TEMPLATE_SPECIALIZATION
-IC	typename CAbstractGraph::_vertex_id_type const &CAbstractGraph::value	(_vertex_id_type const &vertex_index, const_iterator i) const
+IC const typename CAbstractGraph::_vertex_id_type& CAbstractGraph::value	(const _vertex_id_type& vertex_index, const_iterator i) const
 {
 	return						((*i).vertex_id());
 }
@@ -202,6 +202,124 @@ IC	void CAbstractGraph::begin	(_vertex_id_type const &vertex_index, const_iterat
 	begin						(vertex(vertex_index), b, e);
 }
 
+TEMPLATE_SPECIALIZATION
+IC bool CAbstractGraph::Search (_vertex_id_type start_vertex_id, _vertex_id_type dest_vertex_id,xr_vector<_vertex_id_type>& OutPath, _edge_weight_type MaxRange, u32 MaxIterationCount,u32 MaxVisitedNodeCount, _edge_weight_type* LastCost) const
+{
+	auto IsAccessible = [this](const _vertex_id_type& VertexID)
+	{
+		if(!is_accessible(VertexID))
+		{
+			return false;
+		}
+
+		return true;
+	};
+
+	auto CalcCost = [this](const _vertex_id_type& Node1,const _vertex_id_type& Node2, const_iterator i)
+	{
+		return get_edge_weight(Node1,Node2,i);
+	};
+
+	auto DistanceNode = [this](const CVertex* Node1,const CVertex* Node2)
+	{
+		return 0;
+	};
+
+	thread_local	xr_vector<std::pair<_edge_weight_type, _vertex_id_type>>	TempPriorityNode;
+	thread_local	xr_map<_vertex_id_type, _vertex_id_type>					TempCameFrom;
+	thread_local	xr_map<_vertex_id_type, _edge_weight_type>					TempCostSoFar;
+
+	TempPriorityNode.clear();
+	TempCameFrom.clear();
+	TempCostSoFar.clear();
+	OutPath.clear();
+
+	const _vertex_id_type& FromID = start_vertex_id;
+	const _vertex_id_type& ToID = dest_vertex_id;
+		
+	if (FromID == ToID)
+	{
+		OutPath.push_back(start_vertex_id);
+		return true;
+	}
+		
+	TempPriorityNode.push_back({0, FromID});
+	TempCameFrom.insert({FromID, FromID});
+	TempCostSoFar.insert( {FromID, 0});
+
+	
+	while (!TempPriorityNode.empty())
+	{
+		const _vertex_id_type CurrentNodeID = TempPriorityNode.back().second;
+		if(LastCost)
+		{
+			*LastCost = TempPriorityNode.back().first;
+		}
+		TempPriorityNode.pop_back();
+		if (CurrentNodeID == ToID)
+		{
+			_vertex_id_type NextNode = ToID;
+			while (NextNode != FromID)
+			{
+				OutPath.insert( OutPath.begin(),NextNode);
+				NextNode = TempCameFrom[NextNode];
+			}
+			OutPath.insert( OutPath.begin(),NextNode);
+			return true;
+		}
+		
+		const CVertex* Node = vertex(CurrentNodeID);
+
+		const_iterator	i,e;
+		begin		(CurrentNodeID,i,e);
+
+		for (; i != e; i++)
+		{
+			const _vertex_id_type& NeighborID = i->vertex_id();
+			if (!IsAccessible(NeighborID)) continue;
+
+			if(MaxIterationCount == 0) continue;
+			MaxIterationCount--;
+
+			const CVertex* Neighbor = vertex(NeighborID);
+			float NewCost = TempCostSoFar[CurrentNodeID] + CalcCost(CurrentNodeID, NeighborID,i);
+			auto TempCostSoFarIterator = TempCostSoFar.find(NeighborID);
+			if ((TempCostSoFarIterator != TempCostSoFar.end() &&TempCostSoFarIterator->second > NewCost)|| (TempCostSoFarIterator == TempCostSoFar.end() &&MaxVisitedNodeCount > TempCostSoFar.size()))
+			{
+				const float Distance = DistanceNode(vertex(ToID), Neighbor);
+				if(Distance>MaxRange)
+				{
+					continue;
+				}
+
+				if(TempCostSoFarIterator!=TempCostSoFar.end())
+				{
+					TempCostSoFarIterator->second = NewCost; 
+				}
+				else
+				{
+					TempCostSoFar.insert({NeighborID,NewCost});
+				}
+
+				float  priority = NewCost + Distance;
+				TempPriorityNode.insert(std::upper_bound(TempPriorityNode.begin(),TempPriorityNode.end(),std::pair<_edge_weight_type,  _vertex_id_type>{priority,NeighborID},[](const std::pair<_edge_weight_type, _vertex_id_type>& Left, const std::pair<_edge_weight_type, _vertex_id_type>& Right) {return Left.first > Right.first; }),{priority,NeighborID});
+
+				
+				auto TempCameFromIterator = TempCameFrom.find(NeighborID);
+				if(TempCameFromIterator!=TempCameFrom.end())
+				{
+					TempCameFromIterator->second = CurrentNodeID; 
+				}
+				else
+				{
+					TempCameFrom.insert({NeighborID,CurrentNodeID});
+				}
+			}
+		}
+	}
+	return false;
+}
+
 #undef TEMPLATE_SPECIALIZATION
 #undef CAbstractGraph
 
@@ -217,51 +335,66 @@ IC	void CAbstractGraph::begin	(_vertex_id_type const &vertex_index, const_iterat
 	_vertex_id_type\
 >
 
+enum class GraphAbstractChunks : u8
+{
+	VerticesNum = 0,
+	VerticesData = 1,
+	Edges = 2
+};
+
+enum class GraphAbstractVertexChunks : u8
+{
+	ID = 0,
+	Data = 1
+};
+
 TEMPLATE_SPECIALIZATION
 IC	void CAbstractGraph::save			(IWriter &stream)
 {
-	stream.open_chunk			(0);
-	stream.w_u32				((u32)this->vertices().size());
-	stream.close_chunk			();
+	stream.open_chunk(GraphAbstractChunks::VerticesNum);
+	stream.w_u32((u32)this->vertices().size());
+	stream.close_chunk();
 	
-	stream.open_chunk			(1);
+	stream.open_chunk(GraphAbstractChunks::VerticesData);
 	auto I = this->vertices().begin();
 	auto E = this->vertices().end();
 	for (int i=0; I != E; ++I, ++i) {
-		stream.open_chunk		(i);
+		stream.open_chunk(i);
 		{
-			stream.open_chunk	(0);
-			save_data			((*I).second->vertex_id(),stream);
-			stream.close_chunk	();
+			stream.open_chunk(GraphAbstractVertexChunks::ID);
+			save_data((*I).second->vertex_id(),stream);
+			stream.close_chunk();
 
-			stream.open_chunk	(1);
-			save_data			((*I).second->data(),stream);
-			stream.close_chunk	();
+			stream.open_chunk(GraphAbstractVertexChunks::Data);
+			save_data((*I).second->data(),stream);
+			stream.close_chunk();
 		}
-		stream.close_chunk		();
+		stream.close_chunk();
 	}
-	stream.close_chunk			();
+	stream.close_chunk();
 
-	stream.open_chunk			(2);
+	stream.open_chunk(GraphAbstractChunks::Edges);
 	{
 		auto I_ = this->vertices().begin();
 		auto E_ = this->vertices().end();
 		for ( ; I_ != E_; ++I_) {
 			if ((*I_).second->edges().empty())
+			{
 				continue;
+			}
 
-			save_data			((*I_).second->vertex_id(),stream);
+			save_data((*I_).second->vertex_id(),stream);
 
-			stream.w_u32		((u32)(*I_).second->edges().size());
+			stream.w_u32((u32)(*I_).second->edges().size());
 			auto i = (*I_).second->edges().begin();
 			auto e = (*I_).second->edges().end();
 			for ( ; i != e; ++i) {
-				save_data		((*i).vertex_id(),stream);
-				save_data		((*i).weight(),stream);
+				save_data((*i).vertex_id(),stream);
+				save_data((*i).weight(),stream);
 			}
 		}
 	}
-	stream.close_chunk			();
+	stream.close_chunk();
 }
 
 TEMPLATE_SPECIALIZATION
