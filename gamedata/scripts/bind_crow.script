@@ -15,7 +15,7 @@ end
 --------------------------------------------------------------------------------
 class "crow_binder" (object_binder)
 -- Class constructor
-function crow_binder:__init(obj) super(obj)
+function crow_binder:__init(obj) super(self, obj)
     self.body_timer = 0
 end
 -- Class update
@@ -93,4 +93,13 @@ function crow_binder:load(reader)
 	xr_logic.load_obj(self.object, reader)
 	self.body_timer = reader:r_u32()
 	set_save_marker(reader, "load", true, "crow_binder")
+end
+-- Serializing crow
+function crow_binder:Serialize(Object)
+    Object:ForChunk("crow_binder", function()
+        Object:ForChunk("crow_binder:data", function()
+	        xr_logic.Serialize_obj(self.object, Object)
+	        self.body_timer = Object:s_u32(self.body_timer)
+        end)
+    end)
 end

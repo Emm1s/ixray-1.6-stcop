@@ -7,7 +7,7 @@ function bind(obj)
 end
 
 class "anomaly_field_binder" (object_binder)
-function anomaly_field_binder:__init(obj) super(obj)
+function anomaly_field_binder:__init(obj) super(self, obj)
 	self.last_update = time_global()
 end
 

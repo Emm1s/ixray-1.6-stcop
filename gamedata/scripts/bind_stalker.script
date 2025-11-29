@@ -67,7 +67,7 @@ end
 ----------------------------------------------------------------------------------------------------------------------
 class "actor_binder" (object_binder)
 ----------------------------------------------------------------------------------------------------------------------
-function actor_binder:__init (obj) super(obj)
+function actor_binder:__init (obj) super(self, obj)
 	self.bCheckStart = false
 	self.weather_manager = level_weathers.get_weather_manager()
 	self.surge_manager = surge_manager.get_surge_manager()
@@ -689,6 +689,128 @@ function actor_binder:load(reader)
 
 	SendScriptCallback("load", reader) -- IX-Ray
 	SendScriptCallback("actor_on_load", reader) -- IX-Ray
+end
+
+----------------------------------------------------------------------------------------------------------------------
+function actor_binder:Serialize(Object)
+	if Object:IsSave() and utils.level_changing() then
+		SendScriptCallback("on_level_changing")
+		SendScriptCallback("actor_on_level_changing")
+	end
+	Object:ForChunk("actor_binder", function()
+		Object:ForChunk("actor_binder:data", function()
+			if Object:IsSave() then
+				Object:s_u8(level.get_game_difficulty())
+			else
+				local game_difficulty = 0
+				game_difficulty = Object:s_u8(game_difficulty)
+				level.set_game_difficulty(game_difficulty_by_num[game_difficulty])
+				--get_console():execute("g_game_difficulty "..game_difficulty_by_num[game_difficulty])
+			end
+		
+			if Object:IsSave() then
+				if self.st.disable_input_time ~= nil then
+                    Object:ForChunk("actor_binder:data:disable_input_time", function()
+					    self.st.disable_input_time:Serialize(Object)
+                    end)
+                end
+			else
+                Object:ForChunk("actor_binder:data:disable_input_time", function()
+					self.st.disable_input_time = game.CTime()
+				    self.st.disable_input_time:Serialize(Object)
+                end)
+			end
+		
+			xr_logic.pstor_Serialize_all(self.object, Object)
+			self.weather_manager:Serialize(Object)
+			release_body_manager.get_release_body_manager():Serialize(Object)
+			self.surge_manager:Serialize(Object)
+            if not Object:IsSave() then
+	            self.f_surge_manager_loaded = true
+            end
+			sr_psy_antenna.Serialize( Object )
+			sim_board.get_sim_board().simulation_started = Object:s_bool(sim_board.get_sim_board().simulation_started)
+		
+			xr_sound.actor_Serialize(Object)
+			if Object:IsSave() then
+                if self.last_level_name then
+                    Object:ForChunk("actor_binder:data:last_level_name", function()
+				        Object:s_stringZ(self.last_level_name)
+                    end)
+                end
+			else
+                Object:ForChunk("actor_binder:data:last_level_name", function()
+				    local n = ""
+				    self.last_level_name = Object:s_stringZ(n)
+                end)
+			end
+            
+		    xr_statistic.Serialize(Object)
+		    treasure_manager.get_treasure_manager():Serialize(Object)
+		    task_manager.get_task_manager():Serialize(Object)
+
+			if Object:IsSave() then
+				Object:s_u8(self.object:active_slot())
+			else
+				self.loaded_active_slot = Object:s_u8(self.loaded_active_slot)
+	            self.loaded_slot_applied = false
+			end
+		
+			if Object:IsSave() then
+				local deimos_exist = false
+				for k,v in pairs(db.zone_by_name) do
+					if(db.storage[v:id()] and db.storage[v:id()].active_scheme=="sr_deimos") then
+						if deimos_exist then
+							abort("Second deimos detected, please remake this part of save")
+							break
+						end
+						deimos_exist = true
+						Object:s_bool(true)
+						Object:s_float(db.storage[v:id()].sr_deimos.intensity)
+					end
+				end
+				if not deimos_exist then
+					Object:s_bool(false)
+				end
+			else
+				local b = false
+				b = Object:s_bool(b)
+				if(b) then
+					self.deimos_intensity = Object:s_float(self.deimos_intensity)
+				end
+			end
+		
+			if Object:IsSave() then
+				if self.last_detective_achievement_spawn_time ~= nil then
+                    Object:ForChunk("actor_binder:data:last_detective_achievement_spawn_time", function()
+					    self.last_detective_achievement_spawn_time:Serialize(Object)
+                    end)
+                end
+				if self.last_mutant_hunter_achievement_spawn_time ~= nil then
+                    Object:ForChunk("actor_binder:data:last_mutant_hunter_achievement_spawn_time", function()
+					    self.last_mutant_hunter_achievement_spawn_time:Serialize(Object)
+                    end)
+                end
+			else
+                Object:ForChunk("actor_binder:data:last_detective_achievement_spawn_time", function()
+					self.last_detective_achievement_spawn_time = game.CTime()
+					self.last_detective_achievement_spawn_time:Serialize(Object)
+                end)
+                Object:ForChunk("actor_binder:data:last_mutant_hunter_achievement_spawn_time", function()
+					self.last_mutant_hunter_achievement_spawn_time = game.CTime()
+					self.last_mutant_hunter_achievement_spawn_time:Serialize(Object)
+                end)
+			end
+		end)
+	end)
+    
+	if Object:IsSave() then
+	    SendScriptCallback("save", packet) -- IX-Ray
+	    SendScriptCallback("actor_on_save", reader) -- IX-Ray
+    else
+	    SendScriptCallback("load", reader) -- IX-Ray
+	    SendScriptCallback("actor_on_load", reader) -- IX-Ray
+    end
 end
 
 --*************************************************************

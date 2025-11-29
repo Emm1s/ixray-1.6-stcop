@@ -10,9 +10,21 @@
 #include "script_binder_object.h"
 #include "script_game_object.h"
 
-CScriptBinderObject::CScriptBinderObject	(CScriptGameObject *object)
+CScriptBinderObject::CScriptBinderObject	(luabind::object self, luabind::object object)
 {
-	m_object		= object;
+	if (!I_ASSERT_M(self.is_valid() && self.type() != LUA_TNIL, "\"self\" argument in object_binder is invalid!")
+		|| !I_ASSERT_M(object.is_valid() && object.type() != LUA_TNIL, "\"self\" argument in object_binder is invalid!"))
+	{
+		ai().script_engine().print_stack();
+		return;
+	}
+	m_luaBinderObject = self;
+	auto Obj = luabind::object_cast_nothrow<CScriptGameObject*>(object).value_or(nullptr);
+	if (!I_ASSERT(Obj))
+	{
+		Msg("Type is [%d]", object.type());
+	}
+	m_object = Obj;
 }
 
 CScriptBinderObject::~CScriptBinderObject	()
@@ -57,6 +69,10 @@ void CScriptBinderObject::save				(NET_Packet *output_packet)
 }
 
 void CScriptBinderObject::load				(IReader	*input_packet)
+{
+}
+
+void CScriptBinderObject::Serialize(ISaveObject* Object)
 {
 }
 

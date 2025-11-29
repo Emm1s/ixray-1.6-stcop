@@ -5,6 +5,7 @@
 
 void xrServer::SLS_Save	(IWriter& fs)
 {
+	VERIFY(!EngineExternal()[EEngineExternalSystem::AdvancedSerialization]);
 	// Generate spawn+update
 	NET_Packet		P;
 	u32				position;

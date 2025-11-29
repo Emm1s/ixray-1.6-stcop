@@ -4,6 +4,7 @@
 
 void xrServer::SLS_Load	(IReader& fs)
 {
+	VERIFY(!EngineExternal()[EEngineExternalSystem::AdvancedSerialization]);
 	// Generate spawn+update
 	NET_Packet			P;
 	u16					u_id = 0xffff;

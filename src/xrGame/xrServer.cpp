@@ -23,6 +23,13 @@
 #include "xrServer_info.h"
 #include "xrServer_Objects.h"
 
+#pragma warning(push)
+#pragma warning(disable:4995)
+#include <functional>
+
+#include "SaveObjectHelpers.h"
+#pragma warning(pop)
+
 xrClientData::xrClientData() :
 	IClient(Device.GetTimerGlobal())
 {
@@ -226,25 +233,31 @@ void xrServer::Update	()
 	ProceedDelayedPackets();
 	// game update
 	game->ProcessDelayedEvent();
-	game->Update						();
+	game->Update();
 
 	// spawn queue
-	u32 svT								= Device.TimerAsync();
+	u32 svT = Device.TimerAsync();
 	while (!(q_respawn.empty() || (svT<q_respawn.begin()->timestamp)))
 	{
 		// get
-		svs_respawn	R					= *q_respawn.begin();
-		q_respawn.erase					(q_respawn.begin());
+		svs_respawn	R = *q_respawn.begin();
+		q_respawn.erase(q_respawn.begin());
 
 		// 
-		CSE_Abstract* E					= ID_to_entity(R.phantom);
-		E->Spawn_Write		(Packet,false);
-		u16								ID;
-		Packet.r_begin		(ID);
+		CSE_Abstract* E	= ID_to_entity(R.phantom);
+		if (EngineExternal()[EEngineExternalSystem::AdvancedSerialization])
+		{
+			SaveObjectNetPacketHelper::PrepareLocalSpawnPacket(Packet, *E);
+		} else
+		{
+			E->Spawn_Write(Packet,false);
+		}
+		u16 ID;
+		Packet.r_begin(ID);
 		R_ASSERT(M_SPAWN==ID);
-		ClientID						clientID; 
+		ClientID clientID; 
 		clientID.set(ALife::INVALID_OBJECT_ID);
-		Process_spawn		(Packet,clientID);
+		Process_spawn(Packet,clientID);
 	}
 
 
@@ -675,19 +688,17 @@ u32 xrServer::OnMessage	(NET_Packet& P, ClientID sender)			// Non-Zero means bro
 	case M_UPDATE:	
 		{
 			Process_update			(P,sender);						// No broadcast
-			//VERIFY					(verify_entities());
 		}break;
-	case M_SPAWN:	
+	case M_SPAWN:
+	case M_SPAWN_LOCAL:
 		{
-			if (CL && CL->flags.bLocal)
-				Process_spawn		(P,sender);	
-
-			//VERIFY					(verify_entities());
+			if (CL && CL->flags.bLocal){
+				Process_spawn		(P,sender);
+			}
 		}break;
 	case M_EVENT:	
 		{
 			Process_event			(P,sender);
-			//VERIFY					(verify_entities());
 		}break;
 	case M_EVENT_PACK:
 		{

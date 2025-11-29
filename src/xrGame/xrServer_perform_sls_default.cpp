@@ -1,4 +1,6 @@
 #include "StdAfx.h"
+
+#include "SaveObjectHelpers.h"
 #include "xrServer.h"
 #include "xrMessages.h"
 
@@ -63,14 +65,20 @@ void xrServer::SLS_Default	()
 	_actor->set_name_replace("designer");
 	_actor->s_flags.flags	|= M_SPAWN_OBJECT_ASPLAYER;
 	NET_Packet				packet;
-	packet.w_begin			(M_SPAWN);
-	_actor->Spawn_Write		(packet,true);
+	if (EngineExternal()[EEngineExternalSystem::AdvancedSerialization])
+	{
+		SaveObjectNetPacketHelper::PrepareLocalSpawnPacket(packet, *_actor);
+	} else
+	{
+		packet.w_begin(M_SPAWN);
+		_actor->Spawn_Write(packet,true);
+	}
 
-	u16						id;
-	packet.r_begin			(id);
-	R_ASSERT				(id == M_SPAWN);
-	ClientID				clientID;
-	clientID.set			(0);
-	Process_spawn			(packet,clientID);
+	u16 id;
+	packet.r_begin(id);
+	R_ASSERT(id == M_SPAWN);
+	ClientID clientID;
+	clientID.set(0);
+	Process_spawn(packet,clientID);
 #endif
 }

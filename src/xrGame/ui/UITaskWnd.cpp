@@ -263,23 +263,67 @@ void CUITaskWnd::ReloadTaskInfo()
 			m_btn_focus2->Show(true);
 	}
 
-	Locations map_locs			= Level().MapManager().Locations();
-	Locations_it b				= map_locs.begin(), 
-				 e				= map_locs.end();
-	for(;b!=e;b++)
+	for (auto& elem : Level().MapManager().Locations())
 	{
-		shared_str spot = b->spot_type;
-		if(spot=="treasure")
-			m_bTreasuresEnabled?b->location->EnableSpot():b->location->DisableSpot();
-		else if(spot=="primary_object")
-			m_bPrimaryObjectsEnabled?b->location->EnableSpot():b->location->DisableSpot();
-		else if(spot=="secondary_task_location" || spot=="secondary_task_location_complex_timer")
-			(/*b->location->SpotEnabled() && */m_bSecondaryTasksEnabled)?b->location->EnableSpot():b->location->DisableSpot();
-		else if(spot=="ui_pda2_trader_location" || spot=="ui_pda2_mechanic_location" ||
-		   spot=="ui_pda2_scout_location" || spot=="ui_pda2_quest_npc_location" || 
-		   spot=="ui_pda2_medic_location" || spot=="ui_pda2_actor_box_location" ||
-		   spot=="ui_pda2_actor_sleep_location")
-			m_bQuestNpcsEnabled?b->location->EnableSpot():b->location->DisableSpot();
+		shared_str spot = elem.spot_type;
+		static shared_str treasure_spot_name = "treasure";
+		static shared_str primary_object_spot_name = "primary_object";
+		static shared_str secondary_task_location_spot_name = "secondary_task_location";
+		static shared_str secondary_task_location_complex_timer_spot_name = "secondary_task_location_complex_timer";
+		static shared_str ui_pda2_trader_location_spot_name = "ui_pda2_trader_location";
+		static shared_str ui_pda2_mechanic_location_spot_name = "ui_pda2_mechanic_location";
+		static shared_str ui_pda2_scout_location_spot_name = "ui_pda2_scout_location";
+		static shared_str ui_pda2_quest_npc_location_spot_name = "ui_pda2_quest_npc_location";
+		static shared_str ui_pda2_medic_location_spot_name = "ui_pda2_medic_location";
+		static shared_str ui_pda2_actor_box_location_spot_name = "ui_pda2_actor_box_location";
+		static shared_str ui_pda2_actor_sleep_location_spot_name = "ui_pda2_actor_sleep_location";
+		if(spot == treasure_spot_name)
+		{
+			if (m_bTreasuresEnabled)
+			{
+				elem.location->EnableSpot();
+			}
+			else
+			{
+				elem.location->DisableSpot();
+			}
+		}
+		else if(spot == primary_object_spot_name)
+		{
+			if (m_bPrimaryObjectsEnabled)
+			{
+				elem.location->EnableSpot();
+			}
+			else
+			{
+				elem.location->DisableSpot();
+			}
+		}
+		else if(spot == secondary_task_location_spot_name || spot == secondary_task_location_complex_timer_spot_name)
+		{
+			if (m_bSecondaryTasksEnabled)
+			{
+				elem.location->EnableSpot();
+			}
+			else
+			{
+				elem.location->DisableSpot();
+			}
+		}
+		else if(spot == ui_pda2_trader_location_spot_name || spot == ui_pda2_mechanic_location_spot_name ||
+			spot == ui_pda2_scout_location_spot_name || spot == ui_pda2_quest_npc_location_spot_name || 
+			spot == ui_pda2_medic_location_spot_name || spot == ui_pda2_actor_box_location_spot_name ||
+			spot == ui_pda2_actor_sleep_location_spot_name)
+		{
+			if (m_bQuestNpcsEnabled)
+			{
+				elem.location->EnableSpot();
+			}
+			else
+			{
+				elem.location->DisableSpot();
+			}
+		}
 	}
 
 	if (storyTask || additionalTask)

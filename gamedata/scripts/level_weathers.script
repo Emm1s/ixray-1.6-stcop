@@ -232,6 +232,40 @@ function WeatherManager:save(F)
 	set_save_marker(F, "save", true, "WeatherManager")
 end
 
+function WeatherManager:Serialize(Object)
+	Object:ForChunk("WeatherManager", function()
+		if Object:IsSave() then
+			printf("str = "..tostring(self:get_state_as_string()))
+			if self:get_state_as_string() == "" then
+				printf("str = empty string")
+			end
+			Object:s_stringZ(self:get_state_as_string())
+		else
+			local state_string = ""
+			state_string = Object:s_stringZ(state_string);
+			printf("str = "..state_string)
+			if state_string == "" then
+				printf("str = empty string")
+			end
+			self:set_state_as_string(state_string)
+		end
+		self.update_time = Object:s_u32(self.update_time or 0)
+		if Object:IsSave() then
+            if self.weather_fx then
+	            Object:ForChunk("WeatherManager:weather_fx", function()
+			        Object:s_stringZ(self.weather_fx)
+				    Object:s_float(level.get_wfx_time())
+                end)
+            end
+		else
+	        Object:ForChunk("WeatherManager:weather_fx", function()
+			    self.weather_fx = Object:s_stringZ("")
+				self.wfx_time = Object:s_float(0.0)
+            end)
+		end
+	end)
+end
+
 function get_weather_manager ()
 	if weather_manager == nil then
 		weather_manager = WeatherManager()

@@ -1,4 +1,6 @@
 #include "StdAfx.h"
+
+#include "SaveObjectHelpers.h"
 #include "xrServer.h"
 #include "xrServer_Objects.h"
 
@@ -17,10 +19,17 @@ CSE_Abstract* xrServer::Process_spawn(NET_Packet& P, ClientID sender, bool bSpaw
 		P.r_stringZ			(s_name);
 		// create entity
 		E = entity_Create	(s_name); R_ASSERT3(E,"Can't create entity.",s_name);
-		E->Spawn_Read		(P);
+		if (EngineExternal()[EEngineExternalSystem::AdvancedSerialization])
+		{
+			xr_unique_ptr<CSaveObjectLoad> Obj;
+			Obj.reset(SaveObjectNetPacketHelper::GetLoadObjectFromPacket(P));
+			E->Spawn_Serialize(*Obj);
+		}
+		else
+		{
+			E->Spawn_Read		(P);
+		}
 		if	(
-//.				!( (game->Type()==E->s_gameid) || (GAME_ANY==E->s_gameid) ) ||
-				
 				!E->m_gameType.MatchType((u16)game->Type())		||
 				!E->match_configuration() || 
 				!game->OnPreCreate(E)
@@ -32,18 +41,9 @@ CSE_Abstract* xrServer::Process_spawn(NET_Packet& P, ClientID sender, bool bSpaw
 			F_entity_Destroy(E);
 			return			nullptr;
 		}
-
-//		E->m_bALifeControl = false;
 	}
 	else {
 		VERIFY				(E->m_bALifeControl);
-//		E->owner			= CL;
-//		if (CL != nullptr)
-//		{
-//			int x=0;
-//			x=x;
-//		};
-//		E->m_bALifeControl = true;
 	}
 
 	CSE_Abstract			*e_parent = nullptr;
@@ -51,7 +51,6 @@ CSE_Abstract* xrServer::Process_spawn(NET_Packet& P, ClientID sender, bool bSpaw
 		e_parent			= ID_to_entity(E->ID_Parent);
 		if (!e_parent) {
 			R_ASSERT		(!tpExistedEntity);
-//			VERIFY3			(smart_cast<CSE_ALifeItemBolt*>(E) || smart_cast<CSE_ALifeItemGrenade*>(E),*E->s_name,E->name_replace());
 			F_entity_Destroy(E);
 			return			nullptr;
 		}
@@ -135,22 +134,49 @@ CSE_Abstract* xrServer::Process_spawn(NET_Packet& P, ClientID sender, bool bSpaw
 	if (CL) 
 	{
 		// For local ONLY
-		E->Spawn_Write		(Packet,true	);
-		if (E->s_flags.is(M_SPAWN_UPDATE))
-			E->UPDATE_Write	(Packet);
-		SendTo				(CL->ID,Packet,net_flags(true,true));
+		if (EngineExternal()[EEngineExternalSystem::AdvancedSerialization])
+		{
+			SaveObjectNetPacketHelper::PrepareLocalSpawnPacketPossibleFull(Packet, *E);
+		}
+		else
+		{
+			E->Spawn_Write		(Packet,true	);
+			if (E->s_flags.is(M_SPAWN_UPDATE))
+			{
+				E->UPDATE_Write	(Packet);
+			}
+		}
+		SendTo(CL->ID,Packet,net_flags(true,true));
 
 		// For everybody, except client, which contains authorative copy
-		E->Spawn_Write		(Packet,false	);
-		if (E->s_flags.is(M_SPAWN_UPDATE))
-			E->UPDATE_Write	(Packet);
-		SendBroadcast		(CL->ID,Packet,net_flags(true,true));
+		if (EngineExternal()[EEngineExternalSystem::AdvancedSerialization])
+		{
+			SaveObjectNetPacketHelper::PrepareLocalSpawnPacketPossibleFull(Packet, *E);
+		}
+		else
+		{
+			E->Spawn_Write		(Packet,false	);
+			if (E->s_flags.is(M_SPAWN_UPDATE))
+			{
+				E->UPDATE_Write	(Packet);
+			}
+		}
+		SendBroadcast(CL->ID,Packet,net_flags(true,true));
 	} else {
-		E->Spawn_Write		(Packet,false	);
-		if (E->s_flags.is(M_SPAWN_UPDATE))
-			E->UPDATE_Write	(Packet);
+		if (EngineExternal()[EEngineExternalSystem::AdvancedSerialization])
+		{
+			SaveObjectNetPacketHelper::PrepareLocalSpawnPacketPossibleFull(Packet, *E);
+		}
+		else
+		{
+			E->Spawn_Write(Packet,false	);
+			if (E->s_flags.is(M_SPAWN_UPDATE))
+			{
+				E->UPDATE_Write(Packet);
+			}
+		}
 		ClientID clientID;clientID.set(0);
-		SendBroadcast		(clientID, Packet, net_flags(true,true));
+		SendBroadcast(clientID, Packet, net_flags(true,true));
 	}
 	if (!tpExistedEntity)
 	{

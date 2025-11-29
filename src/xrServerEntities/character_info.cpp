@@ -186,6 +186,15 @@ void CCharacterInfo::save	(NET_Packet& stream)
 	m_SpecificCharacter.save(stream);
 }
 
+void CCharacterInfo::Serialize(ISaveObject& Object)
+{
+	BEGIN_CHUNK(Object,"CCharacterInfo")
+	{
+		Object << m_StartDialog;
+		m_SpecificCharacter.Serialize(Object);
+	}
+}
+
 #endif
 
 

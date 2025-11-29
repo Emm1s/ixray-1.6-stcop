@@ -8,7 +8,7 @@ CAMP_SECTION = "camp"
 
 ----------------------------------------------------------------------------------------------------
 class "camp_binder" ( object_binder )
-function camp_binder:__init(obj, char_ini) super(obj)
+function camp_binder:__init(obj, char_ini) super(self, obj)
 end
 function camp_binder:reload(section)
 	object_binder.reload(self, section)
@@ -63,4 +63,6 @@ function camp_binder:load(reader)
 	object_binder.load(self, reader)
 
 	set_save_marker(reader, "load", true, "camp_binder")
+end
+function camp_binder:Serialize(Object)
 end

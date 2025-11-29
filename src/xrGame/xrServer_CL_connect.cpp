@@ -4,6 +4,7 @@
 #include "xrServer_Objects.h"
 #include "xrServer_Objects_ALife_Monsters.h"
 #include "Level.h"
+#include "SaveObjectHelpers.h"
 
 
 void xrServer::Perform_connect_spawn(CSE_Abstract* E, xrClientData* CL, NET_Packet& P)
@@ -43,12 +44,18 @@ void xrServer::Perform_connect_spawn(CSE_Abstract* E, xrClientData* CL, NET_Pack
 
 		// Associate
 		E->owner		= CL;
-		E->Spawn_Write	(P,true	);
-		E->UPDATE_Write	(P);
-
-		if (g_pGamePersistent->GameType() == eGameIDFreeMP)
+		if (EngineExternal()[EEngineExternalSystem::AdvancedSerialization])
 		{
-			E->SyncWrite(P);
+			SaveObjectNetPacketHelper::PrepareLocalSpawnPacketFull(P, *E);
+		}
+		else
+		{
+			E->Spawn_Write	(P,true	);
+			E->UPDATE_Write	(P);
+			if (g_pGamePersistent->GameType() == eGameIDFreeMP)
+			{
+				E->SyncWrite(P);
+			}
 		}
 
 		CSE_ALifeObject*	object = smart_cast<CSE_ALifeObject*>(E);
@@ -58,6 +65,7 @@ void xrServer::Perform_connect_spawn(CSE_Abstract* E, xrClientData* CL, NET_Pack
 	}
 	else				
 	{
+		VERIFY(!EngineExternal()[EEngineExternalSystem::AdvancedSerialization]);
 		E->Spawn_Write	(P, false);
 		E->UPDATE_Write	(P);
 

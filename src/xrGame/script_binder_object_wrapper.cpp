@@ -12,8 +12,8 @@
 #include "script_game_object.h"
 #include "xrServer_Objects_ALife.h"
 
-CScriptBinderObjectWrapper::CScriptBinderObjectWrapper	(CScriptGameObject *object) :
-	CScriptBinderObject	(object)
+CScriptBinderObjectWrapper::CScriptBinderObjectWrapper	(luabind::object self, luabind::object object) :
+	CScriptBinderObject	(self, object)
 {
 }
 
@@ -109,6 +109,33 @@ void CScriptBinderObjectWrapper::load					(IReader *input_packet)
 void CScriptBinderObjectWrapper::load_static			(CScriptBinderObject *script_binder_object, IReader *input_packet)
 {
 	script_binder_object->CScriptBinderObject::load		(input_packet);
+}
+
+void CScriptBinderObjectWrapper::Serialize(ISaveObject* Object)
+{
+	if (I_ASSERT(m_luaBinderObject.is_valid()))
+	{
+		auto method = m_luaBinderObject["Serialize"];
+		auto type = method.type();
+		if (method && type == LUA_TFUNCTION)
+		{
+			luabind::call_member<void>(this, "Serialize", Object);
+		} else
+		{
+			Msg("Missing method Serialize in binder for object [%s]", m_object->Name());			
+			// Это ёбанный пиздец: именно метод Serialize, именно для биндеров (для серверных всё норм работает)
+			//	отказывается нормально регистрироваться в lua, вызывая внутреннюю ошибку luabind
+			//	(если в самой lua не сделать его, без вызова плюсовой части).
+			// Я хуй знает как это говно чинить, уже что только можно перепробовал - нихуя.
+			// Поэтому использую этот костыль.
+			// Если кто поймёт, что за хуйня тут происходит - почините пж этот метод!
+		}
+	}
+}
+
+void CScriptBinderObjectWrapper::Serialize_static(CScriptBinderObject* script_binder_object, ISaveObject* Object)
+{
+	script_binder_object->CScriptBinderObject::Serialize(Object);
 }
 
 bool CScriptBinderObjectWrapper::net_SaveRelevant		()
