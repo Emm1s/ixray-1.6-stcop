@@ -12,7 +12,7 @@ end
 ----------------------------------------------------------------------------------------------------
 class "restrictor_binder" ( object_binder )
 
-function restrictor_binder:__init(obj, char_ini) super(obj)
+function restrictor_binder:__init(obj, char_ini) super(self, obj)
 	self.initialized = false
 	self.loaded = false
 end
@@ -119,4 +119,13 @@ function restrictor_binder:load(reader)
 
 	xr_logic.load_obj(self.object, reader)
 	set_save_marker(reader, "load", true, "restrictor_binder")
+end
+
+function restrictor_binder:Serialize(Object)
+	if not Object:IsSave() then
+		self.loaded = true
+	end
+	Object:ForChunk("restrictor_binder", function()
+		xr_logic.Serialize_obj(self.object, Object)
+	end)
 end

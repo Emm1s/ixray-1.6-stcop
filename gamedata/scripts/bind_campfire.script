@@ -7,7 +7,7 @@ function bind(obj)
 end
 
 class "campfire_binder" (object_binder)
-function campfire_binder:__init(obj) super(obj)
+function campfire_binder:__init(obj) super(self, obj)
 	self.campfire = obj:get_campfire()
 end
 function campfire_binder:net_spawn(server_object)
@@ -45,6 +45,8 @@ function campfire_binder:update(delta)
 	else
 		self.campfire:turn_off()
 	end ]]--
+end
+function campfire_binder:Serialize(Object)
 end
 
 function turn_on_campfires_by_smart_name(smart_name)
