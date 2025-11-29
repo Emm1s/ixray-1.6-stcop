@@ -22,7 +22,7 @@ end
 --'--------------------------------------------------------------------------------------------------------------------
 local arena_zones = {}
 class "arena_zone_binder" (object_binder)
-function arena_zone_binder:__init(obj) super(obj)
+function arena_zone_binder:__init(obj) super(self, obj)
 	self.saved_obj = {}
 	arena_zones[obj:name()] = self
 end
@@ -75,6 +75,32 @@ function arena_zone_binder:load(packet)
 		self.saved_obj[packet:r_u32()] = true
 	end	
 	set_save_marker(packet, "load", true, "arena_zone_binder")
+end
+
+function arena_zone_binder:Serialize(Object)
+	Object:ForChunk("arena_zone_binder", function()
+		Object:ForChunk("arena_zone_binder:data", function()
+			if Object:IsSave() then
+				local num = #self.saved_obj
+				num = Object:s_u16(num)
+				Object:ForArray(function()
+					for k,v in pairs(self.saved_obj) do
+						Object:s_u32(k)
+					end
+				end)
+			else
+				local num = 0
+				num = Object:s_u16(num)	
+				Object:ForArray(function()
+					for i=1,num do
+						local index = 0
+						index = Object:s_u32(index)	
+						self.saved_obj[index] = true
+					end	
+				end)
+			end
+		end)
+	end)
 end
 
 --' callback на вход в зону. Нужно регистрить все объекты, кроме игрока.

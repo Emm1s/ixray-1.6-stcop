@@ -39,7 +39,7 @@ local last_update = 0 -- combat
 ------------------------------------------------------------------------------------
 class "generic_object_binder" (object_binder)
 
-function generic_object_binder:__init(obj) super(obj)
+function generic_object_binder:__init(obj) super(self, obj)
 	self.loaded = false
 end
 
@@ -363,7 +363,6 @@ function generic_object_binder:net_save_relevant()
 end
 
 function generic_object_binder:save(packet)
-
 	set_save_marker(packet, "save", false, "generic_object_binder")
 	object_binder.save(self, packet)
 	xr_logic.save_obj(self.object, packet)
@@ -376,4 +375,13 @@ function generic_object_binder:load(reader)
 	object_binder.load(self, reader)
 	xr_logic.load_obj(self.object, reader)
 	set_save_marker(reader, "load", true, "generic_object_binder")
+end
+
+function generic_object_binder:Serialize(Object)
+	if not Object:IsSave() then
+		self.loaded = true
+	end
+	Object:ForChunk("generic_object_binder", function()
+		xr_logic.Serialize_obj(self.object, Object)
+	end)
 end

@@ -7,7 +7,7 @@ end
 
 class "faction_binder" (object_binder)
 
-function faction_binder:__init(obj) super(obj)
+function faction_binder:__init(obj) super(self, obj)
 end
 
 function faction_binder:net_spawn(server_object)
