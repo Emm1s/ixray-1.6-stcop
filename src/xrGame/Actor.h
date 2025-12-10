@@ -92,16 +92,16 @@ public:
 public:
 	virtual bool						AlwaysTheCrow				()						{ return TRUE; }
 
-	virtual CAttachmentOwner*			cast_attachment_owner		() override						{return this;}
-	virtual CInventoryOwner*			cast_inventory_owner		() override						{return this;}
-	virtual CActor*						cast_actor					() override						{return this;}
-	virtual CGameObject*				cast_game_object			() override						{return this;}
-	virtual IInputReceiver*				cast_input_receiver			() override					{return this;}
-	virtual CEntityAlive*				cast_entity_alive			() override					{return this;}
-	virtual CEntity*					cast_entity					() override					{return this;}
-	virtual CPhraseDialogManager*		cast_phrase_dialog_manager	() override					{return this;}
-	virtual	CCharacterPhysicsSupport*	character_physics_support	() override					{return m_pPhysics_support;}
-	virtual	CCharacterPhysicsSupport*	character_physics_support	() const				{return m_pPhysics_support;}
+	virtual CAttachmentOwner*			cast_attachment_owner		() override {return this;}
+	virtual CInventoryOwner*			cast_inventory_owner		() override {return this;}
+	virtual CActor*						cast_actor					() override {return this;}
+	virtual CGameObject*				cast_game_object			() override {return this;}
+	virtual IInputReceiver*				cast_input_receiver			() override {return this;}
+	virtual CEntityAlive*				cast_entity_alive			() override {return this;}
+	virtual CEntity*					cast_entity					() override {return this;}
+	virtual CPhraseDialogManager*		cast_phrase_dialog_manager	() override {return this;}
+	virtual	CCharacterPhysicsSupport*	character_physics_support	() override {return m_pPhysics_support;}
+	virtual	CCharacterPhysicsSupport*	character_physics_support	() const override {return m_pPhysics_support;}
 	virtual CPHDestroyable*				ph_destroyable				()						;
 			CHolderCustom*				Holder						()						{return m_holder;}
 public:

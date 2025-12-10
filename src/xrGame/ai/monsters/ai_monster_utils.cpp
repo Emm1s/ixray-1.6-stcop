@@ -33,23 +33,23 @@ bool object_position_valid(const CEntity *entity)
 		);
 }
 
-Fvector get_bone_position	(CObject *object, const char* bone_name)
+Fvector get_bone_position(const CObject *object, const char* bone_name)
 {
-	u16 bone_id			= PKinematics(object->Visual())->LL_BoneID				(bone_name);
-	CBoneInstance &bone = PKinematics(object->Visual())->LL_GetBoneInstance	(bone_id);
+	u16 bone_id = PKinematics(object->Visual())->LL_BoneID(bone_name);
+	CBoneInstance &bone = PKinematics(object->Visual())->LL_GetBoneInstance(bone_id);
 
 	Fmatrix	global_transform;
-	global_transform.mul	(object->XFORM(),bone.mTransform);
+	global_transform.mul(object->XFORM(),bone.mTransform);
 
-	return	(global_transform.c);
+	return global_transform.c;
 }
 
-Fvector get_head_position(CObject *object) 
+Fvector get_head_position(const CObject *object) 
 {
-	const char* bone_name		=	"bip01_head";
-	if ( CBaseMonster* monster = object != nullptr ? object->cast_base_monster() : nullptr)
+	static const char* bone_name = "bip01_head";
+	if ( const CBaseMonster* monster = object != nullptr ? const_cast<CObject*>(object)->cast_base_monster() : nullptr)
 	{
-		bone_name		=	monster->get_head_bone_name();
+		bone_name = monster->get_head_bone_name();
 	}
 
 	return get_bone_position(object, bone_name);

@@ -67,9 +67,9 @@ public:
 
 	xr_vector<SZoneObjectInfo>& GetObjectInfoMap() { return m_ObjectInfoMap; }
 
-	virtual CAnomalyZone* cast_anomaly_zone() {return this;}
-	virtual CSpaceRestrictor* cast_restrictor() {return this;}
-	virtual CGameObject* cast_game_object() { return this; }
+	virtual CAnomalyZone* cast_anomaly_zone() override {return this;}
+	virtual CSpaceRestrictor* cast_restrictor() override {return this;}
+	virtual CGameObject* cast_game_object() override { return this; }
 	virtual CRadioactiveZone* cast_radioactive_zone() override { return nullptr; }
 
 	//различные состояния в которых может находиться зона

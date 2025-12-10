@@ -633,7 +633,7 @@ void CEntityAlive::Serialize(ISaveObject& Object)
 	}
 }
 
-BOOL	CEntityAlive::net_SaveRelevant		()
+bool	CEntityAlive::net_SaveRelevant		()
 {
 	return		(true);
 }

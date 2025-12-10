@@ -1,5 +1,6 @@
 #ifndef __XR_OBJECT_LIST_H__
 #define __XR_OBJECT_LIST_H__
+#include "alife_space.h"
 
 // refs
 class	ENGINE_API	CObject;
@@ -60,12 +61,14 @@ public:
 	u32							net_Export			( NET_Packet*	P,		u32 _start, u32 _count	);	// return next start
 	void						net_Import			( NET_Packet*	P		);
 
-	ICF CObject*				net_Find			( u16 ID				) const
+	ICF CObject*				net_Find			( ALife::_OBJECT_ID ID) const
 	{
-		if ( ID == u16(-1) )
-			return				( 0 );
+		if (ID == ALife::_OBJECT_ID(-1))
+		{
+			return nullptr;
+		}
 		
-		return					( map_NETID[ID] );
+		return map_NETID[ID];
 	}
 
 			void				o_crow				(CObject*	O);

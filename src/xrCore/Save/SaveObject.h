@@ -553,7 +553,7 @@ public:
 						(*this) << *(elem.first);
 					}
 					else {
-						Key Value = elem.first;
+						Key& Value = elem.first;
 						(*this) << Value;
 					}
 					if constexpr (std::is_pointer_v<Mapped>) {
@@ -628,6 +628,112 @@ public:
 		return *this;
 	}
 
+	template<IsSaveObjectSerializable T>
+	ISaveObject& Serialize(xr_deque<T>& Value, fastdelegate::FastDelegate<void(ISaveObject&, typename std::remove_pointer<T>::type&)> PerElem)
+	{
+		if (IsSave()) {
+			GetCurrentChunk()->WriteArray();
+			for (auto& elem : Value) {
+				if constexpr (std::is_pointer_v<T>) {
+					PerElem(*this, *elem);
+				}
+				else {
+					PerElem(*this, elem);
+				}
+			}
+		}
+		else {
+			EraseContainer(Value);
+			u64 ArrSize;
+			GetCurrentChunk()->ReadArray(ArrSize);
+			for (u64 i = 0; i < ArrSize; ++i) {
+				if constexpr (std::is_pointer<T>::value) {
+					T Elem = new std::remove_pointer_t<T>();
+					PerElem(*this, *Elem);
+					Value.emplace_back(Elem);
+				}
+				else {
+					T&& Elem = T();
+					PerElem(*this, Elem);
+					Value.emplace_back(Elem);
+				}
+			}
+		}
+		GetCurrentChunk()->EndArray();
+		return *this;
+	}
+
+	template<IsSaveObjectSerializable T>
+	ISaveObject& Serialize(xr_unique_ptr<T>& Value)
+	{
+		if (IsSave()) {
+			if constexpr (std::is_pointer_v<T>) {
+				static_assert(false, "Use raw ptr inside unique_ptr!?");
+			}
+			else {
+				(*this) << *Value;
+			}
+		}
+		else {
+			if constexpr (std::is_pointer<T>::value) {
+				static_assert(false, "Use raw ptr inside unique_ptr!?");
+			}
+			else {
+				Value = xr_make_unique<T>();
+				(*this) << *Value;
+			}
+		}
+		return *this;
+	}
+	
+	template<IsSaveObjectSerializable T1, IsSaveObjectSerializable T2>
+	ISaveObject& Serialize(xr_pair<T1, T2>& Value)
+	{
+		BEGIN_CHUNK(*this, "Pair")
+		{
+			if (IsSave())
+			{
+				if constexpr (std::is_pointer_v<T1>) {
+					(*this) << *(Value.first);
+				}
+				else {
+					T1& First = Value.first;
+					(*this) << First;
+				}
+				if constexpr (std::is_pointer_v<T2>) {
+					(*this) << *(Value.second);
+				}
+				else {
+					T2& First = Value.second;
+					(*this) << First;
+				}
+			} else
+			{
+				if constexpr (std::is_pointer_v<T1>) {
+					T1 Elem = new std::remove_pointer_t<T1>();
+					(*this) << *Elem;
+					Value.first = Elem;
+				}
+				else {
+					T1&& Elem = T1();
+					(*this) << Elem;
+					Value.first = Elem;
+				}
+				if constexpr (std::is_pointer_v<T2>) {
+					T2 Elem = new std::remove_pointer_t<T2>();
+					(*this) << *Elem;
+					Value.first = Elem;
+				}
+				else {
+					T2&& Elem = T2();
+					(*this) << Elem;
+					Value.second = Elem;
+				}
+			}
+		}
+		return *this;
+	}
+
 };
 
 template<IsSaveObjectSerializable T>
@@ -667,6 +773,18 @@ ISaveObject& operator<<(ISaveObject& Object, xr_hash_map<K, V, H, Eq>& Value) {
 
 template<IsSaveObjectSerializable T>
 ISaveObject& operator<<(ISaveObject& Object, xr_deque<T>& Value)
+{
+	return ((CSaveObject*)&Object)->Serialize(Value);
+}
+
+template<IsSaveObjectSerializable T>
+ISaveObject& operator<<(ISaveObject& Object, xr_unique_ptr<T>& Value)
+{
+	return ((CSaveObject*)&Object)->Serialize(Value);
+}
+
+template<IsSaveObjectSerializable T1, IsSaveObjectSerializable T2>
+ISaveObject& operator<<(ISaveObject& Object, xr_pair<T1, T2>& Value)
 {
 	return ((CSaveObject*)&Object)->Serialize(Value);
 }

@@ -5,9 +5,36 @@
 #include "../xrPhysics/PHUpdateObject.h"
 #include "../xrScripts/script_export_space.h"
 #include "patrol_path.h"
+#include "ArtefactStats.h"
 
 class SArtefactActivation;
-struct SArtefactDetectorsSupport;
+class CArtefact;
+
+struct SArtefactDetectorsSupport
+{
+	CArtefact*						m_parent;
+	ref_sound						m_sound;
+
+	Fvector							m_path_moving_force;
+	u32								m_switchVisTime;
+	const CPatrolPath*				m_currPatrolPath;
+	const CPatrolPath::CVertex*		m_currPatrolVertex;
+	Fvector							m_destPoint;
+
+	LPCSTR							det_show_particles;
+	LPCSTR							det_hide_particles;
+	LPCSTR							det_show_snd;
+	LPCSTR							det_hide_snd;
+	LPCSTR							particles_bone;
+
+	SArtefactDetectorsSupport		(CArtefact* A);
+	~SArtefactDetectorsSupport		();
+	void	SetVisible						(bool);
+	void	Load							(LPCSTR section);
+	void	FollowByPath					(LPCSTR path_name, int start_idx, Fvector force);
+	void	UpdateOnFrame					();
+	void	Blink							();
+};
 
 class CArtefact : public CHudItemObject, 
 	public CPHUpdateObject 
@@ -37,34 +64,36 @@ public:
 	virtual bool					renderable_ShadowReceive		()		{ return true;	}
 	virtual void					create_physic_shell				();
 
-	virtual CArtefact*				cast_artefact					()		{return this;}
+	virtual CArtefact* cast_artefact() {return this;}
 
-	float	GetHealthPower() { return m_fHealthRestoreSpeed; }
-	float	GetRadiationPower() { return m_fRadiationRestoreSpeed; }
-	float	GetSatietyPower() { return m_fSatietyRestoreSpeed; }
-	float	GetThirstPower() { return m_fThirstRestoreSpeed; }
-	float	GetSleepinessPower() { return m_fSleepinessRestoreSpeed; }
-	float	GetPowerPower() { return m_fPowerRestoreSpeed; }
-	float	GetBleedingPower() { return m_fBleedingRestoreSpeed; }
-	float	GetEquipmentDurabilityModifier() const { return m_fEquipmentDurabilityModifier; }
-	float	GetInventoryWeightModifier() const { return m_fInventoryWeightModifier; }
-	float	GetJumpHeightModifier() const { return m_fJumpHeightModifier; }
-	float	GetMovementSpeedModifier() const { return m_fMovementSpeedModifier; }
+	virtual float GetHealthPower() const { return Stats.m_fHealthRestoreSpeed; }
+	virtual float GetRadiationPower() const { return Stats.m_fRadiationRestoreSpeed; }
+	virtual float GetSatietyPower() const { return Stats.m_fSatietyRestoreSpeed; }
+	virtual float GetThirstPower() const { return Stats.m_fThirstRestoreSpeed; }
+	virtual float GetSleepinessPower() const { return Stats.m_fSleepinessRestoreSpeed; }
+	virtual float GetPowerPower() const { return Stats.m_fPowerRestoreSpeed; }
+	virtual float GetBleedingPower() const { return Stats.m_fBleedingRestoreSpeed; }
+	virtual float GetEquipmentDurabilityModifier() const { return Stats.m_fEquipmentDurabilityModifier; }
+	virtual float GetInventoryWeightModifier() const { return Stats.m_fInventoryWeightModifier; }
+	virtual float GetJumpHeightModifier() const { return Stats.m_fJumpHeightModifier; }
+	virtual float GetMovementSpeedModifier() const { return Stats.m_fMovementSpeedModifier; }
 
-	void	SetHealthPower(float value) { m_fHealthRestoreSpeed = value; }
-	void	SetRadiationPower(float value) { m_fRadiationRestoreSpeed = value; }
-	void	SetSatietyPower(float value) { m_fSatietyRestoreSpeed = value; }
-	void	SetThirstPower(float value) { m_fThirstRestoreSpeed = value; }
-	void	SetSleepinessPower(float value) { m_fSleepinessRestoreSpeed = value; }
-	void	SetPowerPower(float value) { m_fPowerRestoreSpeed = value; }
-	void	SetBleedingPower(float value) { m_fBleedingRestoreSpeed = value; }
-	void	SetEquipmentDurabilityModifier(float value) { m_fEquipmentDurabilityModifier = value; }
-	void	SetInventoryWeightModifier(float value) { m_fInventoryWeightModifier = value; }
-	void	SetJumpHeightModifier(float value) { m_fJumpHeightModifier = value; }
-	void	SetMovementSpeedModifier(float value) { m_fMovementSpeedModifier = value; }
-
-	float m_fJumpSpeed;
-	float m_fWalkAccel;
+	void SetHealthPower(float value) { Stats.m_fHealthRestoreSpeed = value; }
+	void SetRadiationPower(float value) { Stats.m_fRadiationRestoreSpeed = value; }
+	void SetSatietyPower(float value) { Stats.m_fSatietyRestoreSpeed = value; }
+	void SetThirstPower(float value) { Stats.m_fThirstRestoreSpeed = value; }
+	void SetSleepinessPower(float value) { Stats.m_fSleepinessRestoreSpeed = value; }
+	void SetPowerPower(float value) { Stats.m_fPowerRestoreSpeed = value; }
+	void SetBleedingPower(float value) { Stats.m_fBleedingRestoreSpeed = value; }
+	void SetEquipmentDurabilityModifier(float value) { Stats.m_fEquipmentDurabilityModifier = value; }
+	void SetInventoryWeightModifier(float value) { Stats.m_fInventoryWeightModifier = value; }
+	void SetJumpHeightModifier(float value) { Stats.m_fJumpHeightModifier = value; }
+	void SetMovementSpeedModifier(float value) { Stats.m_fMovementSpeedModifier = value; }
+	
+	virtual float GetJumpPower() const {return Stats.m_fJumpSpeed;}
+	virtual float GetWalkPower() const {return Stats.m_fWalkAccel;}
+	virtual float GetImmunity(ALife::EHitType hit_type);
+	virtual float AffectHit(float Power, ALife::EHitType hit_type);
 
 	const char* PS_bone													()		{return m_sParticlesBone.c_str(); };
 	bool has_detector_visibling;
@@ -73,7 +102,7 @@ protected:
 	virtual void					CreateArtefactActivation			();
 
 	SArtefactActivation*			m_activationObj;
-	SArtefactDetectorsSupport*		m_detectorObj;
+	xr_unique_ptr<SArtefactDetectorsSupport> m_detectorObj;
 
 	u16								m_CarringBoneID;
 	u16								m_ParticlesBoneID;
@@ -85,8 +114,9 @@ protected:
 	float							m_fTrailLightRange;
 	u8								m_af_rank;
 	bool							m_bLightsEnabled;
-	float							m_additional_weight;
 	float							m_fDegradationRate;
+	
+	SArtefactStats Stats;
 
 	virtual void					UpdateLights					();
 public:
@@ -104,20 +134,10 @@ public:
 	virtual void					PhDataUpdate					(float step);
 	virtual void					PhTune							(float step)	{};
 
-	float							AdditionalInventoryWeight		() const {return m_additional_weight;}
+	virtual float AdditionalInventoryWeight() const {return Stats.m_additional_weight;}
+	
 	bool							m_bCanSpawnZone;
-	float							m_fHealthRestoreSpeed;
-	float 							m_fRadiationRestoreSpeed;
-	float 							m_fSatietyRestoreSpeed;
-	float 							m_fThirstRestoreSpeed;
-	float 							m_fSleepinessRestoreSpeed;
-	float							m_fPowerRestoreSpeed;
-	float							m_fBleedingRestoreSpeed;
-	float							m_fEquipmentDurabilityModifier;
-	float							m_fInventoryWeightModifier;
-	float							m_fJumpHeightModifier;
-	float							m_fMovementSpeedModifier;
-	CHitImmunity 					m_ArtefactHitImmunities;
+	
 public:
 	enum EAFHudStates {
 		eActivating = eLastBaseState+1,
@@ -157,30 +177,4 @@ public:
 	virtual void Serialize(ISaveObject& Object) override { inherited::Serialize(Object); };
 
 	DECLARE_SCRIPT_REGISTER_FUNCTION
-};
-
-struct SArtefactDetectorsSupport
-{
-	CArtefact*						m_parent;
-	ref_sound						m_sound;
-
-	Fvector							m_path_moving_force;
-	u32								m_switchVisTime;
-	const CPatrolPath*				m_currPatrolPath;
-	const CPatrolPath::CVertex*		m_currPatrolVertex;
-	Fvector							m_destPoint;
-
-	const char*							det_show_particles;
-	const char*							det_hide_particles;
-	const char*							det_show_snd;
-	const char*							det_hide_snd;
-	const char*							particles_bone;
-
-			SArtefactDetectorsSupport		(CArtefact* A);
-			~SArtefactDetectorsSupport		();
-	void	SetVisible						(bool);
-	void	Load							(const char* section);
-	void	FollowByPath					(const char* path_name, int start_idx, Fvector force);
-	void	UpdateOnFrame					();
-	void	Blink							();
 };
