@@ -7,6 +7,7 @@
 #include "Level_Bullet_Manager.h"
 #include "game_cl_base.h"
 #include "Actor.h"
+#include "FlamethrowerTraceCollision.h"
 #include "GamePersistent.h"
 #include "game_cl_base_weapon_usage_statistic.h"
 #include "game_cl_mp.h"
@@ -200,6 +201,55 @@ void CBulletManager::PlayExplodePS( const Fmatrix& xf )
 	GamePersistent().ps_needtoplay.push_back(ps);
 }
 
+// TODO: Reimplement with normal debug draw
+#include "../xrEngine/xr_input.h"
+
+static void dbg_text_renderer(const Fvector& pos, u32 color = color_rgba(0,255,100,255), shared_str str = "+")
+{
+	Fvector4		v_res;
+	Device.mFullTransform.transform(v_res, pos);
+
+	float x = (1.f + v_res.x) / 2.f * (Device.Width);
+	float y = (1.f - v_res.y) / 2.f * (Device.Height);
+
+	if (v_res.z < 0 || v_res.w < 0)
+		return;
+
+	if (v_res.x < -1.f || v_res.x > 1.f || v_res.y < -1.f || v_res.y>1.f)
+		return;
+
+	g_FontManager->pFontSystem->SetAligment(CGameFont::alCenter);
+	g_FontManager->pFontSystem->SetColor(color);
+	g_FontManager->pFontSystem->Out(x, y, "%s", str.c_str());
+}
+
+#ifdef DEBUG
+void CBulletManager::DrawFlamethrowerTrace(FlamethrowerTrace::CManager* manager)
+{
+	for(auto Collision : manager->ActiveTraces)
+	{
+		Fmatrix trans(Fmatrix::Identity);
+		auto r = Collision->GetCollision().GetCurrentRadius();
+		trans.scale(r, r, r);
+		trans.c = Collision->GetPoint().GetPosition();
+		Level().debug_renderer().draw_ellipse(trans, color_xrgb(255, 0, 0));
+		/*Fmatrix temp;
+		auto r = Collision->GetCollision().GetCurrentRadius();
+		temp.scale(r, r, r);
+		temp.c = Collision->GetPoint().GetPosition();
+		Msg("%f, %f, %f", VPUSH(temp.c));
+		Level().debug_renderer().draw_ellipse(temp, color_xrgb(255, 0, 0));*/
+		
+		/*for (int i = 0; i < 255; ++i)
+		{
+			Fvector pos = Fvector(Collision->GetPoint().GetPosition()).mad(
+				Fvector().random_dir(), Collision->GetCollision().GetCurrentRadius());
+			dbg_text_renderer(pos);
+		}*/
+	}
+}
+#endif
+
 void CBulletManager::PlayWhineSound(SBullet* bullet, CObject* object, const Fvector& pos)
 {
 	if (m_WhineSounds.empty())						return;
@@ -216,6 +266,9 @@ void CBulletManager::Clear		()
 	m_Events.clear();
 	m_Bullets_Tracers.clear();
 	m_WhineSounds.clear();
+#ifdef DEBUG
+	FlameManagersToDraw.clear();
+#endif
 }
 
 void CBulletManager::AddBullet(const Fvector& position,
@@ -1065,7 +1118,9 @@ void CBulletManager::Render	()
 			m_bullet_points.resize(0);
 	}
 	else
+	{
 		m_bullet_points.resize(0);
+	}
 
 	//0-рикошет
 	//1-застрявание пули в материале
@@ -1077,11 +1132,22 @@ void CBulletManager::Render	()
 		//RCache.set_xform_world(Fidentity);
 		DRender->CacheSetXformWorld(Fidentity);
 		for(int i=0; i<3; ++i)
+		{
 			for(it=g_hit[i].begin();it!=g_hit[i].end();++it){
 				Level().debug_renderer().draw_aabb(*it,0.01f,0.01f,0.01f,C[i]);
 			}
+		}
+	}
+
+	if (g_bullet_debug_trj)
+	{
+		for(auto Manager : FlameManagersToDraw)
+		{
+			DrawFlamethrowerTrace(Manager);
+		}
 	}
 #endif
+	
 	u32 g_bullet_debug_trj_totalLines = 0u;
 	static xr_vector<SBullet*> visible_tracers;
 	visible_tracers.clear();

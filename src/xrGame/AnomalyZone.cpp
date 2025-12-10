@@ -1978,7 +1978,7 @@ void CAnomalyZone::load							(IReader &input_packet)
 		m_eZoneState = eZoneStateIdle;
 }
 
-void CCustomZone::Serialize(ISaveObject& Object)
+void CAnomalyZone::Serialize(ISaveObject& Object)
 {
 	BEGIN_CHUNK(Object,"CCustomZone")
 	{
