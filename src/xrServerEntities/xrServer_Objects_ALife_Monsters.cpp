@@ -808,7 +808,7 @@ void CSE_ALifeAnomalyZone::UPDATE_Write	(NET_Packet	&tNetPacket)
 	inherited::UPDATE_Write		(tNetPacket);
 }
 
-void CSE_ALifeCustomZone::STATE_Serialize(ISaveObject& Object)
+void CSE_ALifeAnomalyZone::STATE_Serialize(ISaveObject& Object)
 {
 	BEGIN_CHUNK(Object,"CSE_ALifeCustomZone::STATE")
 	{
@@ -817,7 +817,7 @@ void CSE_ALifeCustomZone::STATE_Serialize(ISaveObject& Object)
 	}
 }
 
-void CSE_ALifeCustomZone::UPDATE_Serialize(ISaveObject& Object)
+void CSE_ALifeAnomalyZone::UPDATE_Serialize(ISaveObject& Object)
 {
 	BEGIN_CHUNK(Object,"CSE_ALifeCustomZone::UPDATE")
 	{
@@ -2520,7 +2520,7 @@ void CSE_ALifeMonsterBase::UPDATE_Serialize(ISaveObject& Object)
 	}
 }
 
-BOOL CSE_ALifeMonsterBase::Net_Relevant() 
+bool CSE_ALifeMonsterBase::Net_Relevant() 
 {
 #ifdef XRGAME_EXPORTS
 	if(g_pGamePersistent->GameType() != eGameIDSingle)

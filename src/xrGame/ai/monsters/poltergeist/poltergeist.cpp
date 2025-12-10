@@ -20,7 +20,11 @@
 #include "../../../actor_memory.h"
 #include "../../../visual_memory_manager.h"
 #include "ActorEffector.h"
+#include "material_manager.h"
 #include "../../../ActorCondition.h"
+#include "../abilities/poltergeist/PolterTele.h"
+#include "../abilities/poltergeist/PolterFlame.h"
+#include "../abilities/poltergeist/PolterChem.h"
 
 void SetActorVisibility(ALife::_OBJECT_ID who, float value);
 
@@ -29,9 +33,6 @@ CPoltergeist::CPoltergeist()
 	StateMan					= new CStateManagerPoltergeist(this);
 	
 	invisible_vel.set			(0.1f, 0.1f);
-	
-	m_flame						= 0;
-	m_tele						= 0;
 	m_actor_ignore				= false;
 }
 
@@ -40,8 +41,6 @@ CPoltergeist::~CPoltergeist()
 	remove_pp_effector	();
 
 	xr_delete		(StateMan);
-	xr_delete		(m_flame);
-	xr_delete		(m_tele);
 }
 
 void CPoltergeist::Load(const char* section)
@@ -115,14 +114,33 @@ void CPoltergeist::Load(const char* section)
 	m_fly_around_change_direction_time	 
 							 = READ_IF_EXISTS(pSettings,r_float,section,"detection_fly_around_change_direction_time", 7);
 
-	const char* polter_type = pSettings->r_string(section,"type");
+	if (pSettings->line_exist(section,"type"))
+	{
+		const char* polter_type = pSettings->r_string(section,"type");
 	
-	if (xr_strcmp(polter_type,"flamer") == 0) {
-		m_flame			= new CPolterFlame(this);
-		m_flame->load	(section);
-	} else {
-		m_tele			= new CPolterTele(this);
-		m_tele->load	(section);
+		if (xr_strcmp(polter_type,"flamer") == 0) {
+			m_flame = xr_make_unique<CPolterFlame>(this);
+			m_flame->load(section);
+		} else {
+			m_tele = xr_make_unique<CPolterTele>(this);
+			m_tele->load(section);
+		}
+	} else
+	{
+		if (READ_IF_EXISTS(pSettings, r_bool, section, "use_flame", false)) {
+			m_flame = xr_make_unique<CPolterFlame>(this);
+			m_flame->load(section);
+		}
+
+		if (READ_IF_EXISTS(pSettings, r_bool, section, "use_tele", false)) {
+			m_tele = xr_make_unique<CPolterTele>(this);
+			m_tele->load(section);
+		}
+
+		if (READ_IF_EXISTS(pSettings, r_bool, section, "use_chem", false)) {
+			m_chem = xr_make_unique<CPolterChem>(this);
+			m_chem->load(section);
+		}
 	}
 
 	m_detection_pp_effector_name		= READ_IF_EXISTS(pSettings,r_string,section, "detection_pp_effector_name",		"");
@@ -219,7 +237,7 @@ void   CPoltergeist::update_detection ()
 					Actor()->Cameras().GetPPEffector	((EEffectorPPType)m_detection_pp_type_index); 
 					++m_detection_pp_type_index ) { ; }
 	
-			// !!!! ПОТОМ ВЕРНУТЬ ЭФФЕКТОР !!!!!
+			// TODO: !!!! ПОТОМ ВЕРНУТЬ ЭФФЕКТОР !!!!!
 			// AddEffector						(Actor(), m_detection_pp_type_index, m_detection_pp_effector_name, 
 			// 								xr_make_delegate(this, &CPoltergeist::get_post_process_factor));
 		}
@@ -500,4 +518,68 @@ CBaseMonster::SDebugInfo CPoltergeist::show_debug_info()
 	return CBaseMonster::SDebugInfo();
 }
 #endif
+
+
+//////////////////////////////////////////////////////////////////////////
+// Other
+//////////////////////////////////////////////////////////////////////////
+
+constexpr float IMPULSE = 10.f;
+constexpr float IMPULSE_RADIUS = 5.f;
+constexpr float TRACE_DISTANCE = 10.f;
+constexpr u32 TRACE_ATTEMPT_COUNT = 3;
+
+void CPoltergeist::PhysicalImpulse	(const Fvector &position)
+{
+	g_SpatialSpace->q_sphere(m_nearest,0,ESPATIAL_TYPE::COLLIDEABLE,position,IMPULSE_RADIUS);
+	if (m_nearest.empty()) return;
+	
+	u32 index = Random.randI(m_nearest.size());
+
+	ISpatial* S = m_nearest[index].get();
+	if (!S) return;
+	CObject* O = S->dcast_CObject();
+	if (!O || O->getDestroy()) return;
+	
+	CPhysicsShellHolder  *obj = O->cast_physics_shell_holder();
+	if (!obj || !obj->m_pPhysicsShell) return;
+
+	Fvector dir;
+	dir.sub(obj->Position(), position);
+	dir.normalize();
+	
+	CPhysicsElement* E=obj->m_pPhysicsShell->get_ElementByStoreOrder(u16(Random.randI(obj->m_pPhysicsShell->get_ElementsNumber())));
+	//E->applyImpulse(dir,IMPULSE * obj->m_pPhysicsShell->getMass());
+	E->applyImpulse(dir,IMPULSE * E->getMass());
+}
+
+void CPoltergeist::StrangeSounds(const Fvector &position)
+{
+	if (m_strange_sound.is_playing()) return;
+	
+	for (u32 i = 0; i < TRACE_ATTEMPT_COUNT; i++) {
+		Fvector dir;
+		dir.random_dir();
+
+		collide::rq_result	l_rq;
+		if (Level().ObjectSpace.RayPick(position, dir, TRACE_DISTANCE, collide::rqtStatic, l_rq, nullptr)) {
+			if (l_rq.range < TRACE_DISTANCE) {
+
+				// Получить пару материалов
+				CDB::TRI&	pTri	= Level().ObjectSpace.GetStaticTris()[l_rq.element];
+				SGameMtlPair* mtl_pair = GMLib.GetMaterialPair(material().self_material_idx(),pTri.material);
+				if (!mtl_pair) continue;
+
+				// Играть звук
+				if (!mtl_pair->CollideSounds.empty()) {
+					CLONE_MTL_SOUND(m_strange_sound, mtl_pair, CollideSounds);
+					Fvector pos;
+					pos.mad(position, dir, ((l_rq.range - 0.1f > 0) ? l_rq.range - 0.1f  : l_rq.range));
+					m_strange_sound.play_at_pos(this,pos);
+					return;
+				}			
+			}
+		}
+	}
+}
 

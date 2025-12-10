@@ -9,6 +9,7 @@
 #include "../xrPhysics/MathUtils.h"
 
 #include "Actor.h"
+#include "MissileSam.h"
 #include "ParticlesObject.h"
 #include "physics_game.h"
 
@@ -242,6 +243,9 @@ void	CHelicopter::Hit							(SHit* pHDS)
 	if (pHDS->who != nullptr && pHDS->who->cast_actor() != nullptr || pHDS->who->cast_stalker() != nullptr || pHDS->who->cast_anomaly_zone())
 	{
 		callback(GameObject::eHelicopterOnHit)(pHDS->damage(), pHDS->impulse, pHDS->hit_type, pHDS->who->ID());
+	} else if (pHDS->who->cast_missile_sam())
+	{
+		callback(GameObject::eHelicopterOnSamHit)(pHDS->damage(),pHDS->impulse,pHDS->hit_type);
 	}
 
 	CPHDestroyable::SetFatalHit(*pHDS);
