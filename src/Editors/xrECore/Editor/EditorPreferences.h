@@ -93,6 +93,7 @@ public:
 	xr_string		Compiler_xrLC;
 	xr_string		Compiler_xrDO;
 	bool LODsForAllMU = false;
+	bool DuplicateObjectPositionAsError = true;
 
 	std::map<std::string, std::string> custom_icons;
 protected:
