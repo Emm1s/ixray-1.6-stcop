@@ -87,6 +87,7 @@ void CLevelPreferences::Load()
 		GetSafe(*comp, "xrLC", Compiler_xrLC);
 		GetSafe(*comp, "xrAI", Compiler_xrAI);
 		GetSafe(*comp, "xrDO", Compiler_xrDO);
+		GetSafe(*comp, "DuplicateObjectPositionAsError", DuplicateObjectPositionAsError);
 	}
 
 	if (const auto* cb = GetObjectSafe(JSONData, "ContentBrowser"))
@@ -161,6 +162,7 @@ void CLevelPreferences::Save()
 	JSONData["Compilers Path"]["xrLC"] = Compiler_xrLC.c_str();
 	JSONData["Compilers Path"]["xrAI"] = Compiler_xrAI.c_str();
 	JSONData["Compilers Path"]["xrDO"] = Compiler_xrDO.c_str();
+	JSONData["Compilers Path"]["DuplicateObjectPositionAsError"] = DuplicateObjectPositionAsError;
 
 	JSONData["ContentBrowser"]["CurPath"] = GContentView->CurrentDir;
 	JSONData["ContentBrowser"]["ISEPath"] = GContentView->VirtualPath;
