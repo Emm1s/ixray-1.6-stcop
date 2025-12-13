@@ -157,17 +157,17 @@ IRender_Target* CRender::getTarget()
 	return Target;
 }
 
-void CRender::add_Visual(IRenderVisual* V, bool Ignore)
+void CRender::add_Visual(IRenderVisual* V, bool Ignore, bool Force)
 {
 	if (val_pLocalTransform)
 	{
 		static Fmatrix m_xform = Fidentity;
 		m_xform.mul_43(*val_pLocalTransform, *val_pTransform);
 
-		set_Transform(&m_xform);
+		set_Transform(m_xform);
 	}
 
-	add_leafs_Dynamic((dxRender_Visual*)V, Ignore);
+	add_leafs_Dynamic((dxRender_Visual*)V, Ignore, Force);
 }
 
 void CRender::add_Geometry(IRenderVisual* V)
