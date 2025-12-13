@@ -2668,6 +2668,7 @@ void CActor::OnHUDDraw(CCustomHUD* Z)
 	{
 		pGameObject->OnHUDDraw(Z);
 	}
+
 #if 0//ndef NDEBUG
 	if (Level().CurrentControlEntity() == this && g_ShowAnimationInfo)
 	{
