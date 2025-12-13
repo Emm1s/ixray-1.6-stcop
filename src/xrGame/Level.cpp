@@ -597,6 +597,14 @@ void CLevel::OnFrame()
 	DBG_RenderUpdate();
 #endif // #ifdef DEBUG
 
+	while (!m_deffered_scripts_callbacks.empty())
+	{
+		auto elem = m_deffered_scripts_callbacks.front();
+		m_deffered_scripts_callbacks.pop_front();
+		elem();
+	}
+	VERIFY(m_deffered_scripts_callbacks.empty());
+
 	if (GCondlistGC != nullptr)
 	{
 		GCondlistGC->Update();
