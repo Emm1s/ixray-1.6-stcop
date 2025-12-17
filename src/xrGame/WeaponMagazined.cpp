@@ -453,6 +453,16 @@ void CWeaponMagazined::LoadSounds(LPCSTR section)
 	{
 		m_sounds.LoadSound(section, "snd_firemode_check", "sndFiremodeCheck", false, m_eSoundReload);
 	}
+
+	if (SoundExist(section, "snd_mui_on"))
+	{
+		m_sounds.LoadSound(section, "snd_mui_on", "sndMuiOn", false, m_eSoundHide);
+	}
+
+	if (SoundExist(section, "snd_mui_off"))
+	{
+		m_sounds.LoadSound(section, "snd_mui_off", "sndMuiOff", false, m_eSoundHide);
+	}
 }
 
 void CWeaponMagazined::FireStart()
@@ -1905,6 +1915,21 @@ void CWeaponMagazined::switch2_FireMode()
 {
 	SetPending(TRUE);
 
+	if (m_bGaussScheme)
+	{
+		if (!m_bGaussScreen)
+		{
+			PlaySound("sndMuiOn", get_LastFP());
+			PlayHUDMotion(SetCurrentStateAnimation("anm_mui_on"), EHudMixType::eMixAll, eSwitchMode);
+		}
+		else
+		{
+			PlaySound("sndMuiOff", get_LastFP());
+			PlayHUDMotion(SetCurrentStateAnimation("anm_mui_off"), EHudMixType::eMixAll, eSwitchMode);
+		}
+		return;
+	}
+
 	if (m_sounds_enabled && m_eSoundsFlags.test(ESoundsFlags::sf_changefiremode))
 	{
 		PlaySound("sndChangeFiremode", get_LastFP());
@@ -2176,7 +2201,17 @@ bool CWeaponMagazined::Action(u16 cmd, u32 flags)
 	{
 		if (flags & CMD_START) 
 		{
+			if (m_bGaussScheme)
+			{
+				if (SetKeyRepeatFlag(cmd == kWPN_FIREMODE_NEXT ? ACTOR_DEFS::EActorKeyflags::kfNEXTFIREMODE : ACTOR_DEFS::EActorKeyflags::kfPREVFIREMODE))
+				{
+					SwitchGaussScreen();
+				}
+			}
+			else
+			{
 			ChangeFireMode(cmd);
+			}
 			return true;
 		};
 	}break;
@@ -2650,6 +2685,11 @@ shared_str CWeaponMagazined::SetCurrentReloadAnimation()
 			AddSuffixName(anim, "_triple");
 		}
 
+		if (m_bGaussScreen)
+		{
+			AddSuffixName(anim, "_mui");
+		}
+
 		bool empty = m_bAmmoInChamber ? iAmmoChamberElapsed == 0 : iAmmoElapsed == 0;
 		if (IsMisfire())
 		{
@@ -2687,7 +2727,6 @@ shared_str CWeaponMagazined::SetCurrentReloadAnimation()
 		{
 			AddSuffixName(anim, "_noscope");
 		}
-
 	}
 
 	return anim;
@@ -2704,6 +2743,11 @@ shared_str CWeaponMagazined::SetCurrentStateAnimation(const shared_str& first_na
 		if (IsZoomed())
 		{
 			AddSuffixName(anim, "_aim");
+		}
+
+		if (m_bGaussScreen)
+		{
+			AddSuffixName(anim, "_mui");
 		}
 
 		if (GetQueueSize() == -1)
@@ -2886,6 +2930,11 @@ shared_str CWeaponMagazined::SetCurrentShootAnimation()
 			AddSuffixName(anim, "_aim");
 		}
 
+		if (m_bGaussScreen)
+		{
+			AddSuffixName(anim, "_mui");
+		}
+
 		if (IsScopeAttached())
 		{
 			AddSuffixName(anim, "_scope");
@@ -3054,6 +3103,28 @@ void CWeaponMagazined::ChangeFireMode(u16 cmd)
 		SwitchState(eSwitchMode);
 	}
 };
+
+void CWeaponMagazined::SwitchGaussScreen()
+{
+	if (GetState() != eIdle)
+	{
+		return;
+	}
+
+	if (IsZoomed())
+	{
+		return;
+	}
+
+	if (IsGrenadeMode())
+	{
+		return;
+	}
+
+	m_bGaussScreen = !m_bGaussScreen;
+
+	SwitchState(eSwitchMode);
+}
 
 void CWeaponMagazined::OnH_A_Chield()
 {
