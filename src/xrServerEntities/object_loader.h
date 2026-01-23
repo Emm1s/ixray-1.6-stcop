@@ -16,7 +16,7 @@ struct CLoader {
 		IC	static void load_data(T &data, M &stream, const P &p)
 		{
 			static_assert(!std::is_polymorphic<T>::value, "Cannot load polymorphic classes as binary data");
-			stream.r					(&data,sizeof(T));
+			stream.r(&data,sizeof(T));
 		}
 
 		template <>
@@ -65,25 +65,30 @@ struct CLoader {
 		};
 
 		template <typename T1, typename T2>
-		struct add_helper
-		{
-			template <bool>
-			IC	static void add(T1 &data, T2 &value)
-			{
-				data.push_back	(value);
-			}
-
-			template <>
-			IC	static void add<true>(T1 &data, T2 &value)
-			{
-				data.insert		(value);
-			}
-		};
-
-		template <typename T1, typename T2>
 		IC	static void add(T1 &data, T2 &value)
 		{
-			add_helper<T1,T2>::template add<is_tree_structure<T1>::value>(data,value);
+			if constexpr (std::is_same_v<T1, xr_vector<typename T1::value_type>>)
+			{
+				data.emplace_back(value);
+			}
+			else if constexpr (
+				std::is_same_v<T1, xr_set<typename T1::value_type>>
+				|| std::is_same_v<T1, xr_hash_set<typename T1::value_type>>
+				)
+			{
+				data.insert(value);
+			}
+			else if constexpr (
+				std::is_same_v<T1, xr_map<typename T1::key_type, typename T1::mapped_type>>
+				|| std::is_same_v<T1, xr_hash_map<typename T1::key_type, typename T1::mapped_type>>
+				)
+			{
+				data.insert(value);
+			}
+			else
+			{
+				static_assert(false);
+			}
 		}
 
 		template <typename T>
@@ -283,8 +288,15 @@ IC	void load_data(const T &data, M &stream, const P &p)
 	CLoader<M,P>::load_data	(*temp,stream,p);
 }
 
-template <typename T, typename M>
+template<typename T>
+concept IsLoader =
+requires(T a, void* ptr, u32 count)
+{
+	{a.r(ptr, count) } -> std::same_as<void>;
+};
+
+template <typename T, IsLoader M>
 IC	void load_data(const T &data, M &stream)
 {
-	load_data				(data,stream,object_loader::detail::CEmptyPredicate());
+	load_data(data,stream,object_loader::detail::CEmptyPredicate());
 }
