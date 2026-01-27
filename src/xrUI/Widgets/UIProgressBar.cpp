@@ -74,13 +74,17 @@ void CUIProgressBar::UpdateProgressBar()
 }
 
 void CUIProgressBar::SetProgressPos(float _Pos)				
-{ 
-	if (m_ProgressPos.y == _Pos)
+{
+	float& Pos = m_orient_mode == EOrientMode::om_down || m_orient_mode == EOrientMode::om_vert
+		             ? m_ProgressPos.y
+		             : m_ProgressPos.x;
+	if (Pos == _Pos)
+	{
 		return;
-
-	m_ProgressPos.y		= _Pos; 
-	clamp(m_ProgressPos.y,m_MinPos,m_MaxPos);
-	UpdateProgressBar	();
+	}
+	Pos = _Pos; 
+	clamp(Pos,m_MinPos,m_MaxPos);
+	UpdateProgressBar();
 }
 
 float _sign(const float& v)
