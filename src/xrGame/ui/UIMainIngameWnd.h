@@ -61,7 +61,9 @@ public:
 	CUIStatic* m_ind_starvation;
 
 	CUIStatic* UIStaticDiskIO;
-	CUIStatic*			UIStaticQuickHelp;
+	CUIStatic* UIStaticQuickHelp;
+	CUIStatic* UIStaticQuickHelp2 = nullptr;
+	CUIProgressBar* UIProgressBarAction = nullptr;
 	CUIMotionIcon* UIMotionIcon;
 	CUIZoneMap* UIZoneMap;
 	CUICompassBar* UICompassBar;

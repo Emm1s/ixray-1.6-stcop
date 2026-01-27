@@ -2116,10 +2116,26 @@ void CWeapon::SpawnAmmo(u32 boxCurr, const char* ammoSect, u32 ParentID)
 //.		D->s_gameid					= u8(GameID());
 		D->s_RP						= 0xff;
 		D->ID						= 0xffff;
-		if (ParentID == 0xffffffff)	
-			D->ID_Parent			= (u16)H_Parent()->ID();
+		if (ParentID == 0xffffffff)
+		{
+			if (IsQuickUnloading)
+			{
+				// TODO: In MP there could be problem with Quick Unloading
+				VERIFY(IsGameTypeSingle(), "Not supported in MP");
+				auto CurActor = Actor();
+				VERIFY(CurActor);
+				D->ID_Parent = CurActor->ID();
+			} else
+			{
+				auto Parent = H_Parent();
+				VERIFY(Parent);
+				D->ID_Parent			= Parent->ID();
+			}
+		}
 		else
+		{
 			D->ID_Parent			= (u16)ParentID;
+		}
 
 		D->ID_Phantom				= 0xffff;
 		D->s_flags.assign			(M_SPAWN_OBJECT_LOCAL);
