@@ -538,7 +538,11 @@ void CExportSkeleton::SSplit::MakeStripify()
 
 			for (size_t vit = 0; vit < _source.size(); ++vit)
 			{
-				m_Verts[vertexRemap[vit]] = _source[vit];
+				auto& SourceElem = _source[vit];
+				auto& RemapElem = vertexRemap[vit];
+				auto& TargetElem = m_Verts[RemapElem];
+				TargetElem = SourceElem;
+				//m_Verts[vertexRemap[vit]] = _source[vit];
 			}
 
 			for (size_t i = 0; i < m_Faces.size(); ++i)
@@ -1480,14 +1484,13 @@ bool CExportSkeleton::ExportMotionDefs(IWriter& F)
 			F.w_u16(1);
 			F.w_stringZ("default");
 			F.w_u16((u16)m_Source->BoneCount());
-			for (int i = 0; i < m_Source->BoneCount(); i++)
+			for (int i=0; i<m_Source->BoneCount(); i++) 
 			{
+				F.w_stringZ(m_Source->BoneNameByID(i));
 				F.w_u32(i);
 			}
 		}
-
-		pb->Inc();
-
+		pb->Inc		();
 		// motion defs
 		SMotionVec& sm_lst = m_Source->SMotions();
 		F.w_u16((u16)sm_lst.size());
