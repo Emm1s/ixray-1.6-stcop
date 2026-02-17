@@ -3,9 +3,14 @@
 //----------------------------------------------------
 #pragma once
 // DirectX headers
-#include <d3d9.h>
+
+#define USE_DX11 1
+#include <d3d11.h>
+#include <d3d11shader.h>
+
 #include "../xrEUI/stdafx.h"
-#include "../../Layers/xrRenderDX9/xrD3DDefs.h"
+#include "../../Layers/xrRenderDX10/DXCommonTypes.h"
+#include "../../Layers/xrRender/r__types.h"
 
 #include "../../utils/xrDXT/xrDXT.h"
 
@@ -24,20 +29,13 @@
 
 #include "../../xrEngine/Fmesh.h"
 #include "../../xrEngine/_d3d_extensions.h"
-#define smart_cast dynamic_cast
+#include <fast_dynamic_cast/fast_dynamic_cast.hpp>
+#define smart_cast fast_dynamic_cast
 
-#ifndef O_SEQUENTIAL
-#define O_SEQUENTIAL 0
-#endif
-
-#define DIRECTINPUT_VERSION 0x0800
-
-#define         R_R1    1
-#define         R_R2    2
-#define         RENDER  R_R1
-#define			REDITOR 1
-
-
+#define R_R1    1
+#define R_R2    2
+#define R_R4    4
+#define RENDER  R_R4
 
 #define PropertyGP(a,b)	__declspec( property( get=a, put=b ) )
 #define THROW			FATAL("THROW");

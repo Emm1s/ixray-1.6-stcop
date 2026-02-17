@@ -9,6 +9,11 @@ public:
 	RHIShaderConstant*		c_neg_faces;
 	RHIShaderConstant*		c_material;
 
+	RHIShaderConstant*		c_tfactor;
+	RHIShaderConstant*		c_selection;
+
+	Fvector4				m_tfactor;
+	Fvector4				m_selection;
 public:
 	R_hemi		();
 	void			unmap		();
@@ -17,8 +22,18 @@ public:
 	void			set_c_neg_faces		(RHIShaderConstant* C) {c_neg_faces = C;}
 	void			set_c_material		(RHIShaderConstant* C) {c_material  = C;}
 
+	void			set_c_tfactor		(RHIShaderConstant* C);
+	void			set_c_selection		(RHIShaderConstant* C);
+
 	void			set_pos_faces		(float posx, float posy, float posz);
 	void			set_neg_faces		(float negx, float negy, float negz);
 	void			set_material		(float x, float y, float z, float w);
+
+	void			set_tfactor			(float x, float y, float z, float w);
+	void			set_tfactor			(u32 tfactor);
+
+	void			set_selection		(float& x, float& y, float& z, float& w);
+	void			set_selection		(Fvector4& factor);
+	void			set_selection		(u32 factor);
 };
 #endif

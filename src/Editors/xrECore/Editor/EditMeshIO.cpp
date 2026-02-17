@@ -236,17 +236,6 @@ bool CEditableMesh::LoadMesh(IReader& F){
 	}
 
 #if 1
-    if (!EPrefs->object_flags.is(epoDeffLoadRB))
-    {
-        GenerateFNormals	();
-        GenerateAdjacency	();
-	    GenerateVNormals	(nullptr);
-		GenerateRenderBuffers();
-        UnloadFNormals		();
-        UnloadAdjacency		();
-	    UnloadVNormals		();
-    }
-    
     if (!EPrefs->object_flags.is(epoDeffLoadCF)) 
     	GenerateCFModel();       
 #endif
