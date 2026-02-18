@@ -12,7 +12,7 @@
 #include "../eatable_item_object.h"
 #include "../../xrUI/UICursor.h"
 
-void move_item_from_to(u16 from_id, u16 to_id, u16 what_id);
+void move_item_from_to(ALife::_OBJECT_ID from_id, ALife::_OBJECT_ID to_id, ALife::_OBJECT_ID what_id);
 
 bool move_item_check( PIItem itm, CInventoryOwner* from, CInventoryOwner* to, bool weight_check )
 {
@@ -582,8 +582,8 @@ void CUIActorMenuBase::TakeAllFromPartner(CUIWindow* w, void* d)
 
 void CUIActorMenuBase::TakeAllFromInventoryBox()
 {
-	u16 actor_id = GetInventoryOwner()->object_id();
-	xr_vector<u16> IgnoredItemsIds = {};
+	auto actor_id = GetInventoryOwner()->object_id();
+	xr_vector<ALife::_OBJECT_ID> IgnoredItemsIds = {};
 
 	u32 const cnt = GetPartnerList()->ItemsCount();
 	for ( u32 i = 0; i < cnt; ++i )

@@ -46,8 +46,8 @@ CSE_Abstract* xrServer::Process_spawn(NET_Packet& P, ClientID sender, bool bSpaw
 //		E->m_bALifeControl = true;
 	}
 
-	CSE_Abstract			*e_parent = 0;
-	if (E->ID_Parent != 0xffff) {
+	CSE_Abstract			*e_parent = nullptr;
+	if (E->ID_Parent != ALife::INVALID_OBJECT_ID) {
 		e_parent			= ID_to_entity(E->ID_Parent);
 		if (!e_parent) {
 			R_ASSERT		(!tpExistedEntity);
@@ -58,20 +58,21 @@ CSE_Abstract* xrServer::Process_spawn(NET_Packet& P, ClientID sender, bool bSpaw
 	}
 
 	// check if we can assign entity to some client
-	if (0==CL)
+	if (!CL)
 	{
 		CL	= SelectBestClientToMigrateTo	(E);
 	}
 
 	// check for respawn-capability and create phantom as needed
-	if (E->RespawnTime && (0xffff==E->ID_Phantom))
+	if (E->RespawnTime && (ALife::INVALID_OBJECT_ID==E->ID_Phantom))
 	{
 		// Create phantom
 		CSE_Abstract* Phantom	=	entity_Create	(*E->s_name); R_ASSERT(Phantom);
 		Phantom->Spawn_Read		(P);
-		Phantom->ID				=	PerformIDgen	(0xffff);
+		Phantom->ID				=	PerformIDgen	(ALife::INVALID_OBJECT_ID);
 		Phantom->ID_Phantom		=	Phantom->ID;						// Self-linked to avoid phantom-breeding
 		Phantom->owner			=	nullptr;
+		IVERIFY(!entities.contains(Phantom->ID));
 		entities.insert			(std::make_pair(Phantom->ID,Phantom));
 
 		Phantom->s_flags.set	(M_SPAWN_OBJECT_PHANTOM,true);
@@ -80,14 +81,16 @@ CSE_Abstract* xrServer::Process_spawn(NET_Packet& P, ClientID sender, bool bSpaw
 		E->ID					=	PerformIDgen(E->ID);
 		E->ID_Phantom			=	Phantom->ID;
 		E->owner				=	CL;
+		IVERIFY(!entities.contains(E->ID));
 		entities.insert			(std::make_pair(E->ID,E));
 	} else {
 		if (E->s_flags.is(M_SPAWN_OBJECT_PHANTOM))
 		{
 			// Clone from Phantom
-			E->ID					=	PerformIDgen(0xffff);
+			E->ID					=	PerformIDgen(ALife::INVALID_OBJECT_ID);
 			E->owner				=	CL;//		= SelectBestClientToMigrateTo	(E);
 			E->s_flags.set			(M_SPAWN_OBJECT_PHANTOM,false);
+			IVERIFY(!entities.contains(E->ID));
 			entities.insert			(std::make_pair(E->ID,E));
 		} else {
 			// Simple spawn
@@ -100,7 +103,8 @@ CSE_Abstract* xrServer::Process_spawn(NET_Packet& P, ClientID sender, bool bSpaw
 			}
 			E->ID					=	PerformIDgen(E->ID);
 			E->owner				=	CL;
-			entities.insert			(std::make_pair(E->ID,E));
+			IVERIFY(!entities.contains(E->ID));
+			entities.insert(std::make_pair(E->ID,E));
 		}
 	}
 
@@ -117,7 +121,7 @@ CSE_Abstract* xrServer::Process_spawn(NET_Packet& P, ClientID sender, bool bSpaw
 	if (!tpExistedEntity) {
 		game->OnCreate		(E->ID);
 		
-		if (0xffff != E->ID_Parent) {
+		if (ALife::INVALID_OBJECT_ID != E->ID_Parent) {
 			R_ASSERT					(e_parent);
 			
 			game->OnTouch			(E->ID_Parent,E->ID);

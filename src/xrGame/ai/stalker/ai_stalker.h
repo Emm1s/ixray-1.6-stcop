@@ -418,7 +418,7 @@ private:
 		}
 
 		IC	bool			operator<	(const CTradeItem &trade_item) const;
-		IC	bool			operator==	(u16 id) const;
+		IC	bool			operator==	(ALife::_OBJECT_ID id) const;
 	};
 
 private:
@@ -448,7 +448,7 @@ protected:
 			void						transfer_item					(CInventoryItem *item, CGameObject *old_owner, CGameObject *new_owner);
 
 			void						update_sell_info				();
-			bool						tradable_item					(CInventoryItem *inventory_item, const u16 &current_owner_id);
+			bool						tradable_item					(CInventoryItem *inventory_item, const ALife::_OBJECT_ID &current_owner_id);
 			bool						can_sell						(CInventoryItem* item);
 
 			bool						non_conflicted					(const CInventoryItem *item, const CWeapon *new_weapon) const;

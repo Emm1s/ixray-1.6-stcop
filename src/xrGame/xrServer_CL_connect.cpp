@@ -9,7 +9,7 @@
 void xrServer::Perform_connect_spawn(CSE_Abstract* E, xrClientData* CL, NET_Packet& P)
 {
 	P.B.count = 0;
-	xr_vector<u16>::iterator it = std::find(conn_spawned_ids.begin(), conn_spawned_ids.end(), E->ID);
+	auto it = std::ranges::find(conn_spawned_ids, E->ID);
 	if(it != conn_spawned_ids.end())
 	{
 //.		Msg("Rejecting redundant SPAWN data [%d]", E->ID);
@@ -31,7 +31,7 @@ void xrServer::Perform_connect_spawn(CSE_Abstract* E, xrClientData* CL, NET_Pack
 	Flags16			save = E->s_flags;
 	//-------------------------------------------------
 	E->s_flags.set	(M_SPAWN_UPDATE,true);
-	if (0==E->owner)	
+	if (nullptr==E->owner)	
 	{
 		// PROCESS NAME; Name this entity
 		if (E->s_flags.is(M_SPAWN_OBJECT_ASPLAYER))
