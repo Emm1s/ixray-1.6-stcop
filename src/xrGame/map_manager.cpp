@@ -18,8 +18,8 @@
 struct FindLocationBySpotID
 {
 	shared_str	spot_id;
-	u16			object_id;
-	FindLocationBySpotID(const shared_str& s, u16 id):spot_id(s),object_id(id){}
+	ALife::_OBJECT_ID			object_id;
+	FindLocationBySpotID(const shared_str& s, ALife::_OBJECT_ID id):spot_id(s),object_id(id){}
 	bool operator () (const SLocationKey& key){
 		return (spot_id==key.spot_type)&&(object_id==key.object_id);
 	}
@@ -27,8 +27,8 @@ struct FindLocationBySpotID
 
 struct FindLocationByID
 {
-	u16			object_id;
-	FindLocationByID(u16 id):object_id(id){}
+	ALife::_OBJECT_ID			object_id;
+	FindLocationByID(ALife::_OBJECT_ID id):object_id(id){}
 	bool operator () (const SLocationKey& key){
 		return (object_id==key.object_id);
 	}
@@ -111,7 +111,7 @@ CMapManager::CMapManager()
 	m_locations_wrapper = new CMapLocationWrapper();
 	m_locations_wrapper->registry().init(1);
 	m_locations = nullptr;
-	m_activeUserNavigationLocationId = u16(-1);
+	m_activeUserNavigationLocationId = ALife::INVALID_OBJECT_ID;
 }
 
 CMapManager::~CMapManager()
@@ -120,7 +120,7 @@ CMapManager::~CMapManager()
 	delete_data		(m_locations_wrapper);
 }
 
-CMapLocation* CMapManager::AddMapLocation(const shared_str& spot_type, u16 id)
+CMapLocation* CMapManager::AddMapLocation(const shared_str& spot_type, ALife::_OBJECT_ID id)
 {
 	if (HasMapLocation(spot_type, id))
 		return GetMapLocation(spot_type, id);
@@ -172,7 +172,7 @@ void CMapManager::RemoveRelationLocation(CInventoryOwner* pInvOwner)
 
 CMapLocation* CMapManager::AddUserLocation(const shared_str& spot_type, const shared_str& level_name, Fvector position)
 {
-	u16 _id = Level().Server->PerformIDgen(0xffff);
+	ALife::_OBJECT_ID _id = Level().Server->PerformIDgen(ALife::INVALID_OBJECT_ID);
 
 	CMapLocation* l = new CMapLocation(spot_type.c_str(), _id, true);
 	l->InitUserSpot(level_name, position);
@@ -188,37 +188,39 @@ void CMapManager::Destroy(CMapLocation* ml)
 	m_deffered_destroy_queue.push_back(ml);
 }
 
-void CMapManager::RemoveMapLocation(const shared_str& spot_type, u16 id)
+void CMapManager::RemoveMapLocation(const shared_str& spot_type, ALife::_OBJECT_ID id)
 {
 	FindLocationBySpotID key(spot_type, id);
-	Locations_it it = std::find_if(Locations().begin(),Locations().end(),key);
+	Locations_it it = std::ranges::find_if(Locations(),key);
 	if( it!=Locations().end() )
 	{
-		if ((*it).location && IsUserNavigationLocation((*it).location))
+		if (it->location && IsUserNavigationLocation(it->location))
+		{
 			ClearActiveUserNavigationLocation();
+		}
 
-		Level().GameTaskManager()->MapLocationRelcase((*it).location);
+		Level().GameTaskManager()->MapLocationRelcase(it->location);
 
-		Destroy					((*it).location);
+		Destroy					(it->location);
 		Locations().erase		(it);
 	}
 }
 
-void CMapManager::RemoveMapLocationByObjectID(u16 id) //call on destroy object
+void CMapManager::RemoveMapLocationByObjectID(ALife::_OBJECT_ID id) //call on destroy object
 {
 	if (m_activeUserNavigationLocationId == id)
 		ClearActiveUserNavigationLocation();
 
 	FindLocationByID key(id);
-	Locations_it it = std::find_if(Locations().begin(), Locations().end(), key);
+	Locations_it it = std::ranges::find_if(Locations(), key);
 	while( it!= Locations().end() )
 	{
-		Level().GameTaskManager()->MapLocationRelcase((*it).location);
+		Level().GameTaskManager()->MapLocationRelcase(it->location);
 
-		Destroy					((*it).location);
+		Destroy					(it->location);
 		Locations().erase		(it);
 
-		it = std::find_if(Locations().begin(), Locations().end(), key);
+		it = std::ranges::find_if(Locations(), key);
 	}
 }
 
@@ -240,34 +242,35 @@ void CMapManager::RemoveMapLocation(CMapLocation* ml)
 
 }
 
-bool CMapManager::GetMapLocationsForObject(u16 id, xr_vector<CMapLocation*>& res)
+bool CMapManager::GetMapLocationsForObject(ALife::_OBJECT_ID id, xr_vector<CMapLocation*>& res)
 {
 	res.resize(0);
 	Locations_it it			= Locations().begin();
 	Locations_it it_e		= Locations().end();
 	for(; it!=it_e;++it)
 	{
-		if((*it).actual && (*it).object_id==id)
-			res.push_back((*it).location);
+		if(it->actual && it->object_id==id)
+			res.push_back(it->location);
 	}
 	return (res.size()!=0);
 }
 
-bool CMapManager::HasMapLocation(const shared_str& spot_type, u16 id)
+bool CMapManager::HasMapLocation(const shared_str& spot_type, ALife::_OBJECT_ID id)
 {
 	CMapLocation* l = GetMapLocation(spot_type, id);
 	
 	return (l!=nullptr);
 }
 
-CMapLocation* CMapManager::GetMapLocation(const shared_str& spot_type, u16 id)
+CMapLocation* CMapManager::GetMapLocation(const shared_str& spot_type, ALife::_OBJECT_ID id)
 {
 	FindLocationBySpotID key(spot_type, id);
-	Locations_it it = std::find_if(Locations().begin(), Locations().end(), key);
+	Locations_it it = std::ranges::find_if(Locations(), key);
 	if( it!=Locations().end() )
-		return (*it).location;
-	
-	return 0;
+	{
+		return it->location;
+	}
+	return nullptr;
 }
 
 CMapLocation* CMapManager::GetActiveTaskCompassLocation()
@@ -281,16 +284,16 @@ CMapLocation* CMapManager::GetActiveTaskCompassLocation()
 	CGameTask* storyTask = Level().GameTaskManager()->ActiveTask(eTaskTypeStoryline);
 	CGameTask* additionalTask = Level().GameTaskManager()->ActiveTask(eTaskTypeAdditional);
 	CMapLocation* activeLoc = nullptr;
-	if (storyTask && storyTask->m_map_object_id != u16(-1) && storyTask->m_map_location.size() > 0)
+	if (storyTask && storyTask->m_map_object_id != ALife::INVALID_OBJECT_ID && storyTask->m_map_location.size() > 0)
 		activeLoc = GetMapLocation(storyTask->m_map_location, storyTask->m_map_object_id);
-	if (!activeLoc && additionalTask && additionalTask->m_map_object_id != u16(-1) && additionalTask->m_map_location.size() > 0)
+	if (!activeLoc && additionalTask && additionalTask->m_map_object_id != ALife::INVALID_OBJECT_ID && additionalTask->m_map_location.size() > 0)
 		activeLoc = GetMapLocation(additionalTask->m_map_location, additionalTask->m_map_object_id);
 	return activeLoc;
 }
 
 CMapLocation* CMapManager::GetActiveUserNavigationLocation()
 {
-	if (m_activeUserNavigationLocationId == u16(-1))
+	if (m_activeUserNavigationLocationId == ALife::INVALID_OBJECT_ID)
 		return nullptr;
 
 	FindLocationByID key(m_activeUserNavigationLocationId);
@@ -305,7 +308,9 @@ void CMapManager::SetActiveUserNavigationLocation(CMapLocation* ml)
 {
 	ClearActiveUserNavigationLocation();
 	if (!ml || !ml->IsUserDefined())
+	{
 		return;
+	}
 
 	DisableAllPointers();
 	m_activeUserNavigationLocationId = ml->ObjectID();
@@ -314,15 +319,17 @@ void CMapManager::SetActiveUserNavigationLocation(CMapLocation* ml)
 
 void CMapManager::ClearActiveUserNavigationLocation()
 {
-	if (m_activeUserNavigationLocationId != u16(-1))
+	if (m_activeUserNavigationLocationId != ALife::INVALID_OBJECT_ID)
 	{
 		FindLocationByID key(m_activeUserNavigationLocationId);
 		Locations_it it = std::find_if(Locations().begin(), Locations().end(), key);
-		if (it != Locations().end() && (*it).location && (*it).location->IsUserDefined())
-			(*it).location->DisablePointer();
+		if (it != Locations().end() && it->location && it->location->IsUserDefined())
+		{
+			it->location->DisablePointer();
+		}
 	}
 
-	m_activeUserNavigationLocationId = u16(-1);
+	m_activeUserNavigationLocationId = ALife::INVALID_OBJECT_ID;
 }
 
 bool CMapManager::HasActiveUserNavigationLocation()
@@ -335,14 +342,14 @@ bool CMapManager::IsUserNavigationLocation(const CMapLocation* ml)
 	return ml && ml->IsUserDefined() && m_activeUserNavigationLocationId == ml->ObjectID();
 }
 
-void CMapManager::GetMapLocations(const shared_str& spot_type, u16 id, xr_vector<CMapLocation*>& res)
+void CMapManager::GetMapLocations(const shared_str& spot_type, ALife::_OBJECT_ID id, xr_vector<CMapLocation*>& res)
 {
 	FindLocationBySpotID key(spot_type, id);
-	Locations_it it = std::find_if(Locations().begin(), Locations().end(), key);
+	Locations_it it = std::ranges::find_if(Locations(), key);
 	
 	while( it!=Locations().end() )
 	{
-		res.push_back((*it).location);
+		res.push_back(it->location);
 		it = std::find_if(++it, Locations().end(), key);
 	}
 }
@@ -358,12 +365,14 @@ void CMapManager::Update()
 	xrCriticalSectionGuard guard(UpdateCS);
 	delete_data(m_deffered_destroy_queue); //from prev frame
 
-	if (m_activeUserNavigationLocationId != u16(-1))
+	if (m_activeUserNavigationLocationId != ALife::INVALID_OBJECT_ID)
 	{
 		FindLocationByID key(m_activeUserNavigationLocationId);
 		Locations_it activeIt = std::find_if(Locations().begin(), Locations().end(), key);
-		if (activeIt == Locations().end() || !(*activeIt).location || !(*activeIt).location->IsUserDefined())
-			m_activeUserNavigationLocationId = u16(-1);
+		if (activeIt == Locations().end() || !activeIt->location || !activeIt->location->IsUserDefined())
+		{
+			m_activeUserNavigationLocationId = ALife::INVALID_OBJECT_ID;
+		}
 	}
 
 	Locations_it it			= Locations().begin();
@@ -411,7 +420,7 @@ Locations&	CMapManager::Locations	()
 	return *m_locations;
 }
 
-void CMapManager::OnObjectDestroyNotify(u16 id)
+void CMapManager::OnObjectDestroyNotify(ALife::_OBJECT_ID id)
 {
 	RemoveMapLocationByObjectID(id);
 }
@@ -424,8 +433,8 @@ void CMapManager::Dump						()
 	Locations_it it_e = Locations().end();
 	for(; it!=it_e;++it)
 	{
-		Msg("spot_type=[%s] object_id=[%d]",*((*it).spot_type), (*it).object_id);
-		(*it).location->Dump();
+		Msg("spot_type=[%s] object_id=[%d]",*(it->spot_type), it->object_id);
+		it->location->Dump();
 	}
 
 	Msg("end of map_locations dump");
@@ -454,7 +463,7 @@ void CMapManager::AllLocationsForEach(const luabind::functor<bool>& functor)
 
 	for (; it != it_e; ++it)
 	{
-		if (functor((*it).location, it->spot_type.c_str()) == true)
+		if (functor(it->location, it->spot_type.c_str()) == true)
 			return;
 	}
 }
