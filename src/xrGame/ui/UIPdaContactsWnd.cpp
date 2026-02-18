@@ -282,7 +282,7 @@ CUIPdaContactItem::~CUIPdaContactItem()
 {
 }
 
-extern CSE_ALifeTraderAbstract* ch_info_get_from_id (u16 id);
+extern CSE_ALifeTraderAbstract* ch_info_get_from_id (ALife::_OBJECT_ID id);
 
 #include "UICharacterInfo.h"
 

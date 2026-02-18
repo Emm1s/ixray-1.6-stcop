@@ -52,8 +52,8 @@ void SBullet::Init(const Fvector& position,
 				   float power,
 //.				   float power_critical,
 				   float impulse,
-				   u16	sender_id,
-				   u16 sendersweapon_id,
+				   ALife::_OBJECT_ID	sender_id,
+				   ALife::_OBJECT_ID sendersweapon_id,
 				   ALife::EHitType e_hit_type,
 				   float maximum_distance,
 				   const CCartridge& cartridge,
@@ -104,7 +104,7 @@ void SBullet::Init(const Fvector& position,
 //	flags.skipped_frame		= 0;
 
 	targetID				= 0;	
-	density_mode			= 0;
+	density_mode			= false;
 }
 
 
@@ -224,8 +224,8 @@ void CBulletManager::AddBullet(const Fvector& position,
 							   float power,
 //.							   float power_critical,
 							   float impulse,
-							   u16	sender_id,
-							   u16 sendersweapon_id,
+							   ALife::_OBJECT_ID	sender_id,
+							   ALife::_OBJECT_ID sendersweapon_id,
 							   ALife::EHitType e_hit_type,
 							   float maximum_distance,
 							   const CCartridge& cartridge,

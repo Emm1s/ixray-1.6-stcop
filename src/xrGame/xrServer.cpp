@@ -82,13 +82,19 @@ xrServer::~xrServer()
 
 //--------------------------------------------------------------------
 
-CSE_Abstract*	xrServer::ID_to_entity		(u16 ID)
+CSE_Abstract*	xrServer::ID_to_entity		(ALife::_OBJECT_ID ID)
 {
 	// #pragma todo("??? to all : ID_to_entity - must be replaced to 'game->entity_from_eid()'")	
-	if (0xffff==ID)				return 0;
+	if (ALife::INVALID_OBJECT_ID==ID)
+	{
+		return nullptr;
+	}
 	xrS_entities::iterator	I	= entities.find	(ID);
-	if (entities.end()!=I)		return I->second;
-	else						return 0;
+	if (entities.end()!=I)
+	{
+		return I->second;
+	}
+	return nullptr;
 }
 
 //--------------------------------------------------------------------
@@ -212,8 +218,11 @@ void xrServer::Update	()
 
 	NET_Packet		Packet;
 
+#ifdef DEBUG
+#	ifdef SLOW_VERIFY_ENTITIES
 	VERIFY						(verify_entities());
-
+#	endif
+#endif
 	ProceedDelayedPackets();
 	// game update
 	game->ProcessDelayedEvent();
@@ -234,7 +243,7 @@ void xrServer::Update	()
 		Packet.r_begin		(ID);
 		R_ASSERT(M_SPAWN==ID);
 		ClientID						clientID; 
-		clientID.set(0xffff);
+		clientID.set(ALife::INVALID_OBJECT_ID);
 		Process_spawn		(Packet,clientID);
 	}
 
@@ -244,7 +253,11 @@ void xrServer::Update	()
 
 	if (game->sv_force_sync)	Perform_game_export();
 
+#ifdef DEBUG
+#	ifdef SLOW_VERIFY_ENTITIES
 	VERIFY						(verify_entities());
+#	endif
+#endif
 	//-----------------------------------------------------
 	
 	PerformCheckClientsForMaxPing	();
@@ -539,7 +552,11 @@ void xrServer::SendUpdatesToAll()
 		g_sv_SendUpdate = 0;
 #endif			
 		if (game->sv_force_sync)	Perform_game_export();
+#ifdef DEBUG
+#	ifdef SLOW_VERIFY_ENTITIES
 		VERIFY						(verify_entities());
+#	endif
+#endif
 		m_last_update_time			= Device.dwTimeGlobal;
 	}
 	if (m_file_transfers)
@@ -562,7 +579,11 @@ u32 xrServer::OnDelayedMessage	(NET_Packet& P, ClientID sender)			// Non-Zero me
 
 	//csPlayers.Enter			();
 
+#ifdef DEBUG
+#	ifdef SLOW_VERIFY_ENTITIES
 	VERIFY							(verify_entities());
+#	endif
+#endif
 	xrClientData* CL				= ID_to_client(sender);
 	//R_ASSERT2						(CL, make_string("packet type [%d]",type).c_str());
 
@@ -617,7 +638,12 @@ u32 xrServer::OnDelayedMessage	(NET_Packet& P, ClientID sender)			// Non-Zero me
 			m_file_transfers->on_message(&P, sender);
 		}break;
 	}
+	
+#ifdef DEBUG
+#	ifdef SLOW_VERIFY_ENTITIES
 	VERIFY							(verify_entities());
+#	endif
+#endif
 
 	//csPlayers.Leave					();
 	return 0;
@@ -637,7 +663,11 @@ u32 xrServer::OnMessage	(NET_Packet& P, ClientID sender)			// Non-Zero means bro
 	u16			type;
 	P.r_begin	(type);
 
+#ifdef DEBUG
+#	ifdef SLOW_VERIFY_ENTITIES
 	VERIFY							(verify_entities());
+#	endif
+#endif
 	xrClientData* CL				= ID_to_client(sender);
 
 	switch (type)
@@ -875,8 +905,12 @@ u32 xrServer::OnMessage	(NET_Packet& P, ClientID sender)			// Non-Zero means bro
 	}break;
 	}
 
+#ifdef DEBUG
+#	ifdef SLOW_VERIFY_ENTITIES
 	VERIFY							(verify_entities());
-
+#	endif
+#endif
+	
 	return							IPureServer::OnMessage(P, sender);
 }
 
@@ -974,7 +1008,7 @@ if( dbg_net_Draw_Flags.test( dbg_destroy ) )
 #endif
 	R_ASSERT					(P);
 	entities.erase				(P->ID);
-	m_tID_Generator.vfFreeID	(P->ID,Device.TimerAsync());
+	FreeID(P->ID, Device.TimerAsync());
 
 	if(P->owner && P->owner->owner==P)
 		P->owner->owner		= nullptr;
@@ -1153,10 +1187,10 @@ bool xrServer::verify_entities				() const
 	xrS_entities::const_iterator		I = entities.begin();
 	xrS_entities::const_iterator		E = entities.end();
 	for ( ; I != E; ++I) {
-		VERIFY2							((*I).first != 0xffff,"SERVER : Invalid entity id as a map key - 0xffff");
-		VERIFY2							((*I).second,"SERVER : Null entity object in the map");
-		VERIFY3							((*I).first == (*I).second->ID,"SERVER : ID mismatch - map key doesn't correspond to the real entity ID", (*I).second ? (*I).second->name_replace() : "");
-		verify_entity					((*I).second);
+		VERIFY2							(I->first != ALife::INVALID_OBJECT_ID,"SERVER : Invalid entity id as a map key - ALife::INVALID_OBJECT_ID");
+		VERIFY2							(I->second,"SERVER : Null entity object in the map");
+		VERIFY3							(I->first == I->second->ID,"SERVER : ID mismatch - map key doesn't correspond to the real entity ID", I->second ? I->second->name_replace() : "");
+		verify_entity					(I->second);
 	}
 	return								(true);
 }
@@ -1170,26 +1204,24 @@ void xrServer::verify_entity(const CSE_Abstract *entity) const
 
 	VERIFY(entity->m_wVersion!=0);
 
-	if (entity->ID_Parent != 0xffff)
+	if (entity->ID_Parent != ALife::INVALID_OBJECT_ID)
 	{
 		xrS_entities::const_iterator J = entities.find(entity->ID_Parent);
 		if (J != entities.end())
 		{
-			VERIFY3((*J).second, "SERVER : Null entity object in the map", entity->name_replace());
-			VERIFY3((*J).first == (*J).second->ID, "SERVER : ID mismatch - map key doesn't correspond to the real entity ID", (*J).second ? (*J).second->name_replace() : "");
-			VERIFY3(std::find((*J).second->children.begin(), (*J).second->children.end(), entity->ID) != (*J).second->children.end(), "SERVER : Parent/Children relationship mismatch - Object has parent, but corresponding parent doesn't have children", (*J).second ? (*J).second->name_replace() : "");
+			VERIFY3(J->second, "SERVER : Null entity object in the map", entity->name_replace());
+			VERIFY3(J->first == J->second->ID, "SERVER : ID mismatch - map key doesn't correspond to the real entity ID", J->second ? J->second->name_replace() : "");
+			VERIFY3(std::ranges::find(J->second->children, entity->ID) != J->second->children.end(), "SERVER : Parent/Children relationship mismatch - Object has parent, but corresponding parent doesn't have children", J->second ? J->second->name_replace() : "");
 		}
 	}
 
-	xr_vector<u16>::const_iterator		I = entity->children.begin();
-	xr_vector<u16>::const_iterator		E = entity->children.end();
-	for ( ; I != E; ++I) {
-		VERIFY3							(*I != 0xffff,"SERVER : Invalid entity children id - 0xffff",entity->name_replace());
-		xrS_entities::const_iterator	J = entities.find(*I);
+	for (auto ID : entity->children) {
+		VERIFY3							(ID != ALife::INVALID_OBJECT_ID,"SERVER : Invalid entity children id - ALife::INVALID_OBJECT_ID",entity->name_replace());
+		xrS_entities::const_iterator	J = entities.find(ID);
 		VERIFY3							(J != entities.end(),"SERVER : Cannot find children in the map",entity->name_replace());
-		VERIFY3							((*J).second,"SERVER : Null entity object in the map",entity->name_replace());
-		VERIFY3							((*J).first == (*J).second->ID,"SERVER : ID mismatch - map key doesn't correspond to the real entity ID", (*J).second ? (*J).second->name_replace() : "");
-		VERIFY3							((*J).second->ID_Parent == entity->ID,"SERVER : Parent/Children relationship mismatch - Object has children, but children doesn't have parent", (*J).second ? (*J).second->name_replace() : "");
+		VERIFY3							(J->second,"SERVER : Null entity object in the map",entity->name_replace());
+		VERIFY3							(J->first == J->second->ID,"SERVER : ID mismatch - map key doesn't correspond to the real entity ID", J->second ? J->second->name_replace() : "");
+		VERIFY3							(J->second->ID_Parent == entity->ID,"SERVER : Parent/Children relationship mismatch - Object has children, but children doesn't have parent", J->second ? J->second->name_replace() : "");
 	}
 }
 
@@ -1544,7 +1576,7 @@ void xrServer::OnProcessClientMapData(NET_Packet& P, ClientID const& clientID)
 	SendTo(clientID, responseP, net_flags(true, true));
 }
 
-void xrServer::Process_event_activate(NET_Packet& P, const ClientID sender, const u32 time, const u16 id_parent, const u16 id_entity, bool send_message)
+void xrServer::Process_event_activate(NET_Packet& P, const ClientID sender, const u32 time, const ALife::_OBJECT_ID id_parent, const ALife::_OBJECT_ID id_entity, bool send_message)
 {
 	// Parse message
 	CSE_Abstract* e_parent = game->get_entity_from_eid(id_parent);
@@ -1578,7 +1610,7 @@ void xrServer::Process_event_activate(NET_Packet& P, const ClientID sender, cons
 		return;
 
 
-	if (0xffff == e_entity->ID_Parent)
+	if (ALife::INVALID_OBJECT_ID == e_entity->ID_Parent)
 	{
 #ifndef MASTER_GOLD
 		Msg("~ ERROR: can't activate independant object. entity[%s:%d], parent[%s:%d], section[%s]",

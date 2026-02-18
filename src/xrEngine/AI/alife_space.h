@@ -37,7 +37,9 @@ class CGameGraph;
 
 namespace ALife {
 	typedef u64	_CLASS_ID;									// Class ID
-	typedef u16	_OBJECT_ID;									// Object ID
+	typedef u32	_OBJECT_ID;									// Object ID
+	typedef u16 _HALF_OBJECT_ID;
+	typedef u8 _QUAD_OBJECT_ID;
 	typedef u64	_TIME_ID;									// Time  ID
 	typedef u32	_EVENT_ID;									// Event ID
 	typedef u32	_TASK_ID;									// Event ID
@@ -45,6 +47,11 @@ namespace ALife {
 	typedef u16	_TERRAIN_ID;								// Terrain ID
 	typedef u32 _STORY_ID;									// Story ID
 	typedef u32 _SPAWN_STORY_ID;							// Spawn Story ID
+
+	static_assert(sizeof(_QUAD_OBJECT_ID)*2 == sizeof(_HALF_OBJECT_ID));
+	static_assert(sizeof(_HALF_OBJECT_ID)*2 == sizeof(_OBJECT_ID));
+
+	constexpr _OBJECT_ID INVALID_OBJECT_ID = ALife::_OBJECT_ID(-1);
 
 	struct SSumStackCell {
 		int						i1;

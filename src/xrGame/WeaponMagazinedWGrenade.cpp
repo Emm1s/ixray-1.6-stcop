@@ -640,7 +640,7 @@ void CWeaponMagazinedWGrenade::state_Fire(float dt)
 
 			NET_Packet P;
 			u_EventGen(P, GE_LAUNCH_ROCKET, ID());
-			P.w_u16(getCurrentRocket()->ID());
+			P << getCurrentRocket()->ID();
 			u_EventSend(P);
 		}
 	}
@@ -664,7 +664,7 @@ void CWeaponMagazinedWGrenade::LaunchGrenade_Correct(Fvector3* v)
 
 void CWeaponMagazinedWGrenade::OnEvent(NET_Packet& P, u16 type)
 {
-	u16 id;
+	ALife::_OBJECT_ID id;
 	switch (type)
 	{
 	case GE_WPN_UNLOAD_AMMO:
@@ -681,7 +681,7 @@ void CWeaponMagazinedWGrenade::OnEvent(NET_Packet& P, u16 type)
 	}break;
 	case GE_OWNERSHIP_TAKE:
 	{
-		P.r_u16(id);
+		P >> id;
 		CRocketLauncher::AttachRocket(id, this);
 	}
 	break;
@@ -689,7 +689,7 @@ void CWeaponMagazinedWGrenade::OnEvent(NET_Packet& P, u16 type)
 	case GE_LAUNCH_ROCKET:
 	{
 		bool bLaunch = (type == GE_LAUNCH_ROCKET);
-		P.r_u16(id);
+		P >> id;
 		CRocketLauncher::DetachRocket(id, bLaunch);
 		if (bLaunch)
 		{

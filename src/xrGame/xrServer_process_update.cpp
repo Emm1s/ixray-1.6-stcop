@@ -16,10 +16,10 @@ void xrServer::Process_update(NET_Packet& P, ClientID sender)
 	while (!P.r_eof())
 	{
 		// find entity
-		u16				ID;
+		ALife::_OBJECT_ID ID;
 		u8				size;
 
-		P.r_u16			(ID);
+		P >> ID;
 		P.r_u8			(size);
 		u32	_pos		= P.r_tell();
 		CSE_Abstract	*E	= ID_to_entity(ID);
@@ -44,11 +44,12 @@ void xrServer::Process_update(NET_Packet& P, ClientID sender)
 				string16	tmp;
 				CLSID2TEXT	(E->m_tClassID,tmp);
 				Debug.fatal	(DEBUG_INFO,
-					"Beer from the creator of '%s'; initiator: 0x%08x, r_tell() = %d, pos = %d, objectID = %d",
+					"Invalid netpacket read of item with CLSID '%s'; initiator: 0x%08x, r_tell() = %d, pos = %d, size = %d, objectID = %d",
 					tmp,
 					CL->ID.value(),
 					P.r_tell(), 
 					_pos,
+					size,
 					E->ID
 				);
 			}
@@ -72,10 +73,10 @@ void xrServer::Process_save(NET_Packet& P, ClientID sender)
 	while (!P.r_eof())
 	{
 		// find entity
-		u16				ID;
+		ALife::_OBJECT_ID ID;
 		u16				size;
 
-		P.r_u16			(ID);
+		P >> ID;
 		P.r_u16			(size);
 		s32				_pos_start	= P.r_tell	();
 		CSE_Abstract	*E	= ID_to_entity(ID);
