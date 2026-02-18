@@ -26,13 +26,13 @@ void CActor::OnEvent(NET_Packet& P, u16 type)
 	inherited::OnEvent			(P,type);
 	CInventoryOwner::OnEvent	(P,type);
 
-	u16 id;
+	ALife::_OBJECT_ID id;
 	switch (type)
 	{
 	case GE_TRADE_BUY:
 	case GE_OWNERSHIP_TAKE:
 		{
-			P.r_u16					(id);
+			P >> id;
 			CObject* Obj			= Level().Objects.net_Find	(id);
 
 //			R_ASSERT2( Obj, make_string<const char*>("GE_OWNERSHIP_TAKE: Object not found. object_id = [%d]", id).c_str() );
@@ -70,7 +70,7 @@ void CActor::OnEvent(NET_Packet& P, u16 type)
 				{
 					NET_Packet		P_;
 					u_EventGen		(P_,GE_OWNERSHIP_REJECT,ID());
-					P_.w_u16			(u16(Obj->ID()));
+					P_ << Obj->ID();
 					u_EventSend		(P_);
 				} else
 				{
@@ -82,7 +82,7 @@ void CActor::OnEvent(NET_Packet& P, u16 type)
 	case GE_TRADE_SELL:
 	case GE_OWNERSHIP_REJECT:
 		{
-			P.r_u16							(id);
+			P >> id;
 			CObject* Obj					= Level().Objects.net_Find	(id);
 
 //			R_ASSERT2( Obj, make_string<const char*>("GE_OWNERSHIP_REJECT: Object not found, id = %d", id).c_str() );
@@ -198,7 +198,7 @@ void CActor::OnEvent(NET_Packet& P, u16 type)
 	case GEG_PLAYER_ITEM_EAT:
 	case GEG_PLAYER_ACTIVATEARTEFACT:
 {
-			P.r_u16		(id);
+			P >> id;
 			CObject* Obj	= Level().Objects.net_Find	(id);
 
 //			R_ASSERT2( Obj, make_string<const char*>("GEG_PLAYER_ITEM_EAT(use): Object not found. object_id = [%d]", id).c_str() );
@@ -304,7 +304,8 @@ void CActor::OnEvent(NET_Packet& P, u16 type)
 		}break;
 	case GEG_PLAYER_ATTACH_HOLDER:
 		{
-			u16 id_ = P.r_u16();
+			ALife::_OBJECT_ID id_;
+			P >> id_;
 			CObject* O	= Level().Objects.net_Find	(id_);
 			if (!O){
 				Msg("! Error: No object to attach holder [%d]", id_);
@@ -325,7 +326,8 @@ void CActor::OnEvent(NET_Packet& P, u16 type)
 				break;
 			}
 
-			u16 id_ = P.r_u16();
+			ALife::_OBJECT_ID id_;
+			P >> id_;
 			CGameObject* GO = m_holder->cast_game_object();
 			VERIFY(id_ == GO->ID());
 			use_Holder(nullptr);

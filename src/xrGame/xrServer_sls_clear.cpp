@@ -9,7 +9,7 @@
 void xrServer::Perform_destroy	(CSE_Abstract* object, u32 mode)
 {
 	R_ASSERT				(object);
-	R_ASSERT				(object->ID_Parent == 0xffff);
+	R_ASSERT				(object->ID_Parent == ALife::INVALID_OBJECT_ID);
 
 #ifdef DEBUG
 #	ifdef SLOW_VERIFY_ENTITIES
@@ -31,7 +31,7 @@ void xrServer::Perform_destroy	(CSE_Abstract* object, u32 mode)
 	}
 
 //	Msg						("SLS-CLEAR : DESTROY [%s][%s]",object->name(),object->name_replace());
-	u16						object_id = object->ID;
+	auto						object_id = object->ID;
 	entity_Destroy			(object);
 
 #ifdef DEBUG
@@ -44,7 +44,7 @@ void xrServer::Perform_destroy	(CSE_Abstract* object, u32 mode)
 	P.w_begin				(M_EVENT);
 	P.w_u32					(Device.dwTimeGlobal - 2*NET_Latency);
 	P.w_u16					(GE_DESTROY);
-	P.w_u16					(object_id);
+	P << object_id;
 	SendBroadcast			(BroadcastCID,P,mode);
 }
 
@@ -64,10 +64,10 @@ void xrServer::SLS_Clear		()
 		xrS_entities::const_iterator	I = entities.begin();
 		xrS_entities::const_iterator	E = entities.end();
 		for ( ; I != E; ++I) {
-			if ((*I).second->ID_Parent != 0xffff)
+			if (I->second->ID_Parent != ALife::INVALID_OBJECT_ID)
 				continue;
 			found						= true;
-			Perform_destroy				((*I).second,mode);
+			Perform_destroy				(I->second,mode);
 			break;
 		}
 		if (!found)		//R_ASSERT(found);

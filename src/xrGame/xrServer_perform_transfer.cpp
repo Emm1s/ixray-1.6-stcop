@@ -16,15 +16,14 @@ void xrServer::Perform_transfer(NET_Packet &PR, NET_Packet &PT,	CSE_Abstract* wh
 	//Log						("B");
 
 	// 2. Detach "FROM"
-	xr_vector<u16>& C			= from->children;
-	xr_vector<u16>::iterator c	= std::find	(C.begin(),C.end(),what->ID);
+	auto& C			= from->children;
+	auto c	= std::ranges::find	(C,what->ID);
 	R_ASSERT				(C.end()!=c);
 	C.erase					(c);
 	PR.w_begin				(M_EVENT);
 	PR.w_u32				(time);
 	PR.w_u16				(GE_OWNERSHIP_REJECT);
-	PR.w_u16				(from->ID);
-	PR.w_u16				(what->ID);
+	PR << from->ID << what->ID;
 
 	// 3. Attach "TO"
 	what->ID_Parent			= to->ID;
@@ -32,8 +31,7 @@ void xrServer::Perform_transfer(NET_Packet &PR, NET_Packet &PT,	CSE_Abstract* wh
 	PT.w_begin				(M_EVENT);
 	PT.w_u32				(time+1);
 	PT.w_u16				(GE_OWNERSHIP_TAKE);
-	PT.w_u16				(to->ID);
-	PT.w_u16				(what->ID);
+	PT << to->ID << what->ID;
 
 }
 
@@ -48,8 +46,7 @@ void xrServer::Perform_reject(CSE_Abstract* what, CSE_Abstract* from, int delta)
 	P.w_begin				(M_EVENT);
 	P.w_u32					(time);
 	P.w_u16					(GE_OWNERSHIP_REJECT);
-	P.w_u16					(from->ID);
-	P.w_u16					(what->ID);
+	P << from->ID << what->ID;
 	P.w_u8					(1);
 
 	Process_event_reject	(P,BroadcastCID,time,from->ID,what->ID);

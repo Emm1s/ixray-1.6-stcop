@@ -22,11 +22,11 @@ xr_string xrServer::ent_name_safe(u16 eid)
 	return buff;
 }
 
-void xrServer::Process_event_destroy	(NET_Packet& P, ClientID sender, u32 time, u16 ID, NET_Packet* pEPack)
+void xrServer::Process_event_destroy	(NET_Packet& P, ClientID sender, u32 time, ALife::_OBJECT_ID ID, NET_Packet* pEPack)
 {
 	u32								MODE = net_flags(true,true);
 	// Parse message
-	u16								id_dest	= ID;
+	auto								id_dest	= ID;
 #ifdef DEBUG
 	if( dbg_net_Draw_Flags.test( dbg_destroy ) )
 		Msg								("sv destroy object %s [%d]", ent_name_safe(id_dest).c_str(), Device.dwFrame);
@@ -46,7 +46,7 @@ void xrServer::Process_event_destroy	(NET_Packet& P, ClientID sender, u32 time, 
 	R_ASSERT						(c_dest);
 	xrClientData					*c_from = ID_to_client(sender);	// клиент, кто прислал
 	R_ASSERT						(c_dest == c_from);							// assure client ownership of event
-	u16								parent_id = e_dest->ID_Parent;
+	auto parent_id = e_dest->ID_Parent;
 
 #ifdef MP_LOGGING
 	Msg("--- SV: Process destroy: parent [%d] item [%d][%s]", 
@@ -65,17 +65,17 @@ void xrServer::Process_event_destroy	(NET_Packet& P, ClientID sender, u32 time, 
 			Process_event_destroy		(P,sender,time,*e_dest->children.begin(), pEventPack);
 	};
 
-	if (0xffff == parent_id && nullptr == pEventPack) 
+	if (ALife::INVALID_OBJECT_ID == parent_id && nullptr == pEventPack) 
 	{
 		SendBroadcast				(BroadcastCID,P,MODE);
 	}
 	else 
 	{
 		NET_Packet	tmpP;
-		if (0xffff != parent_id && Process_event_reject(P,sender,time,parent_id,ID,false)) 
+		if (ALife::INVALID_OBJECT_ID != parent_id && Process_event_reject(P,sender,time,parent_id,ID,false)) 
 		{
 			game->u_EventGen(tmpP, GE_OWNERSHIP_REJECT, parent_id);
-			tmpP.w_u16(id_dest);
+			tmpP << id_dest;
 			tmpP.w_u8(1);
 		
 			if (!pEventPack) pEventPack = &P2;

@@ -749,7 +749,7 @@ public:
 	virtual void			OnMagazineEmpty		();
 			void			SpawnAmmo			(u32 boxCurr = 0xffffffff, 
 													const char* ammoSect = NULL, 
-													u32 ParentID = 0xffffffff);
+													ALife::_OBJECT_ID ParentID = ALife::INVALID_OBJECT_ID);
 	bool					SwitchAmmoType		(u32 flags);
 
 	virtual	float			Get_PDM_Base		()	const	{ return m_pdm.m_fPDM_disp_base			; };

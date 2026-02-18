@@ -4,7 +4,7 @@
 
 #include "../../../xrScripts/script_engine.h"
 
-bool xrServer::Process_event_reject	(NET_Packet& P, const ClientID sender, const u32 time, const u16 id_parent, const u16 id_entity, bool send_message)
+bool xrServer::Process_event_reject	(NET_Packet& P, const ClientID sender, const u32 time, const ALife::_OBJECT_ID id_parent, const ALife::_OBJECT_ID id_entity, bool send_message)
 {
 	// Parse message
 	CSE_Abstract*		e_parent	= game->get_entity_from_eid	(id_parent);
@@ -28,15 +28,15 @@ bool xrServer::Process_event_reject	(NET_Packet& P, const ClientID sender, const
 	Msg ( "--- SV: Process reject: parent[%d][%s], item[%d][%s]", id_parent, e_parent->name_replace(), id_entity, e_entity->name());
 #endif // MP_LOGGING
 
-	xr_vector<u16>& C		= e_parent->children;
-	xr_vector<u16>::iterator c	= std::find	(C.begin(),C.end(),id_entity);
+	auto& C		= e_parent->children;
+	auto c	= std::find	(C.begin(),C.end(),id_entity);
 	if (c == C.end())
 	{
 		Msg("! ERROR: SV: can't find children [%d] of parent [%d]", id_entity, e_parent);
 		return false;
 	}
 
-	if (0xffff == e_entity->ID_Parent) 
+	if (ALife::INVALID_OBJECT_ID == e_entity->ID_Parent) 
 	{
 #ifndef MASTER_GOLD
 		Msg	("! ERROR: can't detach independant object. entity[%s][%d], parent[%s][%d], section[%s]",
@@ -60,7 +60,7 @@ bool xrServer::Process_event_reject	(NET_Packet& P, const ClientID sender, const
 	game->OnDetach(id_parent,id_entity);
 
 	//R_ASSERT3(C.end()!=c,e_entity->name_replace(),e_parent->name_replace());
-	e_entity->ID_Parent		= 0xffff; 
+	e_entity->ID_Parent		= ALife::INVALID_OBJECT_ID; 
 
 	if (auto IdToErase = std::find(C.begin(), C.end(), id_entity); IdToErase != C.end())
 	{

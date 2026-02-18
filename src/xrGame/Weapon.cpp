@@ -2131,7 +2131,7 @@ void CWeapon::setCrosshairInertion(float value)
 	m_crosshair_inertion = value;
 }
 
-void CWeapon::SpawnAmmo(u32 boxCurr, const char* ammoSect, u32 ParentID) 
+void CWeapon::SpawnAmmo(u32 boxCurr, const char* ammoSect, ALife::_OBJECT_ID ParentID) 
 {
 	if(!m_ammoTypes.size())			return;
 	if (OnClient())					return;
@@ -2155,13 +2155,13 @@ void CWeapon::SpawnAmmo(u32 boxCurr, const char* ammoSect, u32 ParentID)
 		D->set_name_replace			("");
 //.		D->s_gameid					= u8(GameID());
 		D->s_RP						= 0xff;
-		D->ID						= 0xffff;
-		if (ParentID == 0xffffffff)	
-			D->ID_Parent			= (u16)H_Parent()->ID();
+		D->ID						= ALife::INVALID_OBJECT_ID;
+		if (ParentID == ALife::INVALID_OBJECT_ID)	
+			D->ID_Parent			= H_Parent()->ID();
 		else
-			D->ID_Parent			= (u16)ParentID;
+			D->ID_Parent			= ParentID;
 
-		D->ID_Phantom				= 0xffff;
+		D->ID_Phantom				= ALife::INVALID_OBJECT_ID;
 		D->s_flags.assign			(M_SPAWN_OBJECT_LOCAL);
 		D->RespawnTime				= 0;
 		l_pA->m_tNodeID				= g_dedicated_server ? u32(-1) : ai_location().level_vertex_id();

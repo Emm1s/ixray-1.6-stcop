@@ -61,7 +61,7 @@ public:
 	virtual void			load					(IReader &input_packet);
 
 
-	virtual bool			net_Spawn				(CSE_Abstract* DC);
+	bool			net_Spawn				(CSE_Abstract* DC) override;
 	virtual void			net_Destroy				();
 	virtual	bool			net_SaveRelevant		();
 

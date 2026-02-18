@@ -13,7 +13,7 @@
 #include "../eatable_item_object.h"
 #include "../../xrUI/UICursor.h"
 
-void move_item_from_to(u16 from_id, u16 to_id, u16 what_id);
+void move_item_from_to(ALife::_OBJECT_ID from_id, ALife::_OBJECT_ID to_id, ALife::_OBJECT_ID what_id);
 
 bool move_item_check( PIItem itm, CInventoryOwner* from, CInventoryOwner* to, bool weight_check )
 {
@@ -77,7 +77,7 @@ bool RemoveItemFromList(CUIDragDropListEx* lst, PIItem pItem)
 		return			false;
 }
 
-void CUIActorMenuBase::SendEvent_ActivateSlot(u16 slot, u16 recipient)
+void CUIActorMenuBase::SendEvent_ActivateSlot(u16 slot, ALife::_OBJECT_ID recipient)
 {
 	NET_Packet						P;
 	CGameObject::u_EventGen			(P, GEG_PLAYER_ACTIVATE_SLOT, recipient);
@@ -86,14 +86,14 @@ void CUIActorMenuBase::SendEvent_ActivateSlot(u16 slot, u16 recipient)
 	clear_highlight_lists			();
 }
 
-void CUIActorMenuBase::SendEvent_Item2Slot(PIItem pItem, u16 recipient, u16 slot_id)
+void CUIActorMenuBase::SendEvent_Item2Slot(PIItem pItem, ALife::_OBJECT_ID recipient, u16 slot_id)
 {
 	if(pItem->parent_id()!=recipient)
 		move_item_from_to			(pItem->parent_id(), recipient, pItem->object_id());
 
 	NET_Packet						P;
 	CGameObject::u_EventGen			(P, GEG_PLAYER_ITEM2SLOT, pItem->object().H_Parent()->ID());
-	P.w_u16							(pItem->object().ID());
+	P << pItem->object().ID();
 	P.w_u16							(slot_id);
 	CGameObject::u_EventSend		(P);
 	clear_highlight_lists			();
@@ -101,47 +101,47 @@ void CUIActorMenuBase::SendEvent_Item2Slot(PIItem pItem, u16 recipient, u16 slot
 	PlaySnd							(eItemToSlot);
 };
 
-void CUIActorMenuBase::SendEvent_Item2Belt(PIItem pItem, u16 recipient)
+void CUIActorMenuBase::SendEvent_Item2Belt(PIItem pItem, ALife::_OBJECT_ID recipient)
 {
 	if(pItem->parent_id()!=recipient)
 		move_item_from_to			(pItem->parent_id(), recipient, pItem->object_id());
 
 	NET_Packet						P;
 	CGameObject::u_EventGen			(P, GEG_PLAYER_ITEM2BELT, pItem->object().H_Parent()->ID());
-	P.w_u16							(pItem->object().ID());
+	P << pItem->object().ID();
 	CGameObject::u_EventSend		(P);
 	clear_highlight_lists			();
 
 	PlaySnd							(eItemToBelt);
 };
 
-void CUIActorMenuBase::SendEvent_Item2Ruck(PIItem pItem, u16 recipient)
+void CUIActorMenuBase::SendEvent_Item2Ruck(PIItem pItem, ALife::_OBJECT_ID recipient)
 {
 	if(pItem->parent_id()!=recipient)
 		move_item_from_to			(pItem->parent_id(), recipient, pItem->object_id());
 
 	NET_Packet						P;
 	CGameObject::u_EventGen			(P, GEG_PLAYER_ITEM2RUCK, pItem->object().H_Parent()->ID());
-	P.w_u16							(pItem->object().ID());
+	P << pItem->object().ID();
 	CGameObject::u_EventSend		(P);
 	clear_highlight_lists			();
 
 	PlaySnd							(eItemToRuck);
 };
 
-void CUIActorMenuBase::SendEvent_Item_Eat(PIItem pItem, u16 recipient)
+void CUIActorMenuBase::SendEvent_Item_Eat(PIItem pItem, ALife::_OBJECT_ID recipient)
 {
 	if(pItem->parent_id()!=recipient)
 		move_item_from_to			(pItem->parent_id(), recipient, pItem->object_id());
 
 	NET_Packet						P;
 	CGameObject::u_EventGen			(P, GEG_PLAYER_ITEM_EAT, recipient);
-	P.w_u16							(pItem->object().ID());
+	P << pItem->object().ID();
 	CGameObject::u_EventSend		(P);
 	clear_highlight_lists			();
 };
 
-void CUIActorMenuBase::SendEvent_Item_Drop(PIItem pItem, u16 recipient)
+void CUIActorMenuBase::SendEvent_Item_Drop(PIItem pItem, ALife::_OBJECT_ID recipient)
 {
 	R_ASSERT(pItem->parent_id()==recipient);
 	if (!IsGameTypeSingle())
@@ -149,7 +149,7 @@ void CUIActorMenuBase::SendEvent_Item_Drop(PIItem pItem, u16 recipient)
 	//pItem->SetDropManual			(true);
 	NET_Packet					P;
 	pItem->object().u_EventGen	(P,GE_OWNERSHIP_REJECT,pItem->parent_id());
-	P.w_u16						(pItem->object().ID());
+	P << pItem->object().ID();
 	pItem->object().u_EventSend	(P);
 	PlaySnd						(eDropItem);
 	clear_highlight_lists			();
@@ -588,9 +588,9 @@ void CUIActorMenuBase::TakeAllFromPartner(CUIWindow* w, void* d)
 
 void CUIActorMenuBase::TakeAllFromInventoryBox()
 {
-	const u16 actor_id = GetInventoryOwner()->object_id();
-	const u16 invbox_id = GetInvBox()->ID();
-	xr_vector<u16> IgnoredItemsIds = {};
+	const auto actor_id = GetInventoryOwner()->object_id();
+	const auto invbox_id = GetInvBox()->ID();
+	xr_vector<ALife::_OBJECT_ID> IgnoredItemsIds = {};
 
 	auto tryMoveLambda = [&](PIItem it) -> bool
 	{
