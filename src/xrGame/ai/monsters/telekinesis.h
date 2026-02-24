@@ -11,6 +11,7 @@ protected:
 	using TELE_OBJECTS_IT = TELE_OBJECTS::iterator;
 
 	TELE_OBJECTS			objects;
+	xr_vector<CTelekineticObject*>	telekinetic_weapons_;
 	xr_vector<ISpatialShared> m_nearest;
 	bool					active;
 

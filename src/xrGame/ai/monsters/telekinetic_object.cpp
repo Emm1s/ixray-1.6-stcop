@@ -5,6 +5,7 @@
 #include "../../../xrPhysics/MathUtils.h"
 //#include "../../PHInterpolation.h"
 //#include "../../PHElement.h"
+#include "WeaponMagazined.h"
 #include "../../Level.h"
 #include "../../GameObject.h"
 
@@ -136,6 +137,7 @@ bool CTelekineticObject::time_keep_elapsed()
 
 bool CTelekineticObject::time_fire_elapsed()
 {
+	
 	if (time_fire_started + FIRE_TIME < Device.dwTimeGlobal) return true;
 	return false;
 }
@@ -144,7 +146,7 @@ bool CTelekineticObject::time_fire_elapsed()
 void CTelekineticObject::keep()
 {
 	// проверить время последнего обновления
-	//if (time_keep_updated + KEEP_IMPULSE_UPDATE > Device.dwTimeGlobal) return;
+	// if (time_keep_updated + KEEP_IMPULSE_UPDATE > Device.dwTimeGlobal) return;
 	
 	if (!object || !object->m_pPhysicsShell || !object->m_pPhysicsShell->isActive()) return;
 
@@ -176,6 +178,11 @@ void CTelekineticObject::release()
 {
 	if (!object || !object->m_pPhysicsShell || !object->m_pPhysicsShell->isActive()) return;
 	
+	if (CWeaponMagazined* weapon_magazined = object->cast_weapon_magazined())
+	{
+		Msg("[CTelekineticObject::release()] weapon_magazined->FireEnd(); %u", Device.dwTimeGlobal);
+		weapon_magazined->FireEnd();
+	}
 	
 	Fvector dir_inv;
 	dir_inv.set(0.f,-1.0f,0.f);

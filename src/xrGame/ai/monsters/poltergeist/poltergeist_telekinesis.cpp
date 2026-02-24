@@ -1,5 +1,8 @@
+#include "debug_renderer.h"
+#include "HUDManager.h"
 #include "StdAfx.h"
 #include "poltergeist.h"
+#include "WeaponMagazined.h"
 #include "../../../PhysicsShellHolder.h"
 #include "../../../Level.h"
 #include "../../../Actor.h"
@@ -49,11 +52,152 @@ void CPolterTele::update_frame()
 	inherited::update_frame();
 }
 
+void CPolterTele::UpdateCL()
+{
+	const CEntityAlive* enemy = m_object->EnemyMan.get_enemy();
+	
+	for (CTelekineticObject* current_weapon : m_object->objects)
+	{
+		CWeaponMagazined* weapon = smart_cast<CWeaponMagazined*>(current_weapon->object);
+		
+		if (weapon == nullptr || weapon->m_pPhysicsShell == nullptr)
+			continue;
+
+		if (weapon->IsWorking() && (!enemy || !enemy->g_Alive() || !trace_object(weapon, enemy->Center())))
+		{
+			Msg("[CPolterTele::UpdateCL()] weapon->FireEnd(); %u", Device.dwTimeGlobal);
+			weapon->FireEnd();
+		}
+
+		if (weapon->GetAmmoElapsed() <= 0)
+			continue;
+		
+		if (current_weapon->get_state() != TS_Keep) 
+			continue;
+		
+		if (enemy == nullptr)
+			continue;
+		
+		// if (current_weapon->time_keep_elapsed() && enemy && weapon->GetAmmoElapsed() > 0)
+		// {
+		// 	current_weapon->time_to_keep += 1500;
+		// 	current_weapon->switch_state(TS_Keep);
+		// }
+		
+		Fvector dbg_object_center;
+		current_weapon->object->Center(dbg_object_center);
+
+
+		switch (current_weapon->get_state())
+		{
+		case TS_None:
+			g_pGameLevel->dbg_text_renderer(dbg_object_center, color_rgba(0, 255, 100, 255),
+			                                shared_str().printf("TS_NONE, keep time: %u",
+			                                                    current_weapon->time_to_keep));
+			break;
+
+		case TS_Raise:
+			g_pGameLevel->dbg_text_renderer(dbg_object_center, color_rgba(0, 255, 100, 255),
+			                                shared_str().
+			                                printf("TS_Raise, keep time: %u", current_weapon->time_to_keep));
+			break;
+
+		case TS_Fire:
+			g_pGameLevel->dbg_text_renderer(dbg_object_center, color_rgba(0, 255, 100, 255),
+			                                shared_str().printf("TS_Fire, keep time: %u",
+			                                                    current_weapon->time_to_keep));
+			break;
+
+		case TS_Keep:
+			g_pGameLevel->dbg_text_renderer(dbg_object_center, color_rgba(0, 255, 100, 255),
+			                                shared_str().printf("TS_Keep, keep time: %u, ammo elapsed: %u",
+			                                                    current_weapon->time_to_keep, weapon->GetAmmoElapsed()));
+			break;
+		}
+		
+		Fvector target_dir;
+		target_dir.sub(enemy->Center(), weapon->Center());
+		target_dir.normalize_safe();
+		
+		Fmatrix target_matix;
+		target_matix.identity();
+		target_matix.k.set(target_dir);
+
+		Fvector::generate_orthonormal_basis_normalized(
+			target_matix.k,
+			target_matix.j,
+			target_matix.i
+		);
+		
+		Fmatrix weapon_xform = weapon->XFORM();
+		Fvector curr_eulers, target_eulers;
+		weapon_xform.getXYZi(curr_eulers);
+		target_matix.getXYZi(target_eulers);
+
+		Fvector eulers_diff = {
+			angle_difference_signed(target_eulers.x, curr_eulers.x),
+			angle_difference_signed(target_eulers.y, curr_eulers.y),
+			0.f // Чтобы закренённое оружие не выравнивало.
+		};
+		
+		float object_mass = weapon->m_pPhysicsShell->getMass();
+		eulers_diff.mul(object_mass);
+		
+		weapon->m_pPhysicsShell->setTorque(zero_vel);
+		
+		dVector3 ang_vel;
+		dBodyID body = weapon->m_pPhysicsShell->get_ElementByStoreOrder(0)->get_body();
+		
+		dBodyVectorToWorld(body, eulers_diff.x, eulers_diff.y, eulers_diff.z, ang_vel);
+		dBodySetAngularVel(body, ang_vel[0], ang_vel[1], ang_vel[2]);
+		
+		Fvector to_enemy;
+		to_enemy.sub(enemy->Position(), weapon->get_LastFP());
+		to_enemy.normalize();
+				
+		Fvector weapon_dir = weapon->get_LastFD();
+		weapon_dir.normalize();
+				
+		float angle_diff = weapon_dir.dotproduct(to_enemy);
+				
+		if (angle_diff < 0.98)
+			continue;
+		
+		Fvector fire_pos = weapon->get_LastFP();
+		Fvector fire_dir = weapon->get_LastFD();
+		
+		fire_dir.normalize();
+
+		const float max_dist = 300.f;
+		collide::rq_result result;
+		
+		if (Level().ObjectSpace.RayPick(fire_pos, fire_dir, max_dist, collide::rqtBoth, result, weapon))
+		{
+			if (result.O == enemy)
+			{
+				Fvector hit_point;
+				hit_point.mad(fire_pos, fire_dir, result.range);
+				
+				HUD().world_prims.append_line(fire_pos, hit_point, color_rgba(0, 255, 0, 255));
+				
+				if (!weapon->IsWorking())
+					weapon->FireStart();
+			}
+		}
+	}
+}
+
 void CPolterTele::update_schedule()
 {
 	inherited::update_schedule();
-	
+
 	CMonsterEnemyManager& enemy = this->m_object->EnemyMan;
+	
+	if (enemy.get_enemy() == nullptr)
+		return;
+	
+	if (!enemy.get_enemy()->g_Alive())
+		return;
 	
 	const Fvector enemy_pos = enemy.get_enemy_position();
 	const float distance_to_enemy = enemy_pos.distance_to(m_object->Position());
@@ -94,6 +238,7 @@ void CPolterTele::update_schedule()
 		m_time = time();
 		m_time_next = 0;
 		m_state = eFireObjects;
+		
 	case eFireObjects:
 		if (m_time + m_time_next < time())
 		{
@@ -181,12 +326,17 @@ bool CPolterTele::trace_object(CObject *obj, const Fvector &target)
 		return false;
 
 	dir.normalize();
-
-	collide::rq_result l_rq;
-	if (Level().ObjectSpace.RayPick(trace_from, dir, range, collide::rqtBoth, l_rq, obj))
-		if (l_rq.O == this->m_object->EnemyMan.get_enemy())
-			return true;
 	
+	collide::rq_result rq_result;
+	
+	if (Level().ObjectSpace.RayPick(trace_from, dir, range, collide::rqtBoth, rq_result, obj))
+	{
+		CObject* raypicked_object = rq_result.O;
+		const CEntityAlive* our_enemy = this->m_object->EnemyMan.get_enemy();
+		
+		if (raypicked_object == our_enemy)
+			return true;
+	}
 	return false;
 }
 
@@ -375,30 +525,38 @@ struct SCollisionHitCallback : ICollisionHitCallback
 void CPolterTele::tele_fire_objects()
 {
 	const CEntityAlive* enemy = this->m_object->EnemyMan.get_enemy();
+	
 	if (enemy == nullptr)
 	{
 		return;
 	}
-
-	for (u32 i = 0; i < m_object->get_objects_total_count(); i++)
+	
+	for (CTelekineticObject* tele_object : m_object->objects)
 	{
-		CTelekineticObject tele_object = m_object->get_object_by_index(i);
-		
-		if (tele_object.get_state() == TS_Raise || tele_object.get_state() == TS_Keep)
+		if (tele_object->get_state() == TS_Keep)
 		{
-			Fvector enemy_pos = get_head_position(fast_dynamic_cast<CObject*>((CEntityAlive*)enemy));
-			CPhysicsShellHolder* hobj = tele_object.get_object();
-			CWeaponMagazined* weapon_magazined = tele_object.get_object()->cast_weapon_magazined();
-
+			Fvector enemy_head = get_head_position(fast_dynamic_cast<CObject*>(enemy));
+			CPhysicsShellHolder* hobj = tele_object->get_object();
+		
 			VERIFY(hobj);
 			hobj->set_collision_hit_callback(new SCollisionHitCallback(hobj, m_pmt_object_collision_damage));
 			
-			// Бросамемся обычными объектами.
-			m_object->fire_t(
-				tele_object.get_object(),
-				enemy_pos,
-				tele_object.get_object()->Position().distance_to(enemy_pos) / m_pmt_fly_velocity
-			);
+			CWeaponMagazined* weapon = smart_cast<CWeaponMagazined*>(tele_object->get_object());
+			
+			if (trace_object(tele_object->get_object(), enemy_head))
+			{
+				// Затычка чтоб не кидался пушками, пока они наводятся и стреляют.
+				// Нужно это потому что логика обновления авто аима и стрельбы находится в void CPolterTele::UpdateCL()
+				if (weapon && weapon->IsWorking())
+					break;
+				
+				// Если в пушке кончились патроны или это вообще не пушка, то кидаемся предметом.
+				m_object->fire_t(
+					tele_object->get_object(),
+					enemy_head,
+					tele_object->get_object()->Position().distance_to(enemy_head) / m_pmt_fly_velocity
+				);
+			}
 			break;
 		}
 	}

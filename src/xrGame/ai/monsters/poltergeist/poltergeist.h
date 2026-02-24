@@ -9,6 +9,7 @@ class CStateManagerPoltergeist;
 class CPoltergeisMovementManager;
 class CPolterSpecialAbility;
 class CPolterTele;
+class CWeaponMagazined;
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -17,8 +18,8 @@ class CPoltergeist final :	public CBaseMonster ,
 						public CTelekinesis,
 						public CEnergyHolder {
 	
-	typedef		CBaseMonster	inherited;
-	typedef		CEnergyHolder	Energy;
+	using inherited = CBaseMonster;
+	using Energy = CEnergyHolder;
 
 	friend class CPoltergeisMovementManager;
 	friend class CPolterTele;
@@ -187,6 +188,9 @@ public:
 	virtual void	on_destroy					(){}
 	virtual void	on_die						();
 	virtual void	on_hit						(SHit* pHDS);
+	virtual void	UpdateCL					() {}
+	virtual CPolterTele* cast_to_polter_tele		() { return nullptr; }
+	virtual CPolterFlame* cast_to_polter_flame		() { return nullptr; }
 };
 
 
@@ -271,6 +275,7 @@ public:
 	virtual void	update_schedule				();
 	virtual void	on_destroy					();
 	virtual void	on_die						();
+	virtual CPolterFlame* cast_to_polter_flame	() { return this; }
 
 private:
 			void	select_state				(SFlameElement *elem, EFlameState state);
@@ -306,6 +311,9 @@ class CPolterTele final : public CPolterSpecialAbility {
 
 	ref_sound			m_sound_tele_hold;
 	ref_sound			m_sound_tele_throw;
+	
+	u32					m_shoot_start;
+	u32					m_current_shoot_delay;
 
 	enum ETeleState {
 		eStartRaiseObjects,
@@ -317,13 +325,17 @@ class CPolterTele final : public CPolterSpecialAbility {
 	u32					m_time;
 	u32					m_time_next;
 
-public:	
+public:
+	xr_vector<CTelekineticObject*> m_selected_weapons;
+	
 					CPolterTele						(CPoltergeist *polter);
 	virtual			~CPolterTele					();
 
 	virtual void	load							(const char* section);
 	virtual void	update_schedule					();
 	virtual void	update_frame					();
+	virtual	void	UpdateCL						();
+	virtual CPolterTele* cast_to_polter_tele		() { return this; }
 
 private:
 			void	tele_find_objects				(xr_vector<CObject*> &objects, const Fvector &pos);

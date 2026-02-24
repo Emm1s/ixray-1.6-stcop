@@ -20,6 +20,7 @@
 #include "../../../actor_memory.h"
 #include "../../../visual_memory_manager.h"
 #include "ActorEffector.h"
+#include "Weapon.h"
 #include "../../../ActorCondition.h"
 
 void SetActorVisibility(u16 who, float value);
@@ -308,11 +309,14 @@ void CPoltergeist::renderable_Render()
 
 void CPoltergeist::UpdateCL()
 {
-	update_detection();
 	inherited::UpdateCL();
+	update_detection();
+	
+	if (CPolterTele* polter = m_tele ? m_tele->cast_to_polter_tele() : nullptr)
+		polter->UpdateCL();
+	
 	def_lerp(m_height, target_height, m_height_change_velocity, client_update_fdelta());
 	ability()->update_frame	();
-	
 }
 
 bool CPoltergeist::AlwaysTheCrow()

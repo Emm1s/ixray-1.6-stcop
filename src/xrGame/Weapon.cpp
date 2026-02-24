@@ -3184,7 +3184,7 @@ void CWeapon::SwitchState(u8 S, bool pending)
 
 	SetPending(pending);
 	SetNextState(S);
-	if (CHudItem::object().Local() && !CHudItem::object().getDestroy() && m_pInventory && OnServer())
+	if (CHudItem::object().Local() && !CHudItem::object().getDestroy() && OnServer())
 	{
 		NET_Packet P;
 		CHudItem::object().u_EventGen(P, GE_WPN_STATE_CHANGE, CHudItem::object().ID());
