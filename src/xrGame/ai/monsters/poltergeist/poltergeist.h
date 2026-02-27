@@ -372,8 +372,8 @@ private:
 	bool tele_raise_objects();
 	void throw_objects();
 	void weapon_shoot();
+	void update_weapons_behaviour();
 	bool is_weapon_ready_to_shoot(CTelekineticObject* tele_object);
-	bool is_have_raised_weapons() const;
 
 	bool trace_object(CObject* ignore_object, const Fvector& target);
 	bool trace_enemy(CTelekineticObject* ignore_object, const CObject* target);

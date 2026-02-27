@@ -112,7 +112,7 @@ void CTelekineticPoltergeist::UpdateCL()
 
 	const CEntityAlive* enemy = m_poltergeist->EnemyMan.get_enemy();
 
-	if (!enemy || !enemy->g_Alive())
+	if (!enemy)
 		return;
 
 	if (m_poltergeist->get_actor_ignore() || enemy->Position().distance_to(m_poltergeist->Position()) > m_pmt_distance)
@@ -130,8 +130,6 @@ void CTelekineticPoltergeist::UpdateCL()
 	switch (m_state)
 	{
 	case ETeleState::RAISE_OBJECTS:
-		Level().dbg_text_renderer(m_poltergeist->Position(),  color_rgba(0, 255, 100, 255), "ETeleState::RAISE_OBJECTS");
-
 		if (m_state_start_time + m_state_next_update < time())
 		{
 			if (!tele_raise_objects())
@@ -153,13 +151,11 @@ void CTelekineticPoltergeist::UpdateCL()
 		break;
 
 	case ETeleState::MAIN_PHASE:
-		// Level().dbg_text_renderer(m_poltergeist->Position(),  color_rgba(0, 255, 100, 255), "ETeleState::MAIN_PHASE");
 		weapon_shoot();
 		if (m_state_start_time + m_pmt_time_to_hold < time())
 		{
 			if (m_poltergeist->get_controlled_objects_count())
 			{
-				// Level().dbg_text_renderer(m_poltergeist->Position(),  color_rgba(0, 255, 100, 255), "ETeleState::MAIN_PHASE + THROW OBJECTS");
 				throw_objects();
 				m_state_start_time = time();
 				// m_state_next_update = m_pmt_time_to_wait_in_objects / 2 + Random.randI(
@@ -174,7 +170,6 @@ void CTelekineticPoltergeist::UpdateCL()
 		break;
 
 	case ETeleState::WAIT:
-		// Level().dbg_text_renderer(m_poltergeist->Position(),  color_rgba(0, 255, 100, 255), "ETeleState::WAIT");
 		if (m_state_start_time + m_pmt_time_to_wait < time())
 		{
 			m_state_next_update = 0;
@@ -192,13 +187,20 @@ void CTelekineticPoltergeist::UpdateWeaponAutoAim() const
 	for (CTelekineticObject* tele_object : m_poltergeist->telekinetic_objects)
 	{
 		auto weapon = smart_cast<CWeaponMagazined*>(tele_object->object);
-
+		
+		Fvector enemy_pos = enemy->Position();
+		Fvector enemy_dir = enemy_pos - weapon->Position();
+		
+		float distance_to_enemy = enemy_dir.magnitude();
+		
 		bool need_update_auto_aim =
 			weapon == nullptr ||
 			enemy == nullptr ||
 			weapon->m_pPhysicsShell == nullptr ||
 			tele_object->get_state() != TS_KEEP ||
-			weapon->GetAmmoElapsed() <= 0;
+			weapon->GetAmmoElapsed() <= 0 ||
+			distance_to_enemy > m_pmt_distance;
+				
 
 		if (need_update_auto_aim)
 			continue;
@@ -227,7 +229,8 @@ void CTelekineticPoltergeist::UpdateWeaponAutoAim() const
 		{
 			angle_difference_signed(target_eulers.x, curr_eulers.x),
 			angle_difference_signed(target_eulers.y, curr_eulers.y),
-			angle_difference_signed(target_eulers.z, curr_eulers.z) // 0.f // Чтобы закренённое оружие не выравнивало.
+			// angle_difference_signed(target_eulers.z, curr_eulers.z)
+			0.f // Чтобы закренённое оружие не выравнивало.
 		};
 
 		float object_mass = weapon->m_pPhysicsShell->getMass();
@@ -549,15 +552,15 @@ bool CTelekineticPoltergeist::is_weapon_ready_to_shoot(CTelekineticObject* tele_
 
 	if (tele_object->get_state() != TS_KEEP)
 		return false;
-
-	if (!our_enemy->g_Alive())
-		return false;
-
+	
 	if (weapon->GetAmmoElapsed() <= 0)
 		return false;
-
-	// if (!trace_enemy(tele_object, our_enemy))
-	// 	return false;
+	
+	if (!our_enemy->g_Alive())
+	{
+		weapon->FireEnd();
+		return false;
+	}
 	
 	Fvector fire_pos = weapon->get_LastFP();
 	Fvector weapon_dir = weapon->get_LastFD();
@@ -567,24 +570,26 @@ bool CTelekineticPoltergeist::is_weapon_ready_to_shoot(CTelekineticObject* tele_
 	float dist_to_target = dir_to_target.magnitude();
 	dir_to_target.normalize();
 	
-	Fvector end_pos;
-	end_pos.mad(fire_pos, weapon_dir, dist_to_target);
-	HUD().world_prims.append_line(fire_pos, end_pos, color_rgba(0, 255, 0, 255));
-	
-	// float angle_diff = weapon_dir.dotproduct(dir_to_target);
+	if (dist_to_target > m_pmt_distance)
+	{
+		weapon->FireEnd();
+		return false;
+	}
 	
 	collide::rq_result rq_result;
 	
-	if (Level().ObjectSpace.RayPick(fire_pos, weapon_dir, 300.f, collide::rqtBoth, rq_result, weapon))
-		return rq_result.O == our_enemy;
+	if (Level().ObjectSpace.RayPick(fire_pos, weapon_dir, dist_to_target, collide::rqtBoth, rq_result, weapon))
+	{
+		if (rq_result.O != our_enemy)
+		{
+			weapon->FireEnd();
+			return false;
+		}
+		
+		Fvector end_pos;
+		end_pos.mad(fire_pos, weapon_dir, rq_result.range);
+		HUD().world_prims.append_line(fire_pos, end_pos, color_rgba(0, 255, 0, 255));
+		
+		return true;
+	}
 }
-
-bool CTelekineticPoltergeist::is_have_raised_weapons() const
-{
-	return std::any_of(m_poltergeist->telekinetic_objects.begin(), m_poltergeist->telekinetic_objects.end(),
-	                   [](CTelekineticObject* object)
-	                   {
-		                   return smart_cast<CWeaponMagazined*>(object->get_object()) != nullptr;
-	                   });
-}
-

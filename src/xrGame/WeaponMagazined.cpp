@@ -1253,48 +1253,27 @@ void CWeaponMagazined::state_Fire(float dt)
 		Fvector					p1, d; 
 		p1.set(get_LastFP());
 		d.set(get_LastFD());
+		
+		if(!IsGameTypeSingle())
+		{
+			if (smart_cast<CMPPlayersBag*>(H_Parent()) != nullptr)
+			{
+				Msg("! WARNING: state_Fire of object [%d][%s] while parent is CMPPlayerBag...", ID(), cNameSect().c_str());
+				{
+					StopShooting();
+					return;
+				}
+			}
+		}
 
-		// if (!H_Parent())
-		// {
-		// 	StopShooting();
-		// 	return;
-		// }
-		// CGameObject* GO = H_Parent()->cast_game_object();
-		// if (!GO || GO->getDestroy())
-		// {
-		// 	StopShooting();
-		// 	return;
-		// }
-
-		// if(!IsGameTypeSingle())
-		// {
-		// 	if (smart_cast<CMPPlayersBag*>(GO) != nullptr)
-		// 	{
-		// 		Msg("! WARNING: state_Fire of object [%d][%s] while parent is CMPPlayerBag...", ID(), cNameSect().c_str());
-		// 		{
-		// 			StopShooting();
-		// 			return;
-		// 		}
-		// 	}
-		// }
-
-		// CEntity* entity = GO->cast_entity();
-		// if (!entity)
-		// {
-		// 	StopShooting();
-		// 	return;
-		// }
-		// CInventoryOwner* inventory_owner = entity->cast_inventory_owner();
-		// if (!inventory_owner || !inventory_owner->m_inventory)
-		// {
-		// 	StopShooting();
-		// 	return;
-		// }
-		// entity->g_fireParams	(this, p1,d);
-		//
-		// if( !entity->g_stateFire() )
-		// 	StopShooting();
-
+		if (CEntity* entity = H_Parent() ? H_Parent()->cast_entity() : nullptr)
+		{
+			entity->g_fireParams(this, p1,d);
+			
+			if (!entity->g_stateFire())
+				StopShooting();
+		}
+		
 		if (m_iShotNum == 0)
 		{
 			m_vStartPos = p1;

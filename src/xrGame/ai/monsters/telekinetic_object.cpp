@@ -4,6 +4,7 @@
 #include "../../../xrPhysics/PhysicsShell.h"
 #include "../../../xrPhysics/MathUtils.h"
 #include "WeaponMagazined.h"
+#include "Grenade.h"
 #include "../../Level.h"
 #include "../../GameObject.h"
 
@@ -239,10 +240,7 @@ void CTelekineticObject::release()
 	if (!object || !object->m_pPhysicsShell || !object->m_pPhysicsShell->isActive()) return;
 
 	if (CWeaponMagazined* weapon_magazined = object->cast_weapon_magazined())
-	{
-		Msg("[CTelekineticObject::release()] weapon_magazined->FireEnd(); %u", Device.dwTimeGlobal);
-		weapon_magazined->FireEnd();
-	}
+		weapon_magazined->FireEnd(); // на всякий случай
 
 	Fvector dir_inv;
 	dir_inv.set(0.f, -1.0f, 0.f);
@@ -254,7 +252,6 @@ void CTelekineticObject::release()
 		// приложить небольшую силу для того, чтобы объект начал падать
 		object->m_pPhysicsShell->applyImpulse(dir_inv, 0.5f * object->m_pPhysicsShell->getMass());
 	}
-	//state = TS_None;
 	switch_state(TS_NONE);
 }
 
@@ -267,6 +264,15 @@ void CTelekineticObject::throw_object_t(const Fvector& target, float time)
 
 	// включить гравитацию
 	object->m_pPhysicsShell->set_ApplyByGravity(true);
+	
+	if (auto grenade = smart_cast<CGrenade*>(object))
+	{
+		if (grenade->destroy_time() == 0xffffffff)
+		{
+			grenade->State(CGrenade::eThrowStart);
+			grenade->set_destroy_time(Random.randI(1000, 2500));
+		}
+	}
 
 	Fvector transference;
 	transference.sub(target, object->Position());
