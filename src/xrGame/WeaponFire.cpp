@@ -267,6 +267,7 @@ void CWeapon::StopShooting()
 
 	StopShotEffector();
 	StopPattern();
+	StopLight();
 
 	bWorking = false;
 }

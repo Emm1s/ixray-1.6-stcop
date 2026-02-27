@@ -3438,7 +3438,7 @@ void CWeaponMagazined::SwitchGaussScreen()
 void CWeaponMagazined::OnH_A_Chield()
 {
 	SetQueueSize(H_Parent() && H_Parent()->cast_actor() ? GetCurrentFireMode() : -1);
-
+	StopShooting();
 	inherited::OnH_A_Chield();
 };
 

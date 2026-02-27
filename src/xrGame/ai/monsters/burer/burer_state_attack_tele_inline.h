@@ -271,9 +271,9 @@ void CStateBurerAttackTele<Object>::FireAllToEnemy()
 	Fvector enemy_pos;
 	enemy_pos	= get_head_position(const_cast<CEntityAlive*>(this->object->EnemyMan.get_enemy()));
 
-	for ( u32 i=0; i<this->object->CTelekinesis::get_objects_count(); ++i ) 
+	for ( u32 i=0; i<this->object->CTelekinesis::get_controlled_objects_count(); ++i ) 
 	{
-		u32 const prev_num_objects				=	this->object->CTelekinesis::get_objects_count();
+		u32 const prev_num_objects				=	this->object->CTelekinesis::get_controlled_objects_count();
 
 		CPhysicsShellHolder* const cur_object	=	this->object->CTelekinesis::get_object_by_index(i).object;
 		if ( !cur_object )
@@ -283,9 +283,9 @@ void CStateBurerAttackTele<Object>::FireAllToEnemy()
 		float const dist_to_enemy				=	cur_object->Position().distance_to(enemy_pos);
 		float const	fire_time					=	dist_to_enemy / this->object->m_tele_fly_velocity;
 
-		this->object->CTelekinesis::fire_t				(cur_object, enemy_pos, fire_time);
+		this->object->CTelekinesis::throw_object_t				(cur_object, enemy_pos, fire_time);
 
-		u32 const new_num_objects				=	this->object->CTelekinesis::get_objects_count();
+		u32 const new_num_objects				=	this->object->CTelekinesis::get_controlled_objects_count();
 		if ( new_num_objects < prev_num_objects )
 		{
 			VERIFY									(new_num_objects == prev_num_objects-1);
@@ -310,10 +310,10 @@ void CStateBurerAttackTele<Object>::ExecuteTeleContinue()
 	CTelekineticObject tele_object;
 
 	u32 i=0;
-	while (i < this->object->CTelekinesis::get_objects_count()) {
+	while (i < this->object->CTelekinesis::get_controlled_objects_count()) {
 		tele_object = this->object->CTelekinesis::get_object_by_index(i);
 
-		if ((tele_object.get_state() == TS_Keep) && (tele_object.time_keep_started + 1500 < Device.dwTimeGlobal)) {
+		if ((tele_object.get_state() == TS_KEEP) && (tele_object.time_keep_started + 1500 < Device.dwTimeGlobal)) {
 
 			object_found = true;
 			break;
@@ -343,7 +343,7 @@ void CStateBurerAttackTele<Object>::ExecuteTeleFire()
 	float const dist_to_enemy		=	selected_object->Position().distance_to(enemy_pos);
 	float const	fire_time			=	dist_to_enemy / this->object->m_tele_fly_velocity;
 
-	this->object->CTelekinesis::fire_t	(selected_object,enemy_pos, fire_time);
+	this->object->CTelekinesis::throw_object_t	(selected_object,enemy_pos, fire_time);
 
 	this->object->StopTeleObjectParticle	(selected_object);
 	this->object->sound().play			(CBurer::eMonsterSoundTeleAttack);
@@ -352,7 +352,7 @@ void CStateBurerAttackTele<Object>::ExecuteTeleFire()
 template <typename Object>
 bool CStateBurerAttackTele<Object>::IsActiveObjects()
 {
-	return (this->object->CTelekinesis::get_objects_count() > 0);
+	return (this->object->CTelekinesis::get_controlled_objects_count() > 0);
 }
 
 template <typename Object>
@@ -454,7 +454,7 @@ void CStateBurerAttackTele<Object>::SelectObjects()
 		tele_objects[i]				=	tele_objects[tele_objects.size()-1];
 		tele_objects.pop_back			();
 
-		if ( this->object->CTelekinesis::get_objects_count() >= this->object->m_tele_max_handled_objects )
+		if ( this->object->CTelekinesis::get_controlled_objects_count() >= this->object->m_tele_max_handled_objects )
 		{
 			break;
 		}
@@ -502,7 +502,7 @@ void CStateBurerAttackTele<Object>::HandleGrenades()
 		tele_obj->set_sound(this->object->sound_tele_hold, this->object->sound_tele_throw);
 		this->object->StartTeleObjectParticle(grenade);
 
-		if (this->object->CTelekinesis::get_objects_count() >= this->object->m_tele_max_handled_objects + 1)
+		if (this->object->CTelekinesis::get_controlled_objects_count() >= this->object->m_tele_max_handled_objects + 1)
 		{
 			break;
 		}

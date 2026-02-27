@@ -22,7 +22,7 @@ CTelekineticObject* CTeleWhirlwind::activate(CPhysicsShellHolder *obj, float str
 {
 	if(inherited::activate(obj,strength,height,max_time_keep,rot))
 	{
-		CTeleWhirlwindObject*o=smart_cast<CTeleWhirlwindObject*>(objects.back());
+		CTeleWhirlwindObject*o=smart_cast<CTeleWhirlwindObject*>(telekinetic_objects.back());
 		VERIFY(o);
 		o->set_throw_power(m_throw_power);
 		return o;
@@ -76,13 +76,13 @@ static bool RemovePred(CTelekineticObject *tele_object)
 void CTeleWhirlwind::clear_notrelevant()
 {
 	//убрать все объеты со старыми параметрами
-	objects.erase	(
+	telekinetic_objects.erase	(
 		std::remove_if(
-			objects.begin(),
-			objects.end(),
+			telekinetic_objects.begin(),
+			telekinetic_objects.end(),
 			&RemovePred
 		),
-		objects.end()
+		telekinetic_objects.end()
 	);
 }
 
@@ -166,7 +166,7 @@ void		CTeleWhirlwindObject::		release					()
 
 
 	if(!b_destroyed)object->m_pPhysicsShell->applyImpulse(dir_inv,impulse);
-	switch_state(TS_None);
+	switch_state(TS_NONE);
 }
 
 bool CTeleWhirlwindObject::destroy_object(const Fvector dir, float val)
@@ -282,12 +282,12 @@ void		CTeleWhirlwindObject::		raise					(float step)
 			p->setForce(Fvector().set(0,0,0));
 			p->set_LinearVel(Fvector().set(0,0,0));
 			p->set_AngularVel(Fvector().set(0,0,0));
-			switch_state(TS_Keep);
+			switch_state(TS_KEEP);
 		}
 }
 
 
-void		CTeleWhirlwindObject::		keep					()
+void		CTeleWhirlwindObject::		perform_keep_object					()
 {
 	CPhysicsShell*	p					=	get_object()	->PPhysicsShell();
 	if(!p||!p->isActive())	
@@ -328,15 +328,15 @@ void		CTeleWhirlwindObject::		keep					()
 		p->set_LinearVel(Fvector().set(0,0,0));
 		p->set_AngularVel(Fvector().set(0,0,0));
 		p->set_ApplyByGravity(true);
-		switch_state(TS_Raise);
+		switch_state(TS_RAISE);
 	}
-
 }
+
 void		CTeleWhirlwindObject::		fire					(const Fvector &target)
 {
 	//inherited::fire(target);
 }
-void		CTeleWhirlwindObject::		fire					(const Fvector &target, float power)
+void		CTeleWhirlwindObject::		throw_object					(const Fvector &target, float power)
 {
 	//inherited:: fire(target,power);
 }

@@ -21,10 +21,10 @@ public:
 	virtual		bool				can_activate			(CPhysicsShellHolder *obj);
 	virtual		void				raise					(float step);
 	virtual		void				raise_update			();
-	virtual		void				keep					();
+	virtual		void				perform_keep_object					();
 	virtual		void				release					();
 	virtual		void				fire					(const Fvector &target);
-	virtual		void				fire					(const Fvector &target, float power);
+	virtual		void				throw_object					(const Fvector &target, float power);
 	virtual		void				switch_state			(ETelekineticState new_state);
 	virtual		bool				destroy_object			(const Fvector dir,float val);
 

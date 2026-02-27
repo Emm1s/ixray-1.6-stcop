@@ -1,11 +1,11 @@
 #pragma once
 
-
-enum ETelekineticState {
-	TS_None,
-	TS_Raise,
-	TS_Keep,
-	TS_Fire,
+enum ETelekineticState
+{
+    TS_NONE,
+    TS_RAISE,
+    TS_KEEP,
+    TS_THROW,
 };
 
 class CGameObject;
@@ -16,68 +16,72 @@ class CTelekinesis;
 
 class CTelekineticObject
 {
-	ETelekineticState	state;
+    ETelekineticState state;
 
 public:
-	CPhysicsShellHolder *object;
-	CTelekinesis		*telekinesis;
-	float				target_height;
+    CPhysicsShellHolder* object;
+    CTelekinesis* telekinesis;
+    ref_sound sound_hold;
+    ref_sound sound_throw;
 
-	u32					time_keep_started;
-	u32					time_keep_updated;
-	u32					time_raise_started;
+    float target_height;
+    float strength;
 
-	u32					time_to_keep;
-	
-	u32					time_fire_started;
+    // Objects
+    u32 time_raise_started;
+    u32 time_keep_started;
+    u32 time_keep_updated;
+    u32 time_to_keep;
+    u32 time_throw_started;
 
-	float				strength;
+    // Weapon
+    u32 m_shoot_phase_end;
+    bool m_is_weapon;
+    bool m_weapon_have_target;
+    bool m_is_shooting;
 
-	bool				m_rotate;
-	
-	ref_sound			sound_hold;
-	ref_sound			sound_throw;
+    bool m_rotate;
 
-public:
-								CTelekineticObject		();
-			virtual				~CTelekineticObject		();
-	
-virtual		bool				init					(CTelekinesis* tele,CPhysicsShellHolder *obj, float s, float h, u32 ttk, bool rot = true); 
-			void				set_sound				(const ref_sound &snd_hold, const ref_sound &snd_throw);
+    CTelekineticObject();
+    virtual ~CTelekineticObject();
 
-virtual		void				raise					(float step);
-virtual		void				raise_update			();
+    virtual bool init(CTelekinesis* tele, CPhysicsShellHolder* obj, float s, float h, u32 ttk, bool rot = true);
+    void set_sound(const ref_sound& snd_hold, const ref_sound& snd_throw);
 
-			void				prepare_keep			();
-virtual		void				keep					();
-virtual		void				keep_update				();
-virtual		void				release					();
-virtual		void				fire					(const Fvector &target, float power);
-			void				fire_t					(const Fvector &target, float time);
-virtual		void				fire_update				();
-virtual		void				update_state			();
-virtual		bool				can_activate			(CPhysicsShellHolder *obj);
-			bool				is_released				(){return state==TS_None;}
-			ETelekineticState	get_state				() {return state;}
-virtual		void				switch_state			(ETelekineticState new_state);
-			CPhysicsShellHolder *get_object				() {return object;}
+    virtual void raise(float step);
+    virtual void raise_update();
 
-			bool				check_height			();
-			bool				check_raise_time_out	();
+    void prepare_keep();
+    virtual void perform_keep_object();
+    virtual void weapon_shoot();
+    virtual void keep_update();
+    virtual void release();
+    virtual void throw_object(const Fvector& target, float power);
+    void throw_object_t(const Fvector& target, float time);
+    virtual void throw_update();
+    virtual void update_state();
+    virtual bool can_activate(CPhysicsShellHolder* obj);
+    bool is_released() const { return state == TS_NONE; }
+    virtual void switch_state(ETelekineticState new_state);
+    ETelekineticState get_state() const { return state; }
+    CPhysicsShellHolder* get_object() const { return object; }
 
-			bool				time_keep_elapsed		();
-			bool				time_fire_elapsed		();
+    bool check_height() const;
+    bool check_raise_time_out() const;
 
-			
+    bool keep_time_elapsed() const;
+    bool throw_time_elapsed() const;
+    bool is_weapon() const;
+    
+    void enable() const;
 
-			void				enable					();
+    bool operator==(const CPhysicsShellHolder* obj) const
+    {
+        return object == obj;
+    }
 
-			bool				operator==				(const CPhysicsShellHolder *obj) {
-				return (object == obj);
-			}
+    void rotate() const;
 
-			void				rotate					();
 private:
-			void				update_hold_sound		();
-
+    void update_hold_sound();
 };
