@@ -251,7 +251,7 @@ void CTelekineticObject::release()
 	
 	if (OnServer())
 		object->m_pPhysicsShell->applyImpulseTrace(object->Position(), random_dir,
-		                                           object->m_pPhysicsShell->getMass() * 2.0);
+		                                           object->m_pPhysicsShell->getMass() * 2.f);
 	
 	switch_state(TS_NONE);
 }
