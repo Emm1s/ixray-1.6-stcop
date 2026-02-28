@@ -158,19 +158,18 @@ public:
 //////////////////////////////////////////////////////////////////////////
 class IPolter
 {
+	ref_sound		  m_sound_base;
 	CParticlesObject* m_particles_object;
 	CParticlesObject* m_particles_object_electro;
-
+protected:
+	CPoltergeist* m_poltergeist;
+private:
 	LPCSTR m_particles_hidden;
 	LPCSTR m_particles_damage;
 	LPCSTR m_particles_death;
 	LPCSTR m_particles_idle;
 
-	ref_sound m_sound_base;
 	u32 m_last_hit_frame;
-
-protected:
-	CPoltergeist* m_poltergeist;
 
 public:
 	IPolter(CPoltergeist* polter);

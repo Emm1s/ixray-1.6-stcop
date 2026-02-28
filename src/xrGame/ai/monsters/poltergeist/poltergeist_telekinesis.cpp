@@ -152,6 +152,7 @@ void CTelekineticPoltergeist::UpdateCL()
 
 	case ETeleState::MAIN_PHASE:
 		weapon_shoot();
+		
 		if (m_state_start_time + m_pmt_time_to_hold < time())
 		{
 			if (m_poltergeist->get_controlled_objects_count())
@@ -188,20 +189,23 @@ void CTelekineticPoltergeist::UpdateWeaponAutoAim() const
 	{
 		auto weapon = smart_cast<CWeaponMagazined*>(tele_object->object);
 		
+		if (enemy == nullptr)
+			continue;
+		
+		if (weapon == nullptr)
+			continue;
+		
 		Fvector enemy_pos = enemy->Position();
 		Fvector enemy_dir = enemy_pos - weapon->Position();
 		
 		float distance_to_enemy = enemy_dir.magnitude();
 		
 		bool need_update_auto_aim =
-			weapon == nullptr ||
-			enemy == nullptr ||
 			weapon->m_pPhysicsShell == nullptr ||
 			tele_object->get_state() != TS_KEEP ||
 			weapon->GetAmmoElapsed() <= 0 ||
 			distance_to_enemy > m_pmt_distance;
-				
-
+		
 		if (need_update_auto_aim)
 			continue;
 
@@ -229,14 +233,13 @@ void CTelekineticPoltergeist::UpdateWeaponAutoAim() const
 		{
 			angle_difference_signed(target_eulers.x, curr_eulers.x),
 			angle_difference_signed(target_eulers.y, curr_eulers.y),
-			// angle_difference_signed(target_eulers.z, curr_eulers.z)
-			0.f // Чтобы закренённое оружие не выравнивало.
+			angle_difference_signed(target_eulers.z, curr_eulers.z),
 		};
 
 		float object_mass = weapon->m_pPhysicsShell->getMass();
 		eulers_diff.mul(object_mass);
 
-		weapon->m_pPhysicsShell->setTorque(zero_vel);
+		weapon->m_pPhysicsShell->setTorque(eulers_diff);
 
 		dVector3 angular_velocity;
 		dBodyID body_id = weapon->m_pPhysicsShell->get_ElementByStoreOrder(0)->get_body();
@@ -508,8 +511,8 @@ void CTelekineticPoltergeist::throw_objects()
 			hobj->set_collision_hit_callback(new SCollisionHitCallback(hobj, m_pmt_object_collision_damage));
 
 			CWeaponMagazined* weapon = smart_cast<CWeaponMagazined*>(tele_object->get_object());
-
-			if (weapon != nullptr && weapon->GetAmmoElapsed() > 0)
+			
+			if (weapon != nullptr && (weapon->GetAmmoElapsed() > 0 && weapon->IsMisfire() != true))
 				continue;
 
 			if (trace_object(tele_object->get_object(), enemy_head))
@@ -561,6 +564,9 @@ bool CTelekineticPoltergeist::is_weapon_ready_to_shoot(CTelekineticObject* tele_
 		weapon->FireEnd();
 		return false;
 	}
+	
+	if (weapon->IsMisfire()) 
+		return false;
 	
 	Fvector fire_pos = weapon->get_LastFP();
 	Fvector weapon_dir = weapon->get_LastFD();

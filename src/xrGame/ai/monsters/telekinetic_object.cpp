@@ -11,7 +11,7 @@
 enum : u16
 {
 	KEEP_IMPULSE_UPDATE = 200,
-	FIRE_TIME = 3000,
+	DELAY_AFTER_THROW = 3000,
 	RAISE_MAX_TIME = 5000
 };
 
@@ -168,7 +168,7 @@ bool CTelekineticObject::keep_time_elapsed() const
 bool CTelekineticObject::throw_time_elapsed() const
 {
 	// time_fire_started + FIRE_TIME (3s) чтобы не сразу не захватывать только что брошенный предмет.
-	if (time_throw_started + FIRE_TIME < Device.dwTimeGlobal)
+	if (time_throw_started + DELAY_AFTER_THROW < Device.dwTimeGlobal)
 		return true;
 
 	return false;
@@ -199,7 +199,7 @@ void CTelekineticObject::perform_keep_object()
 	dir.mul(5.0f);
 
 	if (OnServer())
-		(object->m_pPhysicsShell->get_ElementByStoreOrder(0))->applyGravityAccel(dir);
+		object->m_pPhysicsShell->get_ElementByStoreOrder(0)->applyGravityAccel(dir);
 
 	// установить время последнего обновления
 	time_keep_updated = Device.dwTimeGlobal;
@@ -237,21 +237,22 @@ void CTelekineticObject::weapon_shoot()
 
 void CTelekineticObject::release()
 {
-	if (!object || !object->m_pPhysicsShell || !object->m_pPhysicsShell->isActive()) return;
+	if (!object || !object->m_pPhysicsShell)
+		return;
 
 	if (CWeaponMagazined* weapon_magazined = object->cast_weapon_magazined())
-		weapon_magazined->FireEnd(); // на всякий случай
+		weapon_magazined->FireEnd();
 
-	Fvector dir_inv;
-	dir_inv.set(0.f, -1.0f, 0.f);
-
-	// включить гравитацию
+	Fvector random_dir;
+	random_dir.random_dir();
+	random_dir.normalize();
+	
 	object->m_pPhysicsShell->set_ApplyByGravity(true);
+	
 	if (OnServer())
-	{
-		// приложить небольшую силу для того, чтобы объект начал падать
-		object->m_pPhysicsShell->applyImpulse(dir_inv, 0.5f * object->m_pPhysicsShell->getMass());
-	}
+		object->m_pPhysicsShell->applyImpulseTrace(object->Position(), random_dir,
+		                                           object->m_pPhysicsShell->getMass() * 2.0);
+	
 	switch_state(TS_NONE);
 }
 
@@ -277,7 +278,7 @@ void CTelekineticObject::throw_object_t(const Fvector& target, float time)
 	Fvector transference;
 	transference.sub(target, object->Position());
 	TransferenceToThrowVel(transference, time, object->EffectiveGravity());
-	object->m_pPhysicsShell->set_LinearVel(transference);
+	object->m_pPhysicsShell->applyImpulseTrace(object->Position(), transference, object->m_pPhysicsShell->getMass());
 
 	if (sound_throw.handle())
 		sound_throw.play_at_pos(object, object->Position());
