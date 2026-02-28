@@ -8,13 +8,6 @@
 #include "../../Level.h"
 #include "../../GameObject.h"
 
-enum : u16
-{
-	KEEP_IMPULSE_UPDATE = 200,
-	DELAY_AFTER_THROW = 3000,
-	RAISE_MAX_TIME = 5000
-};
-
 CTelekineticObject::CTelekineticObject()
 {
 	state = TS_NONE;

@@ -150,26 +150,28 @@ void CTelekineticPoltergeist::UpdateCL()
 		}
 		break;
 
+		// Главная фаза телекинеза полтера: стрельба + бросаемся предметами.
 	case ETeleState::MAIN_PHASE:
-		weapon_shoot();
+		// Обновляем поведение пушек + стреляем, в любом случае, нужно вызывать каждый кадр.
+		weapon_shoot(); 
 		
-		if (m_state_start_time + m_pmt_time_to_hold < time())
+		// Это уже каждый кадр вызывать не надо, а тольок тогда, когда время на удержание одного объекта истекло.
+		// Нужно это чтобы сразу же не кидаться поднятыми предметами.
+		if (m_state_start_time + m_pmt_time_to_hold > time() &&
+			m_state_start_time + m_state_next_update > time())
+				break;
+		
+		throw_objects();
+		m_state_start_time = time();
+		m_state_next_update = m_pmt_time_to_wait_in_objects / 2 + Random.randI(m_pmt_time_to_wait_in_objects / 2);
+		
+		if (m_poltergeist->get_controlled_objects_count() <= 0)
 		{
-			if (m_poltergeist->get_controlled_objects_count())
-			{
-				throw_objects();
-				m_state_start_time = time();
-				// m_state_next_update = m_pmt_time_to_wait_in_objects / 2 + Random.randI(
-				// 	m_pmt_time_to_wait_in_objects / 2);
-			}
-			else
-			{
-				m_state_start_time = time();
-				m_state = ETeleState::WAIT;
-			}
+			m_state_start_time = time();
+			m_state = ETeleState::WAIT;
 		}
-		break;
 
+		// Отстрелялись, откидались, ждём три секунды, перед тем как вновь поднимать предметы.
 	case ETeleState::WAIT:
 		if (m_state_start_time + m_pmt_time_to_wait < time())
 		{
@@ -185,6 +187,8 @@ void CTelekineticPoltergeist::UpdateWeaponAutoAim() const
 {
 	const CEntityAlive* enemy = m_poltergeist->EnemyMan.get_enemy();
 
+	bool dbg_iterated_weapons = true;
+	
 	for (CTelekineticObject* tele_object : m_poltergeist->telekinetic_objects)
 	{
 		auto weapon = smart_cast<CWeaponMagazined*>(tele_object->object);
@@ -200,6 +204,59 @@ void CTelekineticPoltergeist::UpdateWeaponAutoAim() const
 		
 		float distance_to_enemy = enemy_dir.magnitude();
 		
+		if (dbg_iterated_weapons)
+		{
+			shared_str state_text;
+			
+			switch (tele_object->get_state())
+			{
+			case TS_RAISE:
+				state_text = shared_str().printf("Raising %d ms", time() - tele_object->time_raise_started);
+				break;
+				
+			case TS_KEEP:
+				state_text = shared_str().printf("Keeping %d ms",
+				                                 tele_object->time_keep_started + tele_object->time_to_keep - time());
+				break;
+				
+			case TS_THROW:
+				state_text = shared_str().printf("Throw %d ms",
+				                                 tele_object->time_throw_started + DELAY_AFTER_THROW - time());
+				break;
+				
+			case TS_NONE:
+				state_text = "NONE";
+				break;
+			}
+			
+			if (tele_object->get_state() == TS_RAISE) {
+				
+			} else if (tele_object->get_state() == TS_KEEP) {
+				
+			} else {
+				
+			}
+    
+			// Формируем основную строку
+			shared_str main_text = shared_str().printf(
+				"Ammo %d/%d | Distance to enemy: %.2f | State: %s",
+				weapon->GetAmmoElapsed(), 
+				weapon->GetAmmoMagSize(),
+				distance_to_enemy,
+				state_text.c_str()
+			);
+    
+			// Отображаем текст
+			HUD().world_prims.append_text3d(weapon->Position(), main_text);
+			
+			HUD().world_prims.append_sphere(
+				weapon->Position(),
+				m_pmt_distance,
+				color_rgba(0, 255, 0, 255),
+				color_rgba(0, 255, 0, 127)
+			);
+		}
+		
 		bool need_update_auto_aim =
 			weapon->m_pPhysicsShell == nullptr ||
 			tele_object->get_state() != TS_KEEP ||
@@ -208,7 +265,7 @@ void CTelekineticPoltergeist::UpdateWeaponAutoAim() const
 		
 		if (need_update_auto_aim)
 			continue;
-
+		
 		Fvector target_dir;
 		target_dir.sub(enemy->Center(), weapon->get_LastFP());
 		target_dir.normalize_safe();

@@ -8,6 +8,13 @@ enum ETelekineticState
     TS_THROW,
 };
 
+enum ETelekineticTimings : u16
+{
+    KEEP_IMPULSE_UPDATE = 200,
+    DELAY_AFTER_THROW = 3000,
+    RAISE_MAX_TIME = 5000
+};
+
 class CGameObject;
 class CPhysicsShellHolder;
 class CTelekineticObject;
