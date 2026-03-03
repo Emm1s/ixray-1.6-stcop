@@ -20,7 +20,7 @@ public:
 	
 	// активировать объект
 	virtual CTelekineticObject* activate(CPhysicsShellHolder* obj, float strength, float height, u32 max_time_keep,
-	                                     bool rot = true);
+	                                     bool rot = true, CTelekineticObject* telekinetic_object = nullptr);
 	// деактивировать все объекты
 	void deactivate();
 	//clear objects (does not call release, but call switch to TS_None)
@@ -37,8 +37,8 @@ public:
 	// бросить объект 'obj' в позицию 'target' с учетом коэф силы 
 	void fire(CPhysicsShellHolder* obj, const Fvector& target, float power);
 	// бросить объект 'obj' в позицию 'target' с учетом коэф силы 
-	void throw_object_t(CPhysicsShellHolder* obj, const Fvector& target, float time);
-	void weapon_shoot(CPhysicsShellHolder* weapon);
+	void throw_object_time(CPhysicsShellHolder* obj, const Fvector& target, float time);
+	// void weapon_shoot(CPhysicsShellHolder* weapon);
 	// вернуть активность телекинеза
 	bool is_active() const { return active; }
 	// вернуть активность объекта		
@@ -47,6 +47,8 @@ public:
 	u32 get_controlled_objects_count() const;
 	// вернуть количество контролируемых объектов (всех)
 	u32 get_objects_total_count() { return static_cast<u32>(telekinetic_objects.size()); }
+	
+	virtual void update_telekinetic_behaviour(const CEntityAlive* enemy);
 
 
 	// вернуть объект по индексу в массиве

@@ -18,9 +18,11 @@ CTeleWhirlwind ::CTeleWhirlwind ()
 
 }
 
-CTelekineticObject* CTeleWhirlwind::activate(CPhysicsShellHolder *obj, float strength, float height, u32 max_time_keep, bool rot)
+CTelekineticObject* CTeleWhirlwind::activate(CPhysicsShellHolder *obj, float strength, float height, u32 max_time_keep, bool rot, CTelekineticObject* owner)
 {
-	if(inherited::activate(obj,strength,height,max_time_keep,rot))
+	CTeleWhirlwindObject* whirlwind_object = new CTeleWhirlwindObject();
+	
+	if(inherited::activate(obj,strength,height,max_time_keep,rot, whirlwind_object))
 	{
 		CTeleWhirlwindObject*o=smart_cast<CTeleWhirlwindObject*>(telekinetic_objects.back());
 		VERIFY(o);
@@ -166,7 +168,7 @@ void		CTeleWhirlwindObject::		release					()
 
 
 	if(!b_destroyed)object->m_pPhysicsShell->applyImpulse(dir_inv,impulse);
-	switch_state(TS_NONE);
+	switch_state(ETelekineticState::TS_NONE);
 }
 
 bool CTeleWhirlwindObject::destroy_object(const Fvector dir, float val)
@@ -282,7 +284,7 @@ void		CTeleWhirlwindObject::		raise					(float step)
 			p->setForce(Fvector().set(0,0,0));
 			p->set_LinearVel(Fvector().set(0,0,0));
 			p->set_AngularVel(Fvector().set(0,0,0));
-			switch_state(TS_KEEP);
+			switch_state(ETelekineticState::TS_KEEP);
 		}
 }
 
@@ -328,7 +330,7 @@ void		CTeleWhirlwindObject::		perform_keep_object					()
 		p->set_LinearVel(Fvector().set(0,0,0));
 		p->set_AngularVel(Fvector().set(0,0,0));
 		p->set_ApplyByGravity(true);
-		switch_state(TS_RAISE);
+		switch_state(ETelekineticState::TS_RAISE);
 	}
 }
 

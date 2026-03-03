@@ -41,11 +41,11 @@ CTelekinesis::~CTelekinesis()
 }
 
 CTelekineticObject* CTelekinesis::activate(CPhysicsShellHolder* obj, float strength, float height, u32 max_time_keep,
-                                           bool rot)
+                                           bool rot, CTelekineticObject* telekinetic_object)
 {
 	active = true;
 
-	auto tele_object = new CTelekineticObject();
+	auto tele_object = telekinetic_object ? telekinetic_object : new CTelekineticObject();
 
 	if (!tele_object->init(this, obj, strength, height, max_time_keep, rot))
 	{
@@ -53,7 +53,7 @@ CTelekineticObject* CTelekinesis::activate(CPhysicsShellHolder* obj, float stren
 		return nullptr;
 	}
 
-	// добавить объект
+	// добавить объект	
 	telekinetic_objects.push_back(tele_object);
 
 	if (!telekinetic_objects.empty())
@@ -89,7 +89,7 @@ void CTelekinesis::clear_deactivate()
 	// отпустить все объекты
 	for (CTelekineticObject* object : telekinetic_objects)
 	{
-		object->switch_state(TS_NONE);
+		object->switch_state(ETelekineticState::TS_NONE);
 		xr_delete(object);
 	}
 
@@ -165,25 +165,14 @@ void CTelekinesis::fire(CPhysicsShellHolder* obj, const Fvector& target, float p
 	(*it)->throw_object(target, power);
 }
 
-void CTelekinesis::throw_object_t(CPhysicsShellHolder* obj, const Fvector& target, float time)
+void CTelekinesis::throw_object_time(CPhysicsShellHolder* obj, const Fvector& target, float time)
 {
 	TELE_OBJECTS_IT it = std::find_if(telekinetic_objects.begin(), telekinetic_objects.end(), SFindPred(obj));
 
 	if (it == telekinetic_objects.end())
 		return;
-
-	// бросить объект
-	(*it)->throw_object_t(target, time);
-}
-
-void CTelekinesis::weapon_shoot(CPhysicsShellHolder* weapon)
-{
-	TELE_OBJECTS_IT it = std::find_if(telekinetic_objects.begin(), telekinetic_objects.end(), SFindPred(weapon));
-
-	if (it == telekinetic_objects.end())
-		return;
-
-	(*it)->weapon_shoot();
+	
+	(*it)->throw_object_time(target, time);
 }
 
 bool CTelekinesis::is_active_object(CPhysicsShellHolder* obj)
@@ -199,9 +188,9 @@ bool CTelekinesis::is_active_object(CPhysicsShellHolder* obj)
 
 void CTelekinesis::schedule_update()
 {
-	if (!active) return;
-
-	// обновить состояние объектов
+	if (!active) 
+		return;
+	
 	for (u32 i = 0; i < telekinetic_objects.size(); i++)
 	{
 		CTelekineticObject* cur_obj = telekinetic_objects[i];
@@ -221,15 +210,15 @@ void CTelekinesis::PhDataUpdate(float step)
 	{
 		switch (object->get_state())
 		{
-		case TS_RAISE:
+		case ETelekineticState::TS_RAISE:
 			object->raise(step);
 			break;
 
-		case TS_KEEP:
+		case ETelekineticState::TS_KEEP:
 			object->perform_keep_object();
 			break;
 
-		case TS_NONE:
+		case ETelekineticState::TS_NONE:
 			break;
 
 		default: ;
@@ -261,11 +250,11 @@ void CTelekinesis::PhTune(float step)
 	{
 		switch (telekinetic_object->get_state())
 		{
-		case TS_RAISE:
-		case TS_KEEP:
+		case ETelekineticState::TS_RAISE:
+		case ETelekineticState::TS_KEEP:
 			telekinetic_object->enable();
 
-		case TS_NONE:
+		case ETelekineticState::TS_NONE:
 			break;
 		default: ;
 		}
@@ -280,10 +269,24 @@ u32 CTelekinesis::get_controlled_objects_count() const
 	{
 		ETelekineticState state = object->get_state();
 
-		if (state == TS_RAISE || state == TS_KEEP)
+		if (state == ETelekineticState::TS_RAISE || state == ETelekineticState::TS_KEEP)
 			count++;
 	}
 	return count;
+}
+
+void CTelekinesis::update_telekinetic_behaviour(const CEntityAlive* enemy) 
+{
+	if (enemy == nullptr)
+		return;
+	
+	for (CTelekineticObject* telekinetic_object : telekinetic_objects)
+	{
+		if (telekinetic_object->behavior == nullptr)
+			continue;
+		
+		telekinetic_object->behavior->update(telekinetic_object, enemy);
+	}
 }
 
 // объект был удален - удалить все связи на объект

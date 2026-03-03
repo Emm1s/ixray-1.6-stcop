@@ -28,9 +28,7 @@ void SetActorVisibility(u16 who, float value);
 CPoltergeist::CPoltergeist()
 {
 	StateMan = new CStateManagerPoltergeist(this);
-
 	invisible_vel.set(0.1f, 0.1f);
-
 	m_poltergeist = nullptr;
 	m_actor_ignore = false;
 }
@@ -170,9 +168,7 @@ float CPoltergeist::get_post_process_factor() const
 
 bool CPoltergeist::check_work_condition() const
 {
-	return g_Alive() &&
-		Actor() &&
-		Actor()->g_Alive();
+	return g_Alive() && Actor() && Actor()->g_Alive();
 }
 
 void CPoltergeist::remove_pp_effector()
@@ -327,6 +323,7 @@ void CPoltergeist::renderable_Render()
 void CPoltergeist::UpdateCL()
 {
 	inherited::UpdateCL();
+	CTelekinesis::schedule_update();
 	m_poltergeist->UpdateCL();
 	update_detection();
 	def_lerp(m_height, target_height, m_height_change_velocity, client_update_fdelta());
@@ -353,7 +350,7 @@ void CPoltergeist::shedule_Update(u32 dt)
 		remove_pp_effector();
 
 	inherited::shedule_Update(dt);
-	CTelekinesis::schedule_update();
+	
 	Energy::schedule_update();
 	UpdateHeight();
 	ability()->update_schedule();

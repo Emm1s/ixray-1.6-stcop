@@ -11,7 +11,6 @@ class IPolter;
 class CTelekineticPoltergeist;
 class CWeaponMagazined;
 
-
 class CPoltergeist final : public CBaseMonster,
                            public CTelekinesis,
                            public CEnergyHolder
@@ -27,8 +26,8 @@ class CPoltergeist final : public CBaseMonster,
 
 	SMotionVel invisible_vel;
 
-
 	IPolter* m_poltergeist;
+	
 
 	xr_vector<CObject*> tele_objects;
 	bool m_actor_ignore;
@@ -50,8 +49,7 @@ class CPoltergeist final : public CBaseMonster,
 
 public:
 	bool m_detect_without_sight;
-
-public:
+	
 	CPoltergeist();
 	~CPoltergeist() override;
 
@@ -153,17 +151,12 @@ public:
 	DECLARE_SCRIPT_REGISTER_FUNCTION
 };
 
-//////////////////////////////////////////////////////////////////////////
-// Interface
-//////////////////////////////////////////////////////////////////////////
 class IPolter
 {
 	ref_sound		  m_sound_base;
 	CParticlesObject* m_particles_object;
 	CParticlesObject* m_particles_object_electro;
-protected:
-	CPoltergeist* m_poltergeist;
-private:
+	
 	LPCSTR m_particles_hidden;
 	LPCSTR m_particles_damage;
 	LPCSTR m_particles_death;
@@ -172,6 +165,8 @@ private:
 	u32 m_last_hit_frame;
 
 public:
+	CPoltergeist* m_poltergeist;
+	
 	IPolter(CPoltergeist* polter);
 	virtual ~IPolter();
 
@@ -196,9 +191,6 @@ public:
 	virtual CFlamePoltergeist* cast_to_polter_flame() { return nullptr; }
 };
 
-//////////////////////////////////////////////////////////////////////////
-// Flame
-//////////////////////////////////////////////////////////////////////////
 class CFlamePoltergeist final : public IPolter
 {
 	using inherited = IPolter;
@@ -285,11 +277,9 @@ private:
 	void create_flame(const CObject* target_object);
 };
 
-//////////////////////////////////////////////////////////////////////////
-// TELE
-//////////////////////////////////////////////////////////////////////////
 class CTelekineticPoltergeist final : public IPolter
 {
+public:
 	using inherited = IPolter;
 
 	xr_vector<ISpatialShared> m_nearest;
@@ -330,8 +320,7 @@ class CTelekineticPoltergeist final : public IPolter
 	// под контролем телекинеза (TS_KEEP), после чего он автоматически отпускается / падает
 	// (защита от "вечного" зависания объектов в воздухе)
 	u32 m_pmt_time_object_keep;
-
-
+	
 	enum class ETeleState : u8
 	{
 		RAISE_OBJECTS,
@@ -353,8 +342,7 @@ class CTelekineticPoltergeist final : public IPolter
 
 	// Через сколько обработать состояние, относительно начала точки отсчёта.
 	u32 m_state_next_update;
-
-public:
+	
 	CTelekineticPoltergeist(CPoltergeist* polter);
 	~CTelekineticPoltergeist() override;
 
@@ -362,7 +350,6 @@ public:
 	virtual void update_schedule() override;
 	virtual void update_frame() override;
 	virtual void UpdateCL() override;
-	virtual void UpdateWeaponAutoAim() const;
 
 	virtual CTelekineticPoltergeist* cast_to_polter_tele() override { return this; }
 
@@ -370,11 +357,26 @@ private:
 	void tele_find_objects(xr_vector<CObject*>& objects, const Fvector& pos);
 	bool tele_raise_objects();
 	void throw_objects();
-	void weapon_shoot();
-	void update_weapons_behaviour();
-	bool is_weapon_ready_to_shoot(CTelekineticObject* tele_object);
 
 	bool trace_object(CObject* ignore_object, const Fvector& target);
-	bool trace_enemy(CTelekineticObject* ignore_object, const CObject* target);
 };
 
+// class CTelekineticWeaponController
+// {
+// 	CTelekineticPoltergeist* telekinetic_poltergeist_;
+// 	xr_vector<CTelekineticObject*> tele_weapons_;
+// 	
+// 	void update_auto_aim(CTelekineticObject* wpn, const CEntityAlive* enemy);
+// 	void update_weapon_behaviour(CTelekineticObject* wpn, const CEntityAlive* enemy) const;
+// 	bool can_shoot(CTelekineticObject* telekinetic_weapon, const CEntityAlive* enemy) const;
+// 	void try_shoot(CTelekineticObject* telekinetic_weapon);
+// 	void debug_draw(CTelekineticObject* telekinetic_weapon, const CEntityAlive* enemy);
+//
+// public:
+// 	explicit CTelekineticWeaponController(CTelekineticPoltergeist* telekinetic_poltergeist);
+// 	~CTelekineticWeaponController();
+// 	
+// 	void register_object(CTelekineticObject* obj);
+// 	void unregister_object(CTelekineticObject* obj);
+// 	void update(const CEntityAlive* enemy);
+// };

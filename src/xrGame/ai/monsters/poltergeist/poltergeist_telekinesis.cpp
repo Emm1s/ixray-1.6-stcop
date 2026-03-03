@@ -61,10 +61,12 @@ public:
 CTelekineticPoltergeist::CTelekineticPoltergeist(CPoltergeist* polter) : inherited(polter),
                                                                          m_pmt_object_collision_damage(0.5f)
 {
+	
 }
 
 CTelekineticPoltergeist::~CTelekineticPoltergeist()
 {
+	
 }
 
 void CTelekineticPoltergeist::load(LPCSTR section)
@@ -86,6 +88,7 @@ void CTelekineticPoltergeist::load(LPCSTR section)
 	                                                     "Tele_Delay_Between_Objects_Raise_Time", 500);
 	m_pmt_fly_velocity = READ_IF_EXISTS(pSettings, r_float, section, "Tele_Fly_Velocity", 30.f);
 	m_pmt_object_collision_damage = READ_IF_EXISTS(pSettings, r_float, section, "Tele_Collision_Damage", 0.5f);
+	
 	Sound->create(m_sound_tele_hold, pSettings->r_string(section, "sound_tele_hold"),
 	              st_Effect, SOUND_TYPE_WORLD);
 	Sound->create(m_sound_tele_throw, pSettings->r_string(section, "sound_tele_throw"),
@@ -108,8 +111,6 @@ void CTelekineticPoltergeist::update_frame()
 
 void CTelekineticPoltergeist::UpdateCL()
 {
-	UpdateWeaponAutoAim();
-
 	const CEntityAlive* enemy = m_poltergeist->EnemyMan.get_enemy();
 
 	if (!enemy)
@@ -152,8 +153,7 @@ void CTelekineticPoltergeist::UpdateCL()
 
 		// Главная фаза телекинеза полтера: стрельба + бросаемся предметами.
 	case ETeleState::MAIN_PHASE:
-		// Обновляем поведение пушек + стреляем, в любом случае, нужно вызывать каждый кадр.
-		weapon_shoot(); 
+		m_poltergeist->update_telekinetic_behaviour(enemy);
 		
 		// Это уже каждый кадр вызывать не надо, а тольок тогда, когда время на удержание одного объекта истекло.
 		// Нужно это чтобы сразу же не кидаться поднятыми предметами.
@@ -161,7 +161,8 @@ void CTelekineticPoltergeist::UpdateCL()
 			m_state_start_time + m_state_next_update > time())
 				break;
 		
-		throw_objects();
+		throw_objects(); // подержали m_pmt_time_to_hold + m_state_next_update и кидаемся объектами.
+		
 		m_state_start_time = time();
 		m_state_next_update = m_pmt_time_to_wait_in_objects / 2 + Random.randI(m_pmt_time_to_wait_in_objects / 2);
 		
@@ -180,129 +181,6 @@ void CTelekineticPoltergeist::UpdateCL()
 			m_state = ETeleState::RAISE_OBJECTS;
 		}
 		break;
-	}
-}
-
-void CTelekineticPoltergeist::UpdateWeaponAutoAim() const
-{
-	const CEntityAlive* enemy = m_poltergeist->EnemyMan.get_enemy();
-
-	bool dbg_iterated_weapons = true;
-	
-	for (CTelekineticObject* tele_object : m_poltergeist->telekinetic_objects)
-	{
-		auto weapon = smart_cast<CWeaponMagazined*>(tele_object->object);
-		
-		if (enemy == nullptr)
-			continue;
-		
-		if (weapon == nullptr)
-			continue;
-		
-		Fvector enemy_pos = enemy->Position();
-		Fvector enemy_dir = enemy_pos - weapon->Position();
-		
-		float distance_to_enemy = enemy_dir.magnitude();
-		
-		if (dbg_iterated_weapons)
-		{
-			shared_str state_text;
-			
-			switch (tele_object->get_state())
-			{
-			case TS_RAISE:
-				state_text = shared_str().printf("Raising %d ms", time() - tele_object->time_raise_started);
-				break;
-				
-			case TS_KEEP:
-				state_text = shared_str().printf("Keeping %d ms",
-				                                 tele_object->time_keep_started + tele_object->time_to_keep - time());
-				break;
-				
-			case TS_THROW:
-				state_text = shared_str().printf("Throw %d ms",
-				                                 tele_object->time_throw_started + DELAY_AFTER_THROW - time());
-				break;
-				
-			case TS_NONE:
-				state_text = "NONE";
-				break;
-			}
-			
-			if (tele_object->get_state() == TS_RAISE) {
-				
-			} else if (tele_object->get_state() == TS_KEEP) {
-				
-			} else {
-				
-			}
-    
-			// Формируем основную строку
-			shared_str main_text = shared_str().printf(
-				"Ammo %d/%d | Distance to enemy: %.2f | State: %s",
-				weapon->GetAmmoElapsed(), 
-				weapon->GetAmmoMagSize(),
-				distance_to_enemy,
-				state_text.c_str()
-			);
-    
-			// Отображаем текст
-			HUD().world_prims.append_text3d(weapon->Position(), main_text);
-			
-			HUD().world_prims.append_sphere(
-				weapon->Position(),
-				m_pmt_distance,
-				color_rgba(0, 255, 0, 255),
-				color_rgba(0, 255, 0, 127)
-			);
-		}
-		
-		bool need_update_auto_aim =
-			weapon->m_pPhysicsShell == nullptr ||
-			tele_object->get_state() != TS_KEEP ||
-			weapon->GetAmmoElapsed() <= 0 ||
-			distance_to_enemy > m_pmt_distance;
-		
-		if (need_update_auto_aim)
-			continue;
-		
-		Fvector target_dir;
-		target_dir.sub(enemy->Center(), weapon->get_LastFP());
-		target_dir.normalize_safe();
-
-		Fmatrix target_matix;
-		target_matix.identity();
-		target_matix.k.set(target_dir);
-
-		Fvector::generate_orthonormal_basis_normalized(
-			target_matix.k,
-			target_matix.j,
-			target_matix.i
-		);
-
-		Fmatrix weapon_xform = weapon->XFORM();
-		Fvector curr_eulers, target_eulers;
-
-		weapon_xform.getXYZi(curr_eulers);
-		target_matix.getXYZi(target_eulers);
-
-		Fvector eulers_diff =
-		{
-			angle_difference_signed(target_eulers.x, curr_eulers.x),
-			angle_difference_signed(target_eulers.y, curr_eulers.y),
-			angle_difference_signed(target_eulers.z, curr_eulers.z),
-		};
-
-		float object_mass = weapon->m_pPhysicsShell->getMass();
-		eulers_diff.mul(object_mass);
-
-		weapon->m_pPhysicsShell->setTorque(eulers_diff);
-
-		dVector3 angular_velocity;
-		dBodyID body_id = weapon->m_pPhysicsShell->get_ElementByStoreOrder(0)->get_body();
-
-		dBodyVectorToWorld(body_id, eulers_diff.x, eulers_diff.y, eulers_diff.z, angular_velocity);
-		dBodySetAngularVel(body_id, angular_velocity[0], angular_velocity[1], angular_velocity[2]);
 	}
 }
 
@@ -381,6 +259,7 @@ bool CTelekineticPoltergeist::tele_raise_objects()
 			m_pmt_time_object_keep,
 			rotate
 		);
+		
 		tele_obj->set_sound(m_sound_tele_hold, m_sound_tele_throw);
 		return true;
 	}
@@ -413,43 +292,6 @@ bool CTelekineticPoltergeist::trace_object(CObject* obj, const Fvector& target)
 			return true;
 	}
 	return false;
-}
-
-bool CTelekineticPoltergeist::trace_enemy(CTelekineticObject* ignore_object, const CObject* target)
-{
-	if (!target)
-		return false;
-
-	auto weapon = smart_cast<CWeaponMagazined*>(ignore_object);
-
-	if (!weapon)
-		return false;
-
-	Fvector fire_pos = weapon->get_LastFP();
-	Fvector weapon_dir = weapon->get_LastFD();
-	weapon_dir.normalize();
-
-	Fvector dir_to_target = target->Center() - fire_pos;
-	float dist_to_target = dir_to_target.magnitude();
-	dir_to_target.normalize();
-
-
-	
-	Fvector end_pos;
-	end_pos.mad(fire_pos, weapon_dir, dist_to_target);
-	HUD().world_prims.append_line(fire_pos, end_pos, color_rgba(0, 255, 0, 255));
-	
-	float angle_diff = weapon_dir.dotproduct(dir_to_target);
-
-	if (angle_diff < 0.95)
-		return false;
-
-	// collide::rq_result rq_result;
-	// if (Level().ObjectSpace.RayPick(fire_pos, weapon_dir, 300.f, collide::rqtBoth, rq_result, smart_cast<CObject*>(ignore_object)))
-	// 	if (rq_result.O != target && angle_diff < 0.98f)
-	// 		return false;
-
-	return true;
 }
 
 struct SCollisionHitCallback : ICollisionHitCallback
@@ -559,7 +401,7 @@ void CTelekineticPoltergeist::throw_objects()
 
 	for (CTelekineticObject* tele_object : m_poltergeist->telekinetic_objects)
 	{
-		if (tele_object->get_state() == TS_KEEP)
+		if (tele_object->get_state() == ETelekineticState::TS_KEEP)
 		{
 			Fvector enemy_head = get_head_position(fast_dynamic_cast<CObject*>(enemy));
 			CPhysicsShellHolder* hobj = tele_object->get_object();
@@ -569,12 +411,12 @@ void CTelekineticPoltergeist::throw_objects()
 
 			CWeaponMagazined* weapon = smart_cast<CWeaponMagazined*>(tele_object->get_object());
 			
-			if (weapon != nullptr && (weapon->GetAmmoElapsed() > 0 && weapon->IsMisfire() != true))
+			if (weapon != nullptr && weapon->GetAmmoElapsed() > 0 && weapon->IsMisfire() != true)
 				continue;
 
 			if (trace_object(tele_object->get_object(), enemy_head))
 			{
-				m_poltergeist->throw_object_t(
+				m_poltergeist->throw_object_time(
 					tele_object->get_object(),
 					enemy_head,
 					tele_object->get_object()->Position().distance_to(enemy_head) / m_pmt_fly_velocity
@@ -585,74 +427,330 @@ void CTelekineticPoltergeist::throw_objects()
 	}
 }
 
-void CTelekineticPoltergeist::weapon_shoot()
-{
-	const CEntityAlive* enemy = this->m_poltergeist->EnemyMan.get_enemy();
+// void CTelekineticPoltergeist::weapon_shoot()
+// {
+// 	const CEntityAlive* enemy = this->m_poltergeist->EnemyMan.get_enemy();
+//
+// 	if (enemy == nullptr)
+// 		return;
+//
+// 	for (CTelekineticObject* tele_object : m_poltergeist->telekinetic_objects)
+// 	{
+// 		update_weapon_behaviour(tele_object);
+// 		
+// 		if (can_shoot(tele_object))
+// 		{
+// 			CWeaponMagazined* weapon = smart_cast<CWeaponMagazined*>(tele_object->get_object());
+// 			m_poltergeist->weapon_shoot(weapon);
+// 		}
+// 	}
+// }
+//
+// void CTelekineticPoltergeist::update_weapon_behaviour(CTelekineticObject* tele_object)
+// {
+// 	const CEntityAlive* our_enemy = m_poltergeist->EnemyMan.get_enemy();
+// 	
+// 	if (our_enemy == nullptr)
+// 		return;
+// 	
+// 	if (tele_object->is_weapon() == false)
+// 		return;
+// 	
+// 	CWeaponMagazined* weapon = smart_cast<CWeaponMagazined*>(tele_object->get_object());
+// 	
+// 	Fvector fire_pos = weapon->get_LastFP();
+// 	Fvector weapon_dir = weapon->get_LastFD();
+// 	weapon_dir.normalize();
+//
+// 	Fvector dir_to_target = our_enemy->Center() - fire_pos;
+// 	float dist_to_target = dir_to_target.magnitude();
+// 	float angle_difference = weapon_dir.dotproduct(dir_to_target);
+// 	
+// 	collide::rq_result rq_result;
+// 	
+// 	if (Level().ObjectSpace.RayPick(fire_pos, weapon_dir, dist_to_target, collide::rqtBoth, rq_result, weapon))
+// 	{
+// 		if (rq_result.O != our_enemy)
+// 			weapon->FireEnd();
+// 	}
+// 	
+// 	if (dist_to_target > m_pmt_distance)
+// 		weapon->FireEnd();
+// 	
+// 	if (tele_object->get_state() != ETelekineticState::TS_KEEP)
+// 		weapon->FireEnd();
+// 	
+// 	if (our_enemy->g_Alive() == false)
+// 		weapon->FireEnd();
+// 	
+// 	if (weapon->GetAmmoElapsed() <= 0)
+// 		weapon->FireEnd();
+// }
+//
+// bool CTelekineticPoltergeist::can_shoot(const CTelekineticObject* tele_object)
+// {
+// 	const CEntityAlive* our_enemy = m_poltergeist->EnemyMan.get_enemy();
+// 	auto weapon = smart_cast<CWeaponMagazined*>(tele_object->get_object());
+//
+// 	if (our_enemy == nullptr || tele_object == nullptr || weapon == nullptr)
+// 		return false;
+//
+// 	if (tele_object->get_state() != ETelekineticState::TS_KEEP)
+// 		return false;
+// 	
+// 	if (weapon->GetAmmoElapsed() <= 0)
+// 		return false;
+// 	
+// 	if (our_enemy->g_Alive() == false)
+// 		return false;
+// 	
+// 	if (weapon->IsMisfire()) 
+// 		return false;
+// 	
+// 	Fvector fire_pos = weapon->get_LastFP();
+// 	Fvector weapon_dir = weapon->get_LastFD();
+// 	weapon_dir.normalize();
+//
+// 	Fvector dir_to_target = our_enemy->Center() - fire_pos;
+// 	float dist_to_target = dir_to_target.magnitude();
+// 	dir_to_target.normalize();
+// 	
+// 	collide::rq_result rq_result;
+// 	
+// 	if (Level().ObjectSpace.RayPick(fire_pos, weapon_dir, dist_to_target, collide::rqtBoth, rq_result, weapon))
+// 	{
+// 		if (rq_result.O != our_enemy)
+// 			return false;
+// 		
+// 		Fvector end_pos;
+// 		end_pos.mad(fire_pos, weapon_dir, rq_result.range);
+// 		HUD().world_prims.append_line(fire_pos, end_pos, color_rgba(0, 255, 0, 255));
+// 		
+// 		return true;
+// 	}
+// }
 
-	if (enemy == nullptr)
-		return;
-
-	for (CTelekineticObject* tele_object : m_poltergeist->telekinetic_objects)
-	{
-		if (is_weapon_ready_to_shoot(tele_object))
-		{
-			auto weapon = smart_cast<CWeaponMagazined*>(tele_object->get_object());
-			m_poltergeist->weapon_shoot(weapon);
-		}
-	}
-}
-
-bool CTelekineticPoltergeist::is_weapon_ready_to_shoot(CTelekineticObject* tele_object)
-{
-	const CEntityAlive* our_enemy = m_poltergeist->EnemyMan.get_enemy();
-	auto weapon = smart_cast<CWeaponMagazined*>(tele_object->get_object());
-
-	if (our_enemy == nullptr || tele_object == nullptr || weapon == nullptr)
-		return false;
-
-	if (tele_object->get_state() != TS_KEEP)
-		return false;
-	
-	if (weapon->GetAmmoElapsed() <= 0)
-		return false;
-	
-	if (!our_enemy->g_Alive())
-	{
-		weapon->FireEnd();
-		return false;
-	}
-	
-	if (weapon->IsMisfire()) 
-		return false;
-	
-	Fvector fire_pos = weapon->get_LastFP();
-	Fvector weapon_dir = weapon->get_LastFD();
-	weapon_dir.normalize();
-
-	Fvector dir_to_target = our_enemy->Center() - fire_pos;
-	float dist_to_target = dir_to_target.magnitude();
-	dir_to_target.normalize();
-	
-	if (dist_to_target > m_pmt_distance)
-	{
-		weapon->FireEnd();
-		return false;
-	}
-	
-	collide::rq_result rq_result;
-	
-	if (Level().ObjectSpace.RayPick(fire_pos, weapon_dir, dist_to_target, collide::rqtBoth, rq_result, weapon))
-	{
-		if (rq_result.O != our_enemy)
-		{
-			weapon->FireEnd();
-			return false;
-		}
-		
-		Fvector end_pos;
-		end_pos.mad(fire_pos, weapon_dir, rq_result.range);
-		HUD().world_prims.append_line(fire_pos, end_pos, color_rgba(0, 255, 0, 255));
-		
-		return true;
-	}
-}
+// CTelekineticWeaponController::CTelekineticWeaponController(CTelekineticPoltergeist* telekinetic_poltergeist) :
+// 	telekinetic_poltergeist_(telekinetic_poltergeist)
+// {
+// }
+//
+// CTelekineticWeaponController::~CTelekineticWeaponController()
+// {
+// 	for (CTelekineticWeapon* telekinetic_weapon : tele_weapons_)
+// 		xr_delete(telekinetic_weapon);
+// }
+//
+// void CTelekineticWeaponController::register_object(CTelekineticObject* obj)
+// {
+// 	CTelekineticWeapon* weapon = new CTelekineticWeapon(obj);
+// 	
+// 	if (weapon->is_valid())
+// 		tele_weapons_.push_back(weapon);
+// 	else 
+// 		xr_delete(weapon);
+// }
+//
+// void CTelekineticWeaponController::unregister_object(CTelekineticObject* obj)
+// {
+// 	const auto it = std::ranges::find_if(tele_weapons_, [&](const CTelekineticWeapon* weapon)
+// 	{
+// 		return weapon->get_object() == obj->get_object();
+// 	});
+//
+// 	if (it != tele_weapons_.end())
+// 	{
+// 		xr_delete(*it);
+// 		tele_weapons_.erase(it);
+// 	}
+// }
+//
+// void CTelekineticWeaponController::update(const CEntityAlive* enemy)
+// {
+// 	for (CTelekineticWeapon* weapon : tele_weapons_)
+// 	{
+// 		if (weapon->is_valid() == false)
+// 			return;
+// 		
+// 		update_weapon_behaviour(weapon, enemy);
+// 		update_auto_aim(weapon, enemy);
+// 		debug_draw(weapon, enemy);
+// 		try_shoot(weapon);
+// 	}
+// }
+//
+// void CTelekineticWeaponController::update_auto_aim(CTelekineticWeapon* telekinetic_weapon, const CEntityAlive* enemy)
+// {
+// 	if (telekinetic_weapon->get_state() != ETelekineticState::TS_KEEP) 
+// 		return;
+// 	
+// 	if (telekinetic_weapon->get_weapon_magazined()->GetAmmoElapsed() <= 0)
+// 		return;
+// 	
+// 	Fvector target_dir;
+// 	target_dir.sub(enemy->Center(), telekinetic_weapon->get_weapon_magazined()->get_LastFP());
+// 	target_dir.normalize_safe();
+//
+// 	Fmatrix target_matrix;
+// 	target_matrix.identity();
+// 	target_matrix.k.set(target_dir);
+// 	Fvector::generate_orthonormal_basis_normalized(target_matrix.k, target_matrix.j, target_matrix.i);
+//
+// 	Fvector curr_eulers, target_eulers;
+// 	telekinetic_weapon->get_weapon_magazined()->XFORM().getXYZi(curr_eulers);
+// 	target_matrix.getXYZi(target_eulers);
+//
+// 	Fvector diff = {
+// 		angle_difference_signed(target_eulers.x, curr_eulers.x),
+// 		angle_difference_signed(target_eulers.y, curr_eulers.y),
+// 		angle_difference_signed(target_eulers.z, curr_eulers.z)
+// 	};
+//
+// 	diff.mul(telekinetic_weapon->get_weapon_magazined()->m_pPhysicsShell->getMass());
+// 	telekinetic_weapon->get_weapon_magazined()->m_pPhysicsShell->setTorque(diff);
+//
+// 	dVector3 vel;
+// 	dBodyID body = telekinetic_weapon->get_weapon_magazined()->m_pPhysicsShell->get_ElementByStoreOrder(0)->get_body();
+// 	dBodyVectorToWorld(body, diff.x, diff.y, diff.z, vel);
+// 	dBodySetAngularVel(body, vel[0], vel[1], vel[2]);
+// }
+//
+// void CTelekineticWeaponController::update_weapon_behaviour(CTelekineticWeapon* telekinetic_weapon, const CEntityAlive* enemy) const
+// {
+// 	if (enemy == nullptr)
+// 		return;
+//
+// 	Fvector fire_pos = telekinetic_weapon->weapon_->get_LastFP();
+// 	Fvector weapon_dir = telekinetic_weapon->weapon_->get_LastFD();
+// 	weapon_dir.normalize();
+//
+// 	Fvector dir_to_target = enemy->Center() - fire_pos;
+// 	float dist_to_target = dir_to_target.magnitude();
+// 	
+// 	collide::rq_result rq_result;
+//
+// 	if (Level().ObjectSpace.RayPick(fire_pos, weapon_dir, dist_to_target, collide::rqtBoth, rq_result,
+// 	                                telekinetic_weapon->weapon_))
+// 	{
+// 		if (rq_result.O != enemy)
+// 			telekinetic_weapon->weapon_->FireEnd();
+// 	}
+// 	
+// 	if (dist_to_target > telekinetic_poltergeist_->m_pmt_distance)
+// 		telekinetic_weapon->weapon_->FireEnd();
+// 	
+// 	if (telekinetic_weapon->get_state() != ETelekineticState::TS_KEEP)
+// 		telekinetic_weapon->weapon_->FireEnd();
+// 	
+// 	if (enemy->g_Alive() == false)
+// 		telekinetic_weapon->weapon_->FireEnd();
+// 	
+// 	if (telekinetic_weapon->weapon_->GetAmmoElapsed() <= 0)
+// 		telekinetic_weapon->weapon_->FireEnd();
+// }
+//
+// bool CTelekineticWeaponController::can_shoot(CTelekineticWeapon* telekinetic_weapon, const CEntityAlive* enemy) const
+// {
+// 	if (!telekinetic_weapon->is_ready_to_shoot()) 
+// 		return false;
+//
+// 	Fvector fire_pos = telekinetic_weapon->get_weapon_magazined()->get_LastFP();
+// 	Fvector fire_dir = telekinetic_weapon->get_weapon_magazined()->get_LastFD();
+// 	fire_dir.normalize();
+//
+// 	Fvector to_target = enemy->Center() - fire_pos;
+// 	float dist = to_target.magnitude();
+// 	
+// 	if (dist > telekinetic_poltergeist_->m_pmt_distance) 
+// 		return false;
+//
+// 	to_target.normalize();
+//
+// 	collide::rq_result rq_result;
+//
+// 	if (Level().ObjectSpace.RayPick(fire_pos, fire_dir, dist, collide::rqtBoth, rq_result,
+// 	                                telekinetic_weapon->get_weapon_magazined()))
+// 	{
+// 		if (rq_result.O == enemy)
+// 			return true;
+// 	}
+// 	return false;
+// }
+//
+// void CTelekineticWeaponController::try_shoot(CTelekineticWeapon* telekinetic_weapon)
+// {
+// 	if (can_shoot(telekinetic_weapon, telekinetic_poltergeist_->m_poltergeist->EnemyMan.get_enemy()))
+// 	{
+// 		if (u32 now = time(); now >= telekinetic_weapon->shoot_phase_end)
+// 		{
+// 			if (telekinetic_weapon->is_shooting)
+// 			{
+// 				telekinetic_weapon->get_weapon_magazined()->FireEnd();
+//
+// 				telekinetic_weapon->is_shooting = false;
+// 				telekinetic_weapon->shoot_phase_end = now + Random.randI(100, 1000);
+// 			}
+// 			else
+// 			{
+// 				telekinetic_weapon->get_weapon_magazined()->FireStart();
+//
+// 				telekinetic_weapon->is_shooting = true;
+// 				telekinetic_weapon->shoot_phase_end = now + Random.randI(100, 200);
+// 			}
+// 		}
+// 	}
+// }
+//
+// void CTelekineticWeaponController::debug_draw(CTelekineticWeapon* telekinetic_weapon, const CEntityAlive* enemy)
+// {
+// 	Fvector enemy_pos = enemy->Position();
+// 	Fvector enemy_dir = enemy_pos - telekinetic_weapon->weapon_->Position();
+// 		
+// 	float distance_to_enemy = enemy_dir.magnitude();
+// 	
+// 	if (bool dbg_weapons_state = true)
+// 	{
+// 		shared_str state_text;
+// 		
+// 		switch (telekinetic_weapon->get_state())
+// 		{
+// 		case ETelekineticState::TS_RAISE:
+// 			state_text = shared_str().printf("Raising %d ms", time() - telekinetic_weapon->time_raise_started);
+// 			break;
+// 			
+// 		case ETelekineticState::TS_KEEP:
+// 			state_text = shared_str().printf("Keeping %d ms",
+// 			                                 telekinetic_weapon->time_keep_started + telekinetic_weapon->time_to_keep - time());
+// 			break;
+// 			
+// 		case ETelekineticState::TS_THROW:
+// 			state_text = shared_str().printf("Throw %d ms",
+// 			                                 telekinetic_weapon->time_throw_started + DELAY_AFTER_THROW - time());
+// 			break;
+// 			
+// 		case ETelekineticState::TS_NONE:
+// 			state_text = "NONE";
+// 			break;
+// 		}
+// 		
+// 		shared_str main_text = shared_str().printf(
+// 			"Ammo %d/%d | Distance to enemy: %.2f m | State: %s",
+// 			telekinetic_weapon->weapon_->GetAmmoElapsed(), 
+// 			telekinetic_weapon->weapon_->GetAmmoMagSize(),
+// 			distance_to_enemy,
+// 			state_text.c_str()
+// 		);
+// 		
+// 		HUD().world_prims.append_text3d(telekinetic_weapon->weapon_->Position(), main_text);
+// 	}
+// 		
+// 	if (bool dbg_draw_weapon_working_sphere = false)
+// 	{
+// 		HUD().world_prims.append_sphere(
+// 			telekinetic_weapon->weapon_->Position(),
+// 			telekinetic_poltergeist_->m_pmt_distance,
+// 			color_rgba(0, 255, 0, 255),
+// 			color_rgba(0, 255, 0, 127)
+// 		);
+// 	}
+// }

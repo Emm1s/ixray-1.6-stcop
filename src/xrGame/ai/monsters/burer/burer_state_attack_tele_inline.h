@@ -283,7 +283,7 @@ void CStateBurerAttackTele<Object>::FireAllToEnemy()
 		float const dist_to_enemy				=	cur_object->Position().distance_to(enemy_pos);
 		float const	fire_time					=	dist_to_enemy / this->object->m_tele_fly_velocity;
 
-		this->object->CTelekinesis::throw_object_t				(cur_object, enemy_pos, fire_time);
+		this->object->CTelekinesis::throw_object_time				(cur_object, enemy_pos, fire_time);
 
 		u32 const new_num_objects				=	this->object->CTelekinesis::get_controlled_objects_count();
 		if ( new_num_objects < prev_num_objects )
@@ -313,7 +313,7 @@ void CStateBurerAttackTele<Object>::ExecuteTeleContinue()
 	while (i < this->object->CTelekinesis::get_controlled_objects_count()) {
 		tele_object = this->object->CTelekinesis::get_object_by_index(i);
 
-		if ((tele_object.get_state() == TS_KEEP) && (tele_object.time_keep_started + 1500 < Device.dwTimeGlobal)) {
+		if ((tele_object.get_state() == ETelekineticState::TS_KEEP) && (tele_object.time_keep_started + 1500 < Device.dwTimeGlobal)) {
 
 			object_found = true;
 			break;
@@ -343,7 +343,7 @@ void CStateBurerAttackTele<Object>::ExecuteTeleFire()
 	float const dist_to_enemy		=	selected_object->Position().distance_to(enemy_pos);
 	float const	fire_time			=	dist_to_enemy / this->object->m_tele_fly_velocity;
 
-	this->object->CTelekinesis::throw_object_t	(selected_object,enemy_pos, fire_time);
+	this->object->CTelekinesis::throw_object_time	(selected_object,enemy_pos, fire_time);
 
 	this->object->StopTeleObjectParticle	(selected_object);
 	this->object->sound().play			(CBurer::eMonsterSoundTeleAttack);
