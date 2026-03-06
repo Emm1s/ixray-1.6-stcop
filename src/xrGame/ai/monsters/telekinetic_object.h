@@ -1,5 +1,4 @@
 #pragma once
-#include "WeaponMagazined.h"
 
 enum class ETelekineticState : u8
 {
@@ -25,7 +24,6 @@ class TelekineticWeaponController;
 class CWeaponMagazined;
 class CGrenade;
 
-
 /**
  * Интерфейс для описания поведения телекинетического объекта.
  * Зачем нужно: инкапсулирует новую логику для поведения объекта, захваченного телекинезом.
@@ -33,22 +31,20 @@ class CGrenade;
  * Как использовать: 
  * 1. Создать отдельный класс контроллера, который будет описывать поведение объекта и инкапсулировать в нём логику, а
  * в конструкторе передать регистрируемый объект и унаследоваться.
- * 2. В месте инициализации объекта CTelekineticObject::init прокастить объект и создать экземпляр созданного класса из 
- * первого пункта.
- * 3. Обязательно обновлять внешние зависимости (TelekineticObject & CEntnityAlive (наш враг()) в update.
- * 5. Поведение сущности можно регуллировать через виртуальные событийные методы.
- * 
- * Надеюсь, понятно описал.
+ * 2. В месте инициализации объекта прокастить объект и создать экземпляр behavior для CTelekineticObject,
+ * прокинув ссылкой объект.
+ * 3. Обязательно обновлять внешние зависимости (TelekineticObject & CEntnityAlive (наш враг)) в update.
+ * 5. Логика в контроллере регулируется через вызываемые события.
  */
-class ITelekineticBehavior
+class ITelekineticObjectBehavior
 {
 protected:
 	const CEntityAlive* enemy_;
 	CTelekineticObject* telekinetic_object_;
 	
 public:
-	ITelekineticBehavior() = default;
-	virtual ~ITelekineticBehavior() = default;
+	ITelekineticObjectBehavior() = default;
+	virtual ~ITelekineticObjectBehavior() = default;
 
 	virtual void update(CTelekineticObject* owner, const CEntityAlive* enemy)
 	{
@@ -87,7 +83,7 @@ public:
 	{
 	}
 	
-	// Вызывается перед тем, как поднимется объект за тик кадра.
+	// Вызывается перед тем, как объект начнёт подниматься на шаг физики, либо продолжит подниматься.
 	virtual void on_raise()
 	{
 	}
@@ -96,6 +92,13 @@ public:
 	// (инкапсулированный telekinetic_object_)
 	virtual void on_state_switch(ETelekineticState prev_state, ETelekineticState new_state)
 	{
+	}
+	
+	// Вызвыается кажыдый раз, когда предмет бросается. 
+	// Здесь описывается логика, при каких обстоятельствах предмет бросится.
+	virtual bool can_be_thrown()
+	{
+		return true;
 	}
 };
 
@@ -108,7 +111,7 @@ public:
     CTelekinesis* telekinesis;
     ref_sound sound_hold;
     ref_sound sound_throw;
-    ITelekineticBehavior* behavior;
+    ITelekineticObjectBehavior* behavior;
 
     float target_height;
     float strength;
@@ -164,37 +167,49 @@ private:
     void update_hold_sound();
 };
 
-class TelekineticWeaponController : public ITelekineticBehavior
+class TelekineticWeaponController : public ITelekineticObjectBehavior
 {
+	using inherited = ITelekineticObjectBehavior;
+	
     CWeaponMagazined* weapon_;
+	const CEntityAlive* prev_enemy;
 	
 	u32 shoot_phase_end;
+	
+	s8 backup_weapon_fire_mode = FLT_MAX;
+	float backup_weapon_dispersion = FLT_MAX;
+	
 	bool is_shooting;
-    
+	
 public:
 	explicit TelekineticWeaponController(CWeaponMagazined* weapon);
 
 	void update(CTelekineticObject* owner, const CEntityAlive* enemy) override;
+	void setup_local_weapon_things();
+	void restore_global_weapon_things() const;
 	void on_perform_keep_object() override;
-	void debug_draw();
+	void debug_draw() const;
 	void update_auto_aim() const;
-	void update_weapon_state() const;
-	void on_keep_elapsed() override;
     bool can_shoot() const;
+	void on_keep_elapsed() override;
+	void on_release() override;
 	void shoot();
+	bool can_be_thrown() override;
+	void on_state_switch(ETelekineticState prev_state, ETelekineticState new_state) override;
 };
 
-class TelekineticGrenadeController : public ITelekineticBehavior
-{
-	CGrenade* grenade_;
-	u32 grenade_initial_time = 0xffffffff;
-	
-public:
-	explicit TelekineticGrenadeController(CGrenade* grenade) : grenade_(grenade)
-	{
-	}
-	
-	void update(CTelekineticObject* owner, const CEntityAlive* enemy) override;
-	void on_throw_object_time() override;
-	void on_raise() override;
-};
+// class TelekineticGrenadeController : public ITelekineticObjectBehavior
+// {
+// 	using inherited = ITelekineticObjectBehavior;
+// 	
+// 	CGrenade* grenade_;
+// 	u32 grenade_initial_time = 0xffffffff;
+// 	
+// public:
+// 	explicit TelekineticGrenadeController(CGrenade* grenade);
+//
+// 	void update(CTelekineticObject* owner, const CEntityAlive* enemy) override;
+// 	void on_throw_object_time() override;
+// 	void on_perform_keep_object() override;
+// 	bool can_be_thrown() override;
+// };

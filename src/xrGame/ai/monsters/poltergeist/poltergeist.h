@@ -3,6 +3,7 @@
 #include "../telekinesis.h"
 #include "../energy_holder.h"
 #include "../../../../xrScripts/script_export_space.h"
+#include "Grenade.h"
 
 class CPhysicsShellHolder;
 class CStateManagerPoltergeist;
@@ -10,6 +11,7 @@ class CPoltergeisMovementManager;
 class IPolter;
 class CTelekineticPoltergeist;
 class CWeaponMagazined;
+class CGrenade;
 
 class CPoltergeist final : public CBaseMonster,
                            public CTelekinesis,

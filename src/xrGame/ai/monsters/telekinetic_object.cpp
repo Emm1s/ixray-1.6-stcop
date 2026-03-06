@@ -8,6 +8,8 @@
 #include "HUDManager.h"
 #include "../../Level.h"
 
+extern ESingleGameDifficulty g_SingleGameDifficulty; 
+
 CTelekineticObject::CTelekineticObject()
 {
 	state = ETelekineticState::TS_NONE;
@@ -41,16 +43,6 @@ bool CTelekineticObject::init(CTelekinesis* tele, CPhysicsShellHolder* obj, floa
 
 	if (object->m_pPhysicsShell)
 		object->m_pPhysicsShell->set_ApplyByGravity(false);
-	
-	// Ниже регается behaviour у TelekineticObject, на основе типа объекта.
-	
-	if (CWeaponMagazined* weapon_magazined = smart_cast<CWeaponMagazined*>(obj))
-		behavior = new TelekineticWeaponController(weapon_magazined);
-
-	if (CGrenade* grenade = smart_cast<CGrenade*>(obj))
-		behavior = new TelekineticGrenadeController(grenade);
-	
-	// Выше регается behaviour у TelekineticObject, на основе типа объекта.
 	
 	return true;
 }
@@ -171,7 +163,6 @@ bool CTelekineticObject::keep_time_elapsed() const
 
 bool CTelekineticObject::throw_time_elapsed() const
 {
-	// time_fire_started + FIRE_TIME (3s) чтобы не сразу не захватывать только что брошенный предмет.
 	if (time_throw_started + DELAY_AFTER_THROW < time())
 	{
 		if (behavior != nullptr) 
@@ -212,25 +203,6 @@ void CTelekineticObject::perform_keep_object()
 
 	if (OnServer())
 		object->m_pPhysicsShell->get_ElementByStoreOrder(0)->applyGravityAccel(dir);
-	
-	// if (last_slide_time + delay_between_weapon_slides < time())
-	// {
-	// 	Fvector random_dir;
-	// 	Fvector object_position = object->Position();
-	// 	
-	// 	float horizontal_angle = Random.randF(0, 2.f * M_PI);
-	// 	
-	// 	random_dir.x = sinf(horizontal_angle);
-	// 	random_dir.y = 0.1f;
-	// 	random_dir.z = cosf(horizontal_angle);
-	// 	
-	// 	random_dir.normalize();
-	// 	
-	// 	object->m_pPhysicsShell->applyImpulseTrace(object_position, random_dir, object->GetMass() * 5.0f);
-	// 	
-	// 	last_slide_time = time();
-	// 	delay_between_weapon_slides = Random.randI(500, 1500);
-	// }
 	
 	time_keep_updated = Device.dwTimeGlobal;
 	update_hold_sound();
@@ -357,16 +329,79 @@ void CTelekineticObject::update_hold_sound()
 		sound_hold.play_at_pos(object, object->Position());
 }
 
+// --- WEAPON CONTROLLER ---
+
+#pragma optimize("", off)
+
 TelekineticWeaponController::TelekineticWeaponController(CWeaponMagazined* weapon) :
 	weapon_(weapon), 
-	shoot_phase_end(0),
+	prev_enemy(nullptr),
+	shoot_phase_end(time() + Random.randI(500, 1000)),
 	is_shooting(false)
 {
+	
 }
 
 void TelekineticWeaponController::update(CTelekineticObject* owner, const CEntityAlive* enemy)
 {
-	ITelekineticBehavior::update(owner, enemy);
+	inherited::update(owner, enemy);
+}
+
+void TelekineticWeaponController::setup_local_weapon_things()
+{
+	if (enemy_ == nullptr)
+		return;
+	
+	if (weapon_ == nullptr)
+		return;
+	
+	if (IsGameTypeSingle() == false)
+		return;
+	
+	backup_weapon_dispersion = weapon_->getFireDispersionBase();
+	backup_weapon_fire_mode = weapon_->GetQueueSize();
+	
+	// WEAPON_ININITE_QUEUE (-1) = auto, 1 = single, 3 = burst
+	weapon_->SetQueueSize(WEAPON_ININITE_QUEUE); // чтобы пистолетам задать режим стрельбы auto
+	
+	CActor* actor = smart_cast<CActor*>(enemy_);
+	
+	if (actor != nullptr)
+	{
+		switch (g_SingleGameDifficulty)
+		{
+		case egdNovice:
+			weapon_->setFireDispersionBase(0.20f);
+			break;
+		
+		case egdStalker:
+			weapon_->setFireDispersionBase(0.17f);
+			break;
+		
+		case egdVeteran:
+			weapon_->setFireDispersionBase(0.15f);
+			break;
+		
+		case egdMaster:
+			weapon_->setFireDispersionBase(0.13f);
+			break;
+		
+		default:
+			weapon_->setFireDispersionBase(backup_weapon_dispersion);
+		}
+	} 
+	else
+		// Очень большой разброс, чтобы у болванчиков были шансы против полтера.
+		weapon_->setFireDispersionBase(0.25f);
+}
+
+void TelekineticWeaponController::restore_global_weapon_things() const
+{
+	if (weapon_ == nullptr)
+		return;
+	
+	weapon_->SetQueueSize(backup_weapon_fire_mode);
+	weapon_->setFireDispersionBase(backup_weapon_dispersion);
 }
 
 void TelekineticWeaponController::on_perform_keep_object()
@@ -382,7 +417,7 @@ void TelekineticWeaponController::on_perform_keep_object()
 	shoot();
 }
 
-void TelekineticWeaponController::debug_draw()
+void TelekineticWeaponController::debug_draw() const
 {
 	Fvector enemy_pos = enemy_->Position();
 	Fvector enemy_dir = enemy_pos - weapon_->Position();
@@ -415,12 +450,45 @@ void TelekineticWeaponController::debug_draw()
 		break;
 	}
         
+	shared_str queue_type;
+	
+	switch (weapon_->GetQueueSize())
+	{
+	case WEAPON_ININITE_QUEUE:
+		queue_type = "AUTO";
+		break;
+		
+	case 0:
+		queue_type = "SINGLE";
+		break;
+		
+	case 1:
+		queue_type = "BURST";
+		break;
+	}
+	
+	shared_str time_to_shoot_end;
+
+	switch (is_shooting)
+	{
+	case true:
+		time_to_shoot_end = shared_str().printf("Time to shoot end: %u", shoot_phase_end - time());	
+		break;
+		
+	case false:
+		time_to_shoot_end = shared_str().printf("Time to start shoot: %u", shoot_phase_end - time());	
+		break;
+	}
+	
 	shared_str main_text = shared_str().printf(
-		"Ammo %d/%d | Distance to enemy: %.2f m | State: %s",
+		"Ammo %d/%d | Distance to enemy: %.2f m | State: %s | Weapon dispersion: %.3f | Queue type: %s | %s",
 		weapon_->GetAmmoElapsed(), 
 		weapon_->GetAmmoMagSize(),
 		distance_to_enemy,
-		state_text.c_str()
+		state_text.c_str(),
+		weapon_->getFireDispersionBase(),
+		queue_type.c_str(),
+		time_to_shoot_end.c_str()
 	);
         
 	HUD().world_prims.append_text3d(weapon_->Position(), main_text);
@@ -473,29 +541,15 @@ void TelekineticWeaponController::update_auto_aim() const
 	dBodySetAngularVel(body, vel[0], vel[1], vel[2]);
 }
 
-void TelekineticWeaponController::update_weapon_state() const
-{
-	if (enemy_->g_Alive() == false)
-		weapon_->FireEnd();
-	
-	if (weapon_->IsMisfire() == true)
-		weapon_->FireEnd();
-}
-
-void TelekineticWeaponController::on_keep_elapsed()
-{
-	weapon_->FireEnd();
-}
-
 bool TelekineticWeaponController::can_shoot() const
 {
-	if (weapon_->GetAmmoElapsed() <= 0)
-		return false;
-	
-	if (weapon_->IsMisfire() == true)
-		return false;
-	
 	if (enemy_ == nullptr)
+		return false;
+	
+	if (weapon_ == nullptr)
+		return false;
+	
+	if (weapon_->GetAmmoElapsed() <= 0)
 		return false;
 	
 	if (enemy_->g_Alive() == false)
@@ -504,57 +558,79 @@ bool TelekineticWeaponController::can_shoot() const
 	Fvector fire_pos = weapon_->get_LastFP();
 	Fvector fire_dir = weapon_->get_LastFD();
 	
-	fire_dir.normalize();
 	Fvector to_target = enemy_->Center() - fire_pos;
 	float dist = to_target.magnitude();
 	
 	to_target.normalize();
 	collide::rq_result rq_result;
 	
-	if (Level().ObjectSpace.RayPick(fire_pos, fire_dir, dist, collide::rqtBoth, rq_result, weapon_))
-	{
-		if (rq_result.O != enemy_)
-			return false;
-	}
+	if (!Level().ObjectSpace.RayPick(fire_pos, fire_dir, dist, collide::rqtBoth, rq_result, weapon_))
+		return false;
+	
+	if (rq_result.O != enemy_)
+		return false;
+		
 	return true;
+}
+
+void TelekineticWeaponController::on_keep_elapsed()
+{
+	weapon_->FireEnd();
+}
+
+void TelekineticWeaponController::on_release()
+{
+	weapon_->FireEnd();
 }
 
 void TelekineticWeaponController::shoot()
 {
 	if (u32 now = time(); now >= shoot_phase_end)
 	{
+		u32 shot_interval = static_cast<u32>(weapon_->getRPM() * 1000.f);
+		u32 mag_size_third = weapon_->GetAmmoMagSize() / 3;
+		
+		clamp<u32>(mag_size_third, 2, weapon_->GetAmmoMagSize());
+		
 		if (is_shooting)
 		{
-			weapon_->FireEnd();
+			u32 shots_skip = Random.randI(1, mag_size_third);
+			u32 pause_time = time() + shot_interval * shots_skip;
 			
 			is_shooting = false;
-			shoot_phase_end = now + Random.randI(100, 1000);
+			shoot_phase_end = pause_time;
+			
+			weapon_->FireEnd();
 		}
 		else
 		{
-			weapon_->FireStart();
+			u32 do_shots = Random.randI(1, mag_size_third);
+			u32 end_shoot_time = time() + shot_interval * do_shots;
 			
 			is_shooting = true;
-			shoot_phase_end = now + Random.randI(100, 200);
+			shoot_phase_end = end_shoot_time;
+			
+			weapon_->FireStart();
 		}
 	}
 }
 
-void TelekineticGrenadeController::update(CTelekineticObject* owner, const CEntityAlive* enemy)
+bool TelekineticWeaponController::can_be_thrown()
 {
-	ITelekineticBehavior::update(owner, enemy);
+	return weapon_->GetAmmoElapsed() <= 0 || weapon_->IsMisfire();
 }
 
-void TelekineticGrenadeController::on_throw_object_time()
+void TelekineticWeaponController::on_state_switch(ETelekineticState prev_state, ETelekineticState new_state)
 {
-	
-}
-
-void TelekineticGrenadeController::on_raise()
-{
-	if (grenade_->destroy_time() == grenade_initial_time)
+	if (new_state == ETelekineticState::TS_KEEP)
 	{
-		grenade_->State(CGrenade::eThrowStart);
-		grenade_->set_destroy_time(3000);
+		weapon_->SetCanTake(false);
+		setup_local_weapon_things();
+	}	
+	
+	if (new_state == ETelekineticState::TS_THROW || new_state == ETelekineticState::TS_NONE)
+	{
+		weapon_->SetCanTake(true);
+		restore_global_weapon_things();
 	}
 }
