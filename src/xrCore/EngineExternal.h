@@ -58,6 +58,7 @@ enum class EEngineExternalGame
 	EnableTorchOnlyInOutfit,
 	EnableQuickReload,
 	EnableBurerShieldPenetrationWithGauss,
+	EnableRagdolledZombiePseudodeath,
 	None
 };
 
