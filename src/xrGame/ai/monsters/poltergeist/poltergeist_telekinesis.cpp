@@ -153,7 +153,6 @@ void CTelekineticPoltergeist::UpdateCL()
 
 		// Главная фаза телекинеза полтера: стрельба + бросаемся предметами.
 	case ETeleState::MAIN_PHASE:
-		m_poltergeist->update_telekinetic_behaviour(enemy);
 		
 		// Это уже каждый кадр вызывать не надо, а тольок тогда, когда время на удержание одного объекта истекло.
 		// Нужно это чтобы сразу же не кидаться поднятыми предметами.
@@ -253,20 +252,18 @@ bool CTelekineticPoltergeist::tele_raise_objects()
 		CPhysicsShellHolder* obj = tele_objects[0] != nullptr ? tele_objects[0]->cast_physics_shell_holder() : nullptr;
 		bool rotate = false;
 
-		CTelekineticObject* tele_obj = m_poltergeist->CTelekinesis::activate(
-			obj,
-			m_pmt_raise_speed, m_pmt_object_height,
-			m_pmt_time_object_keep,
-			rotate
-		);
+		CTelekineticObject* tele_obj = nullptr;
+
+		if (obj->cast_weapon_magazined())
+			tele_obj = new CTelekineticWeaponObject(m_poltergeist, obj, m_pmt_raise_speed, m_pmt_object_height, m_pmt_time_object_keep, rotate);
+		else if(obj->cast_grenade())
+			tele_obj = new CTelekineticGrenadeObject(m_poltergeist, obj, m_pmt_raise_speed, m_pmt_object_height, m_pmt_time_object_keep, rotate);
+		else
+			tele_obj = new CTelekineticObject(m_poltergeist, obj, m_pmt_raise_speed, m_pmt_object_height, m_pmt_time_object_keep, rotate);
+
+		m_poltergeist->CTelekinesis::append_tobject(tele_obj);
 		
 		tele_obj->set_sound(m_sound_tele_hold, m_sound_tele_throw);
-		
-		if (CWeaponMagazined* weapon_magazined = smart_cast<CWeaponMagazined*>(tele_obj->get_object()))
-			tele_obj->behavior = new TelekineticWeaponController(weapon_magazined);
-
-		// if (CGrenade* grenade = smart_cast<CGrenade*>(tele_obj->get_object()))
-		// 	tele_obj->behavior = new TelekineticGrenadeController(grenade);
 		
 		return true;
 	}
@@ -416,13 +413,7 @@ void CTelekineticPoltergeist::throw_objects()
 			VERIFY(hobj);
 			hobj->set_collision_hit_callback(new SCollisionHitCallback(hobj, m_pmt_object_collision_damage));
 			
-			if (tele_object->behavior != nullptr)
-			{
-				if (tele_object->behavior->can_be_thrown() == false)
-					continue;
-			}
-			
-			if (trace_object(tele_object->get_object(), enemy_head))
+			if (tele_object->can_be_thrown() && trace_object(tele_object->get_object(), enemy_head))
 			{
 				m_poltergeist->throw_object_time(
 					tele_object->get_object(),

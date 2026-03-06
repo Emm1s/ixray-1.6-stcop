@@ -103,9 +103,9 @@ void CStateBurerAttackTele<Object>::deactivate()
 	// clear particles on active objects
 	if ( this->object->CTelekinesis::is_active() ) 
 	{
-		for (u32 i=0; i<this->object->CTelekinesis::get_objects_total_count(); i++) 
+		for (CTelekineticObject* tobject : this->object->CTelekinesis::get_tele_objects())
 		{
-			CPhysicsShellHolder* cur_object	=	this->object->CTelekinesis::get_object_by_index(i).get_object();
+			CPhysicsShellHolder* cur_object	= tobject->get_object();
 			if ( !cur_object || !cur_object->m_pPhysicsShell || !cur_object->m_pPhysicsShell->isActive() )
 			{
 				continue;
@@ -118,9 +118,9 @@ void CStateBurerAttackTele<Object>::deactivate()
 		}
 	}
 
-	for ( u32 i=0; i<this->object->CTelekinesis::get_objects_total_count(); ++i ) 
+	for (CTelekineticObject* tobject : this->object->CTelekinesis::get_tele_objects())
 	{
-		CPhysicsShellHolder* const cur_object	=	this->object->CTelekinesis::get_object_by_index(i).object;
+		CPhysicsShellHolder* const cur_object	= tobject->object;
 		if ( !cur_object || !cur_object->m_pPhysicsShell || !cur_object->m_pPhysicsShell->isActive() )
 		{
 			continue;
@@ -275,7 +275,7 @@ void CStateBurerAttackTele<Object>::FireAllToEnemy()
 	{
 		u32 const prev_num_objects				=	this->object->CTelekinesis::get_controlled_objects_count();
 
-		CPhysicsShellHolder* const cur_object	=	this->object->CTelekinesis::get_object_by_index(i).object;
+		CPhysicsShellHolder* const cur_object	=	this->object->CTelekinesis::get_object_by_index(i)->object;
 		if ( !cur_object )
 		{
 			continue;
@@ -307,13 +307,13 @@ void CStateBurerAttackTele<Object>::ExecuteTeleContinue()
 
 	// найти объект для атаки
 	bool object_found = false;	
-	CTelekineticObject tele_object;
+	CTelekineticObject* tele_object = nullptr;
 
 	u32 i=0;
 	while (i < this->object->CTelekinesis::get_controlled_objects_count()) {
 		tele_object = this->object->CTelekinesis::get_object_by_index(i);
 
-		if ((tele_object.get_state() == ETelekineticState::TS_KEEP) && (tele_object.time_keep_started + 1500 < Device.dwTimeGlobal)) {
+		if ((tele_object->get_state() == ETelekineticState::TS_KEEP) && (tele_object->time_keep_started + 1500 < Device.dwTimeGlobal)) {
 
 			object_found = true;
 			break;
@@ -323,7 +323,7 @@ void CStateBurerAttackTele<Object>::ExecuteTeleContinue()
 
 	if (object_found) {
 		m_action		= ACTION_TELE_FIRE;
-		selected_object = tele_object.get_object();
+		selected_object = tele_object ? tele_object->get_object() : nullptr;
 	} else {
 		if (!IsActiveObjects() || (time_started + MAX_TIME_CHECK_FAILURE < Device.dwTimeGlobal)) {
 			m_action						= ACTION_COMPLETED;
@@ -440,11 +440,8 @@ void CStateBurerAttackTele<Object>::SelectObjects()
 
 		bool const rotate			=	this->object->m_monster_type != CBaseMonster::eMonsterTypeIndoor;
 		
-		CTelekineticObject *tele_obj = this->object->CTelekinesis::activate(obj, 
-																	  this->object->m_tele_raise_speed, 
-																	  height, 
-																	  10000, 
-																	  rotate);
+		CTelekineticObject* tele_obj = new CTelekineticObject(this->object, obj, this->object->m_tele_raise_speed, height, 10000, rotate);
+		this->object->CTelekinesis::append_tobject(tele_obj);
 
 		tele_obj->set_sound				(this->object->sound_tele_hold,this->object->sound_tele_throw);
 
@@ -498,7 +495,8 @@ void CStateBurerAttackTele<Object>::HandleGrenades()
 		float const height = 2.5f;
 		bool const rotate = false;
 
-		CTelekineticObject* tele_obj = this->object->CTelekinesis::activate(grenade, 3.0f, height, 10000, rotate);
+		CTelekineticObject* tele_obj = new CTelekineticObject(this->object, grenade, 3.0f, height, 10000, rotate);
+		this->object->CTelekinesis::append_tobject(tele_obj);
 		tele_obj->set_sound(this->object->sound_tele_hold, this->object->sound_tele_throw);
 		this->object->StartTeleObjectParticle(grenade);
 

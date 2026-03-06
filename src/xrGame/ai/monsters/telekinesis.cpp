@@ -40,26 +40,15 @@ CTelekinesis::~CTelekinesis()
 	}
 }
 
-CTelekineticObject* CTelekinesis::activate(CPhysicsShellHolder* obj, float strength, float height, u32 max_time_keep,
-                                           bool rot, CTelekineticObject* telekinetic_object)
+void CTelekinesis::append_tobject(CTelekineticObject* tele_object)
 {
 	active = true;
-
-	auto tele_object = telekinetic_object ? telekinetic_object : new CTelekineticObject();
-
-	if (!tele_object->init(this, obj, strength, height, max_time_keep, rot))
-	{
-		xr_delete(tele_object);
-		return nullptr;
-	}
 
 	// добавить объект	
 	telekinetic_objects.push_back(tele_object);
 
 	if (!telekinetic_objects.empty())
 		Activate();
-
-	return tele_object;
 }
 
 void CTelekinesis::clear()
@@ -273,20 +262,6 @@ u32 CTelekinesis::get_controlled_objects_count() const
 			count++;
 	}
 	return count;
-}
-
-void CTelekinesis::update_telekinetic_behaviour(const CEntityAlive* enemy) 
-{
-	if (enemy == nullptr)
-		return;
-	
-	for (CTelekineticObject* telekinetic_object : telekinetic_objects)
-	{
-		if (telekinetic_object->behavior == nullptr)
-			continue;
-		
-		telekinetic_object->behavior->update(telekinetic_object, enemy);
-	}
 }
 
 // объект был удален - удалить все связи на объект

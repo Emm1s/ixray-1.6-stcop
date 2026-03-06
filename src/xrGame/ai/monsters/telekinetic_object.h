@@ -23,95 +23,18 @@ class CTelekinesis;
 class TelekineticWeaponController;
 class CWeaponMagazined;
 class CGrenade;
+class CPoltergeist;
+struct CTeleWhirlwindObject;
+struct CTelekineticWeaponObject;
 
-/**
- * Интерфейс для описания поведения телекинетического объекта.
- * Зачем нужно: инкапсулирует новую логику для поведения объекта, захваченного телекинезом.
- * 
- * Как использовать: 
- * 1. Создать отдельный класс контроллера, который будет описывать поведение объекта и инкапсулировать в нём логику, а
- * в конструкторе передать регистрируемый объект и унаследоваться.
- * 2. В месте инициализации объекта прокастить объект и создать экземпляр behavior для CTelekineticObject,
- * прокинув ссылкой объект.
- * 3. Обязательно обновлять внешние зависимости (TelekineticObject & CEntnityAlive (наш враг)) в update.
- * 5. Логика в контроллере регулируется через вызываемые события.
- */
-class ITelekineticObjectBehavior
-{
-protected:
-	const CEntityAlive* enemy_;
-	CTelekineticObject* telekinetic_object_;
-	
-public:
-	ITelekineticObjectBehavior() = default;
-	virtual ~ITelekineticObjectBehavior() = default;
-
-	virtual void update(CTelekineticObject* owner, const CEntityAlive* enemy)
-	{
-		enemy_ = enemy;
-		telekinetic_object_ = owner;
-	}
-	
-	// Вызывается перед тем, как объект начнёт или продолжит удерживаться.
-	virtual void on_perform_keep_object()
-	{
-	}
-
-	// Вызывается, когда вышло время удержание объекта.
-	// (для CTelekineticPoltergeist обновление вынесено из shedule -> UpdateCL)
-	virtual void on_keep_elapsed()
-	{
-	}
-
-	// Вызывается перед тем, как объект будет брошен с учётом гравитации и высоты.
-	virtual void on_throw_object_time()
-	{
-	}
-	
-	// Вызывается перед тем, как объект будет брошен без учёта гравитации и высоты.
-	virtual void on_throw_object()
-	{
-	}
-
-	// Вызывается, когда вышло время таймаута для брошенного объекта.
-	virtual void on_throw_elapsed()
-	{
-	}
-	
-	// Вызывается перед тем, как отпустить объект.
-	virtual void on_release()
-	{
-	}
-	
-	// Вызывается перед тем, как объект начнёт подниматься на шаг физики, либо продолжит подниматься.
-	virtual void on_raise()
-	{
-	}
-	
-	// Вызывается после того, как обновилось состояние телекинетического предмета.
-	// (инкапсулированный telekinetic_object_)
-	virtual void on_state_switch(ETelekineticState prev_state, ETelekineticState new_state)
-	{
-	}
-	
-	// Вызвыается кажыдый раз, когда предмет бросается. 
-	// Здесь описывается логика, при каких обстоятельствах предмет бросится.
-	virtual bool can_be_thrown()
-	{
-		return true;
-	}
-};
-
-class CTelekineticObject
+struct CTelekineticObject
 {
     ETelekineticState state;
 
-public:
     CPhysicsShellHolder* object;
-    CTelekinesis* telekinesis;
+    CTelekinesis* telekinesis = nullptr;
     ref_sound sound_hold;
     ref_sound sound_throw;
-    ITelekineticObjectBehavior* behavior;
 
     float target_height;
     float strength;
@@ -125,10 +48,9 @@ public:
 	
     bool rotate_object;
 
-    CTelekineticObject();
-    virtual ~CTelekineticObject();
+    CTelekineticObject(CTelekinesis* tele, CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot);
+    virtual ~CTelekineticObject() {};
 
-    virtual bool init(CTelekinesis* tele, CPhysicsShellHolder* obj, float s, float h, u32 ttk, bool rot = true);
     void set_sound(const ref_sound& snd_hold, const ref_sound& snd_throw);
 
     virtual void raise(float step);
@@ -142,11 +64,10 @@ public:
     void throw_object_time(const Fvector& target, float time);
     virtual void throw_update();
     virtual void update_state();
-    virtual bool can_activate(CPhysicsShellHolder* obj);
-    bool is_released() const { return state == ETelekineticState::TS_NONE; }
+    ICF bool is_released() const { return state == ETelekineticState::TS_NONE; }
     virtual void switch_state(ETelekineticState new_state);
-    ETelekineticState get_state() const { return state; }
-    CPhysicsShellHolder* get_object() const { return object; }
+    ICF ETelekineticState get_state() const { return state; }
+    ICF CPhysicsShellHolder* get_object() const { return object; }
 
     bool check_height() const;
     bool check_raise_time_out() const;
@@ -156,60 +77,69 @@ public:
     
     void enable() const;
 
-    bool operator==(const CPhysicsShellHolder* obj) const
+    ICF bool operator==(const CPhysicsShellHolder* obj) const
     {
         return object == obj;
     }
 
     void rotate() const;
-
-private:
     void update_hold_sound();
+    virtual bool can_be_thrown() { return true; };
+
+    virtual CTelekineticObject* cast_telekinetic_object() { return this; }
+    virtual CTelekineticWeaponObject* cast_telekinetic_weapon_object() { return nullptr; }
+    virtual CTeleWhirlwindObject* cast_whirlwind_object() { return nullptr; }
 };
 
-class TelekineticWeaponController : public ITelekineticObjectBehavior
+struct CTelekineticWeaponObject : public CTelekineticObject
 {
-	using inherited = ITelekineticObjectBehavior;
+	using inherited = CTelekineticObject;
 	
     CWeaponMagazined* weapon_;
-	const CEntityAlive* prev_enemy;
+    CPoltergeist* Parent;
 	
 	u32 shoot_phase_end;
 	
-	s8 backup_weapon_fire_mode = FLT_MAX;
-	float backup_weapon_dispersion = FLT_MAX;
+	s8 backup_weapon_fire_mode = s8(-1);
+	float backup_weapon_dispersion = 9999.f;
 	
 	bool is_shooting;
-	
-public:
-	explicit TelekineticWeaponController(CWeaponMagazined* weapon);
 
-	void update(CTelekineticObject* owner, const CEntityAlive* enemy) override;
+    CTelekineticWeaponObject(CPoltergeist* parent, CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot);
+
 	void setup_local_weapon_things();
-	void restore_global_weapon_things() const;
-	void on_perform_keep_object() override;
-	void debug_draw() const;
-	void update_auto_aim() const;
-    bool can_shoot() const;
-	void on_keep_elapsed() override;
-	void on_release() override;
+	void restore_global_weapon_things();
+
+	void debug_draw();
+	void update_auto_aim();
+    bool can_shoot();
 	void shoot();
-	bool can_be_thrown() override;
-	void on_state_switch(ETelekineticState prev_state, ETelekineticState new_state) override;
+
+
+    virtual void perform_keep_object();
+
+    virtual bool can_be_thrown();
+    virtual void keep_time_elapsed();
+    virtual void release();
+    virtual void switch_state(ETelekineticState new_state);
+
+    virtual CTelekineticWeaponObject* cast_telekinetic_weapon_object() { return this; }
 };
 
-// class TelekineticGrenadeController : public ITelekineticObjectBehavior
-// {
-// 	using inherited = ITelekineticObjectBehavior;
-// 	
-// 	CGrenade* grenade_;
-// 	u32 grenade_initial_time = 0xffffffff;
-// 	
-// public:
-// 	explicit TelekineticGrenadeController(CGrenade* grenade);
-//
-// 	void update(CTelekineticObject* owner, const CEntityAlive* enemy) override;
-// 	void on_throw_object_time() override;
-// 	void on_perform_keep_object() override;
-// 	bool can_be_thrown() override;
-// };
+struct CTelekineticGrenadeObject : public CTelekineticObject
+{
+	using inherited = CTelekineticObject;
+	
+	CGrenade* grenade_;
+	u32 grenade_checkout_time = 0;
+    CPoltergeist* Parent;
+	
+    CTelekineticGrenadeObject(CPoltergeist* parent, CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot);
+
+    virtual void perform_keep_object();
+
+    virtual bool can_be_thrown();
+    virtual void keep_time_elapsed();
+    virtual void release();
+    virtual void switch_state(ETelekineticState new_state);
+};

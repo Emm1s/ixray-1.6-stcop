@@ -18,20 +18,6 @@ CTeleWhirlwind ::CTeleWhirlwind ()
 
 }
 
-CTelekineticObject* CTeleWhirlwind::activate(CPhysicsShellHolder *obj, float strength, float height, u32 max_time_keep, bool rot, CTelekineticObject* owner)
-{
-	CTeleWhirlwindObject* whirlwind_object = new CTeleWhirlwindObject();
-	
-	if(inherited::activate(obj,strength,height,max_time_keep,rot, whirlwind_object))
-	{
-		CTeleWhirlwindObject*o=smart_cast<CTeleWhirlwindObject*>(telekinetic_objects.back());
-		VERIFY(o);
-		o->set_throw_power(m_throw_power);
-		return o;
-	}
-	else
-		return 0;
-}
 void CTeleWhirlwind::clear_impacts()
 {
 	m_saved_impacts.clear();
@@ -93,37 +79,27 @@ void CTeleWhirlwind::play_destroy(CTeleWhirlwindObject *obj)
 {
 	
 }
-	CTeleWhirlwindObject::		CTeleWhirlwindObject()
+CTeleWhirlwindObject::CTeleWhirlwindObject(CTelekinesis* tele, CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot) :
+	CTelekineticObject(tele, owner, s, h, ttk, rot)
 {
-			m_telekinesis=0;
-			throw_power=0.f;
-			
+	m_telekinesis = static_cast<CTeleWhirlwind*>(tele);
+
+	throw_power = strength;
+
+	if (owner->PPhysicsShell())
+	{
+		owner->PPhysicsShell()->SetAirResistance(0.f, 0.f);
+		owner->m_pPhysicsShell->set_ApplyByGravity(TRUE);
+	}
+
+	if (object->ph_destroyable() && object->ph_destroyable()->CanDestroy())
+		b_destroyable = true;
+	else
+		b_destroyable = false;
+
+	set_throw_power(m_telekinesis->get_throw_power());
 }
-	
 
-bool		CTeleWhirlwindObject::		init(CTelekinesis* tele,CPhysicsShellHolder *obj, float s, float h, u32 ttk,bool rot)
-{
-			bool result			=inherited::init(tele,obj,s,h,ttk,rot);
-			m_telekinesis		=static_cast<CTeleWhirlwind*>(tele);
-
-			throw_power			=strength;
-			if(m_telekinesis->is_active_object(obj))
-			{
-					return false;
-			}
-			if(obj->PPhysicsShell())
-			{
-				obj->PPhysicsShell()->SetAirResistance(0.f,0.f);
-				obj->m_pPhysicsShell->set_ApplyByGravity(true);
-			}
-
-			if(object->ph_destroyable()&&object->ph_destroyable()->CanDestroy())
-							b_destroyable=true;
-			else
-							b_destroyable=false;
-
-			return result;
-}
 void		CTeleWhirlwindObject::		raise_update			()
 {
 	
@@ -350,10 +326,5 @@ void		CTeleWhirlwindObject::set_throw_power(float throw_pow)
 void		CTeleWhirlwindObject::switch_state(ETelekineticState new_state)
 {
 	inherited::switch_state(new_state);
-}
-
-bool CTeleWhirlwindObject::can_activate(CPhysicsShellHolder *obj)
-{
-	return (obj!=nullptr);
 }
 

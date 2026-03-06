@@ -5,10 +5,10 @@
 
 class CTelekinesis : public CPHUpdateObject
 {
-protected:
+public:
 	using TELEKINETIC_OBJECTS = xr_vector<CTelekineticObject*>;
 	using TELE_OBJECTS_IT = TELEKINETIC_OBJECTS::iterator;
-
+protected:
 	TELEKINETIC_OBJECTS telekinetic_objects;
 	xr_vector<ISpatialShared> m_nearest;
 	
@@ -19,8 +19,7 @@ public:
 	~CTelekinesis() override;
 	
 	// активировать объект
-	virtual CTelekineticObject* activate(CPhysicsShellHolder* obj, float strength, float height, u32 max_time_keep,
-	                                     bool rot = true, CTelekineticObject* telekinetic_object = nullptr);
+	virtual void append_tobject(CTelekineticObject* telekinetic_object);
 	// деактивировать все объекты
 	void deactivate();
 	//clear objects (does not call release, but call switch to TS_None)
@@ -45,20 +44,12 @@ public:
 	bool is_active_object(CPhysicsShellHolder* obj);
 	// вернуть количество контролируемых объектов (в состо€нии TS_Raise & TS_Keep)
 	u32 get_controlled_objects_count() const;
-	// вернуть количество контролируемых объектов (всех)
-	u32 get_objects_total_count() { return static_cast<u32>(telekinetic_objects.size()); }
-	
-	virtual void update_telekinetic_behaviour(const CEntityAlive* enemy);
-
-
-	// вернуть объект по индексу в массиве
-	// a	copy of the object!
-	CTelekineticObject get_object_by_index(u32 index)
+	ICF TELEKINETIC_OBJECTS& get_tele_objects() { return telekinetic_objects; }
+	ICF CTelekineticObject* get_object_by_index(u32 index)
 	{
 		VERIFY(objects.size() > index);
-		return *telekinetic_objects[index];
+		return telekinetic_objects[index];
 	}
-
 	// обновить состон€ие на shedule_Update			
 	void schedule_update();
 	// объект был удален - удалить все св€зи на объект
