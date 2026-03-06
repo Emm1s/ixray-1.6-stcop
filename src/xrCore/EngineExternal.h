@@ -62,6 +62,7 @@ enum class EEngineExternalGame
 	EnableInventoryVolume,
 	EnableRealBulletPos,
 	EnableWeaponAffectsOnMouseSensitivity,
+	EnableRagdolledZombiePseudodeath,
 	None
 };
 
