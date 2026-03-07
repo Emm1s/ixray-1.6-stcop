@@ -20,7 +20,6 @@ class CPhysicsShellHolder;
 class CTelekineticObject;
 class CPHUpdateObject;
 class CTelekinesis;
-class TelekineticWeaponController;
 class CWeaponMagazined;
 class CGrenade;
 class CPoltergeist;
@@ -91,21 +90,28 @@ struct CTelekineticObject
     virtual CTeleWhirlwindObject* cast_whirlwind_object() { return nullptr; }
 };
 
-struct CTelekineticWeaponObject : public CTelekineticObject
+struct CTelekineticWeaponObject : CTelekineticObject
 {
 	using inherited = CTelekineticObject;
-	
-    CWeaponMagazined* weapon_;
-    CPoltergeist* Parent;
-	
-	u32 shoot_phase_end;
-	
-	s8 backup_weapon_fire_mode = s8(-1);
-	float backup_weapon_dispersion = 9999.f;
-	
-	bool is_shooting;
 
-    CTelekineticWeaponObject(CPoltergeist* parent, CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot);
+	CWeaponMagazined* weapon;
+	CPoltergeist* parent;
+
+	u32 shoot_phase_start;
+	u32 shoot_phase_end;
+
+	u32 delay_before_first_shoot;
+	
+	u32 last_slide_time;
+	u32 delay_between_weapon_slides;
+	
+	
+	float backup_weapon_dispersion = 9999.f;
+	s8 backup_weapon_fire_mode = s8(-1);
+
+	bool is_shooting;
+	
+	CTelekineticWeaponObject(CPoltergeist* parent, CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot);
 
 	void setup_local_weapon_things();
 	void restore_global_weapon_things();
@@ -114,8 +120,7 @@ struct CTelekineticWeaponObject : public CTelekineticObject
 	void update_auto_aim();
     bool can_shoot();
 	void shoot();
-
-
+	
     virtual void perform_keep_object();
 
     virtual bool can_be_thrown();
@@ -126,20 +131,18 @@ struct CTelekineticWeaponObject : public CTelekineticObject
     virtual CTelekineticWeaponObject* cast_telekinetic_weapon_object() { return this; }
 };
 
-struct CTelekineticGrenadeObject : public CTelekineticObject
+struct CTelekineticGrenadeObject : CTelekineticObject
 {
 	using inherited = CTelekineticObject;
 	
-	CGrenade* grenade_;
-	u32 grenade_checkout_time = 0;
-    CPoltergeist* Parent;
+    CPoltergeist* parent;
+	CGrenade* grenade;
+	
+	u32 throw_threshold = 1000;
+	u32 time_to_explode = 3000;
 	
     CTelekineticGrenadeObject(CPoltergeist* parent, CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot);
-
-    virtual void perform_keep_object();
-
+	
     virtual bool can_be_thrown();
-    virtual void keep_time_elapsed();
-    virtual void release();
     virtual void switch_state(ETelekineticState new_state);
 };

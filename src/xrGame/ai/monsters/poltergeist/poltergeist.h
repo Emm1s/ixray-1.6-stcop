@@ -87,7 +87,7 @@ public:
 
 	void renderable_Render() override;
 
-	IC IPolter* ability() { return (m_poltergeist ? m_poltergeist : m_poltergeist); }
+	IC IPolter* ability() { return m_poltergeist; }
 
 
 	IC bool is_hidden() { return state_invisible; }
