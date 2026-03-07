@@ -292,7 +292,7 @@ CTelekineticWeaponObject::CTelekineticWeaponObject(CPoltergeist* parent, CPhysic
 	delay_between_weapon_slides(1000), 
 	is_shooting(false)
 {
-	delay_before_first_shoot = 1500;
+	delay_before_first_shoot = time() + 1500;
 	CTelekineticWeaponObject::switch_state(ETelekineticState::TS_RAISE);
 }
 
