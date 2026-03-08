@@ -6,9 +6,9 @@
 
 class CTeleWhirlwind;
 class CGameObject;
-struct CTeleWhirlwindObject : public CTelekineticObject
+struct CTeleWhirlwindObject : public STelekineticObject
 {
-	typedef			CTelekineticObject	inherited;
+	typedef			STelekineticObject	inherited;
 	CTeleWhirlwind		*m_telekinesis;
 	bool				b_destroyable;
 	float				throw_power;

@@ -103,7 +103,7 @@ void CStateBurerAttackTele<Object>::deactivate()
 	// clear particles on active objects
 	if ( this->object->CTelekinesis::is_active() ) 
 	{
-		for (CTelekineticObject* tobject : this->object->CTelekinesis::get_tele_objects())
+		for (STelekineticObject* tobject : this->object->CTelekinesis::get_tele_objects())
 		{
 			CPhysicsShellHolder* cur_object	= tobject->get_object();
 			if ( !cur_object || !cur_object->m_pPhysicsShell || !cur_object->m_pPhysicsShell->isActive() )
@@ -118,7 +118,7 @@ void CStateBurerAttackTele<Object>::deactivate()
 		}
 	}
 
-	for (CTelekineticObject* tobject : this->object->CTelekinesis::get_tele_objects())
+	for (STelekineticObject* tobject : this->object->CTelekinesis::get_tele_objects())
 	{
 		CPhysicsShellHolder* const cur_object	= tobject->object;
 		if ( !cur_object || !cur_object->m_pPhysicsShell || !cur_object->m_pPhysicsShell->isActive() )
@@ -307,7 +307,7 @@ void CStateBurerAttackTele<Object>::ExecuteTeleContinue()
 
 	// найти объект для атаки
 	bool object_found = false;	
-	CTelekineticObject* tele_object = nullptr;
+	STelekineticObject* tele_object = nullptr;
 
 	u32 i=0;
 	while (i < this->object->CTelekinesis::get_controlled_objects_count()) {
@@ -440,7 +440,7 @@ void CStateBurerAttackTele<Object>::SelectObjects()
 
 		bool const rotate			=	this->object->m_monster_type != CBaseMonster::eMonsterTypeIndoor;
 		
-		CTelekineticObject* tele_obj = new CTelekineticObject(this->object, obj, this->object->m_tele_raise_speed, height, 10000, rotate);
+		STelekineticObject* tele_obj = new STelekineticObject(this->object, obj, this->object->m_tele_raise_speed, height, 10000, rotate);
 		this->object->CTelekinesis::append_tobject(tele_obj);
 
 		tele_obj->set_sound				(this->object->sound_tele_hold,this->object->sound_tele_throw);
@@ -495,7 +495,7 @@ void CStateBurerAttackTele<Object>::HandleGrenades()
 		float const height = 2.5f;
 		bool const rotate = false;
 
-		CTelekineticObject* tele_obj = new CTelekineticObject(this->object, grenade, 3.0f, height, 10000, rotate);
+		STelekineticObject* tele_obj = new STelekineticObject(this->object, grenade, 3.0f, height, 10000, rotate);
 		this->object->CTelekinesis::append_tobject(tele_obj);
 		tele_obj->set_sound(this->object->sound_tele_hold, this->object->sound_tele_throw);
 		this->object->StartTeleObjectParticle(grenade);

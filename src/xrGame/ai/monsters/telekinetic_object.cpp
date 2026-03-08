@@ -6,14 +6,15 @@
 #include "WeaponMagazined.h"
 #include "Grenade.h"
 #include "HUDManager.h"
+#include "WeaponMagazinedWGrenade.h"
 #include "../../Level.h"
 #include "poltergeist/poltergeist.h"
 extern ESingleGameDifficulty g_SingleGameDifficulty; 
 
-CTelekineticObject::CTelekineticObject(CTelekinesis* tele, CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot)
+STelekineticObject::STelekineticObject(CTelekinesis* tele, CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot)
 {
 	telekinesis = tele;
-	CTelekineticObject::switch_state(ETelekineticState::TS_RAISE);
+	STelekineticObject::switch_state(ETelekineticState::TS_RAISE);
 	object = owner;
 
 	target_height = owner->Position().y + h;
@@ -30,13 +31,13 @@ CTelekineticObject::CTelekineticObject(CTelekinesis* tele, CPhysicsShellHolder* 
 		object->m_pPhysicsShell->set_ApplyByGravity(false);
 }
 
-void CTelekineticObject::set_sound(const ref_sound& snd_hold, const ref_sound& snd_throw)
+void STelekineticObject::set_sound(const ref_sound& snd_hold, const ref_sound& snd_throw)
 {
 	sound_hold.clone(snd_hold, st_Effect, sg_SourceType);
 	sound_throw.clone(snd_throw, st_Effect, sg_SourceType);
 }
 
-void CTelekineticObject::raise_update()
+void STelekineticObject::raise_update()
 {
 	if (check_height() || check_raise_time_out())
 		prepare_keep();
@@ -44,19 +45,19 @@ void CTelekineticObject::raise_update()
 		rotate();
 }
 
-void CTelekineticObject::keep_update()
+void STelekineticObject::keep_update()
 {
 	if (keep_time_elapsed())
 		release();
 }
 
-void CTelekineticObject::throw_update()
+void STelekineticObject::throw_update()
 {
 	if (throw_time_elapsed())
 		release();
 }
 
-void CTelekineticObject::update_state()
+void STelekineticObject::update_state()
 {
 	switch (get_state())
 	{
@@ -77,7 +78,7 @@ void CTelekineticObject::update_state()
 	}
 }
 
-void CTelekineticObject::switch_state(ETelekineticState new_state)
+void STelekineticObject::switch_state(ETelekineticState new_state)
 {
 	u32 current_time = time();
 	
@@ -98,7 +99,7 @@ void CTelekineticObject::switch_state(ETelekineticState new_state)
 	state = new_state;
 }
 
-void CTelekineticObject::raise(float step)
+void STelekineticObject::raise(float step)
 {
 	if (!object || !object->m_pPhysicsShell || !object->m_pPhysicsShell->isActive()) 
 		return;
@@ -117,13 +118,13 @@ void CTelekineticObject::raise(float step)
 	update_hold_sound();
 }
 
-void CTelekineticObject::prepare_keep()
+void STelekineticObject::prepare_keep()
 {
 	switch_state(ETelekineticState::TS_KEEP);
 	time_keep_updated = 0;
 }
 
-bool CTelekineticObject::keep_time_elapsed() const
+bool STelekineticObject::keep_time_elapsed() const
 {
 	if (time_keep_started + time_to_keep < Device.dwTimeGlobal)
 		return true;
@@ -131,7 +132,7 @@ bool CTelekineticObject::keep_time_elapsed() const
 	return false;
 }
 
-bool CTelekineticObject::throw_time_elapsed() const
+bool STelekineticObject::throw_time_elapsed() const
 {
 	if (time_throw_started + DELAY_AFTER_THROW < time())
 		return true;
@@ -139,7 +140,7 @@ bool CTelekineticObject::throw_time_elapsed() const
 	return false;
 }
 
-void CTelekineticObject::perform_keep_object()
+void STelekineticObject::perform_keep_object()
 {
 	if (!object || !object->m_pPhysicsShell || !object->m_pPhysicsShell->isActive()) 
 		return;
@@ -170,7 +171,7 @@ void CTelekineticObject::perform_keep_object()
 	update_hold_sound();
 }
 
-void CTelekineticObject::release()
+void STelekineticObject::release()
 {
 	if (!object || !object->m_pPhysicsShell)
 		return;
@@ -188,7 +189,7 @@ void CTelekineticObject::release()
 	switch_state(ETelekineticState::TS_NONE);
 }
 
-void CTelekineticObject::throw_object_time(const Fvector& target, float time)
+void STelekineticObject::throw_object_time(const Fvector& target, float time)
 {
 	switch_state(ETelekineticState::TS_THROW);
 
@@ -210,7 +211,7 @@ void CTelekineticObject::throw_object_time(const Fvector& target, float time)
 		sound_hold.stop();
 }
 
-void CTelekineticObject::throw_object(const Fvector& target, float power)
+void STelekineticObject::throw_object(const Fvector& target, float power)
 {
 	switch_state(ETelekineticState::TS_THROW);
 
@@ -231,7 +232,7 @@ void CTelekineticObject::throw_object(const Fvector& target, float power)
 				dir, power * 20.f * object->m_pPhysicsShell->getMass() / object->m_pPhysicsShell->Elements().size());
 };
 
-bool CTelekineticObject::check_height() const
+bool STelekineticObject::check_height() const
 {
 	if (!object)
 		return true;
@@ -239,7 +240,7 @@ bool CTelekineticObject::check_height() const
 	return object->Position().y > target_height;
 }
 
-bool CTelekineticObject::check_raise_time_out() const
+bool STelekineticObject::check_raise_time_out() const
 {
 	if (time_raise_started + RAISE_MAX_TIME < Device.dwTimeGlobal)
 		return true;
@@ -247,13 +248,13 @@ bool CTelekineticObject::check_raise_time_out() const
 	return false;
 }
 
-void CTelekineticObject::enable() const
+void STelekineticObject::enable() const
 {
 	if (object->m_pPhysicsShell)
 		object->m_pPhysicsShell->Enable();
 }
 
-void CTelekineticObject::rotate() const
+void STelekineticObject::rotate() const
 {
 	if (!object || !object->m_pPhysicsShell || !object->m_pPhysicsShell->isActive())
 		return;
@@ -266,7 +267,7 @@ void CTelekineticObject::rotate() const
 		object->m_pPhysicsShell->applyImpulse(dir, 2.5f * object->m_pPhysicsShell->getMass());
 }
 
-void CTelekineticObject::update_hold_sound()
+void STelekineticObject::update_hold_sound()
 {
 	if (sound_hold.handle()) 
 		return;
@@ -281,9 +282,9 @@ void CTelekineticObject::update_hold_sound()
 
 // -------------------- WEAPON CONTROLLER --------------------
 
-CTelekineticWeaponObject::CTelekineticWeaponObject(CPoltergeist* parent, CPhysicsShellHolder* owner, float s, float h,
+STelekineticWeaponObject::STelekineticWeaponObject(CPoltergeist* parent, CPhysicsShellHolder* owner, float s, float h,
                                                    u32 ttk, bool rot) :
-	CTelekineticObject(parent, owner, s, h, ttk, rot),
+	STelekineticObject(parent, owner, s, h, ttk, rot),
 	weapon(owner->cast_weapon_magazined()),
 	parent(parent),
 	shoot_phase_end(0),
@@ -293,10 +294,10 @@ CTelekineticWeaponObject::CTelekineticWeaponObject(CPoltergeist* parent, CPhysic
 	is_shooting(false)
 {
 	delay_before_first_shoot = time() + 1500;
-	CTelekineticWeaponObject::switch_state(ETelekineticState::TS_RAISE);
+	STelekineticWeaponObject::switch_state(ETelekineticState::TS_RAISE);
 }
 
-void CTelekineticWeaponObject::setup_local_weapon_things()
+void STelekineticWeaponObject::setup_local_weapon_things()
 {
 	const CEntityAlive* enemy_ = parent->EnemyMan.get_enemy();
 	
@@ -344,7 +345,7 @@ void CTelekineticWeaponObject::setup_local_weapon_things()
 	weapon->setFireDispersionBase(0.25f);
 }
 
-void CTelekineticWeaponObject::restore_global_weapon_things()
+void STelekineticWeaponObject::restore_global_weapon_things()
 {
 	if (weapon == nullptr)
 		return;
@@ -353,7 +354,7 @@ void CTelekineticWeaponObject::restore_global_weapon_things()
 	weapon->setFireDispersionBase(backup_weapon_dispersion);
 }
 
-void CTelekineticWeaponObject::debug_draw()
+void STelekineticWeaponObject::debug_draw()
 {
 	const CEntityAlive* enemy_ = parent->EnemyMan.get_enemy();
 	if (!enemy_) return;
@@ -434,12 +435,12 @@ void CTelekineticWeaponObject::debug_draw()
 	HUD().world_prims.append_text3d(weapon->Position(), main_text);
 }
 
-void CTelekineticWeaponObject::update_auto_aim()
+void STelekineticWeaponObject::update_auto_aim()
 {
 	if (weapon->GetAmmoElapsed() <= 0)
 		return;
 	
-	if (weapon->IsMisfire() == true)
+	if (weapon->IsMisfire())
 		return;
 	
 	CTelekineticPoltergeist* telekinetic_poltergeist = parent->ability()->cast_to_polter_tele();
@@ -450,13 +451,13 @@ void CTelekineticWeaponObject::update_auto_aim()
 	if (current_distance > max_tele_work_distance)
 		return;
 	
-	const CEntityAlive* enemy_ = parent->EnemyMan.get_enemy();
+	const CEntityAlive* enemy = parent->EnemyMan.get_enemy();
 	
-	if (!enemy_)
+	if (enemy == nullptr)
 		return;
-    	
+	
 	Fmatrix target_xf;
-	target_xf.k.set(enemy_->Center() - weapon->get_LastFP());
+	target_xf.k.set(enemy->Center() - weapon->get_LastFP());
 
 	Fvector::generate_orthonormal_basis_normalized(target_xf.k,target_xf.j,target_xf.i);
 	
@@ -478,7 +479,7 @@ void CTelekineticWeaponObject::update_auto_aim()
 	weapon->m_pPhysicsShell->set_AngularVel(diff);
 }
 
-bool CTelekineticWeaponObject::can_shoot()
+bool STelekineticWeaponObject::can_shoot()
 {
 	const CEntityAlive* enemy_ = parent->EnemyMan.get_enemy();
 	
@@ -491,30 +492,19 @@ bool CTelekineticWeaponObject::can_shoot()
 	if (weapon->GetAmmoElapsed() <= 0)
 		return false;
 	
-	if (enemy_->g_Alive() == false)
+	if (!enemy_->g_Alive())
 		return false;
 	
 	if (delay_before_first_shoot > time())
 		return false;
 	
-	const Fvector& fire_pos = weapon->get_LastFP();
-	const Fvector& fire_dir = weapon->get_LastFD();
+	if (!is_enemy_tracing())
+		return false;
 	
-	collide::rq_result rq_result;
-	
-	Level().ObjectSpace.RayPick(
-		fire_pos,
-		fire_dir,
-		fire_pos.distance_to(enemy_->Center()),
-		collide::rqtBoth,
-		rq_result,
-		weapon
-	);
-	
-	return rq_result.O == enemy_;
+	return true;
 }
 
-void CTelekineticWeaponObject::shoot()
+void STelekineticWeaponObject::shoot()
 {
 	if (u32 now = time(); now >= shoot_phase_end)
 	{
@@ -547,7 +537,31 @@ void CTelekineticWeaponObject::shoot()
 	}
 }
 
-void CTelekineticWeaponObject::perform_keep_object()
+bool STelekineticWeaponObject::is_enemy_tracing() const
+{
+	const CEntityAlive* enemy = parent->EnemyMan.get_enemy();
+	
+	if (enemy == nullptr) 
+		return false;
+	
+	const Fvector& fire_pos = weapon->get_LastFP();
+	const Fvector& fire_dir = weapon->get_LastFD();
+	
+	collide::rq_result rq_result;
+	
+	Level().ObjectSpace.RayPick(
+		fire_pos,
+		fire_dir,
+		fire_pos.distance_to(enemy->Center()),
+		collide::rqtBoth,
+		rq_result,
+		weapon
+	);
+	
+	return rq_result.O == enemy;
+}
+
+void STelekineticWeaponObject::perform_keep_object()
 {
 	if (last_slide_time + delay_between_weapon_slides < time())
 	{
@@ -566,7 +580,7 @@ void CTelekineticWeaponObject::perform_keep_object()
 		
 		u32 max_keep_time = parent->ability()->cast_to_polter_tele()->m_pmt_time_object_keep;
 		
-		// Скалируем время на удержание в зависимости от max_keep_time, нижний порог не <1s и верхний не <2s.
+		// Скалируем случайное время для слайдов в зависимости от max_keep_time, нижний порог не <1s и верхний не <2s.
 		// Ибо если max_keep_time = 2000ms, то 2000 / 5 = 400ms, а 2000 / 2 = 1000ms, то будет слишком дико)))
 		u32 min = std::max<u32>(max_keep_time / 5, 1000); 
 		u32 max = std::max<u32>(max_keep_time / 2, 2000); 
@@ -591,24 +605,24 @@ void CTelekineticWeaponObject::perform_keep_object()
 	shoot();
 }
 
-bool CTelekineticWeaponObject::can_be_thrown()
+bool STelekineticWeaponObject::can_be_thrown()
 {
 	return weapon->GetAmmoElapsed() <= 0 || weapon->IsMisfire();
 }
 
-void CTelekineticWeaponObject::keep_time_elapsed()
+void STelekineticWeaponObject::keep_time_elapsed()
 {
 	inherited::keep_time_elapsed();
 	weapon->FireEnd();
 }
 
-void CTelekineticWeaponObject::release()
+void STelekineticWeaponObject::release()
 {
 	inherited::release();
 	weapon->FireEnd();
 }
 
-void CTelekineticWeaponObject::switch_state(ETelekineticState new_state)
+void STelekineticWeaponObject::switch_state(ETelekineticState new_state)
 {
 	inherited::switch_state(new_state);
 
@@ -627,15 +641,41 @@ void CTelekineticWeaponObject::switch_state(ETelekineticState new_state)
 
 // -------------------- GRENADE CONTROLLER --------------------
 
-CTelekineticGrenadeObject::CTelekineticGrenadeObject(CPoltergeist* parent, CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot) :
-	CTelekineticObject(parent, owner, s, h, ttk, rot),
+STelekineticGrenadeObject::STelekineticGrenadeObject(CPoltergeist* parent, CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot) :
+	STelekineticObject(parent, owner, s, h, ttk, rot),
 	grenade(owner->cast_grenade()),
 	parent(parent)
 {
-	CTelekineticGrenadeObject::switch_state(ETelekineticState::TS_RAISE);
+	STelekineticGrenadeObject::switch_state(ETelekineticState::TS_RAISE);
 }
 
-void CTelekineticGrenadeObject::switch_state(ETelekineticState new_state)
+void STelekineticGrenadeObject::debug_draw()
+{
+	shared_str state_text;
+	
+	switch (get_state())
+	{
+	case ETelekineticState::TS_RAISE:
+		state_text = shared_str().printf("Raising %d ms", time() - time_raise_started);
+		break;
+	
+	case ETelekineticState::TS_KEEP:
+		state_text = shared_str().printf("Keeping %d ms", time_keep_started + time_to_keep - time());
+		break;
+	
+	case ETelekineticState::TS_THROW:
+		state_text = shared_str().printf("Throw %d ms", time_throw_started + DELAY_AFTER_THROW - time());
+		break;
+	
+	case ETelekineticState::TS_NONE:
+		state_text = "NONE";
+		break;
+	}
+	
+	HUD().world_prims.append_text3d(grenade->Position(), state_text);
+}
+
+void STelekineticGrenadeObject::switch_state(ETelekineticState new_state)
 {
 	inherited::switch_state(new_state);
 	
@@ -653,13 +693,18 @@ void CTelekineticGrenadeObject::switch_state(ETelekineticState new_state)
 	}
 };
 
-bool CTelekineticGrenadeObject::can_be_thrown()  
+void STelekineticGrenadeObject::perform_keep_object()
+{
+	STelekineticObject::perform_keep_object();
+}
+
+bool STelekineticGrenadeObject::can_be_thrown()  
 {
 	u32 now = time();
 	u32 explode_global_time = grenade->destroy_time();  
 	
 	u32 activation_time = explode_global_time - time_to_explode;  
 	u32 elapsed_since_activation = now - activation_time;
-
+	
 	return elapsed_since_activation > throw_threshold;  
 }

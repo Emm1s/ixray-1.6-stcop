@@ -12,13 +12,13 @@ struct SFindPred
 		obj = aobj;
 	}
 
-	bool operator ()(CTelekineticObject* tele_object) const
+	bool operator ()(STelekineticObject* tele_object) const
 	{
 		return tele_object->get_object() == obj;
 	}
 };
 
-static bool RemovePred(CTelekineticObject* tele_object)
+static bool RemovePred(STelekineticObject* tele_object)
 {
 	return !tele_object->get_object() ||
 		tele_object->get_object()->getDestroy() ||
@@ -33,14 +33,14 @@ CTelekinesis::CTelekinesis()
 
 CTelekinesis::~CTelekinesis()
 {
-	for (CTelekineticObject* object : telekinetic_objects)
+	for (STelekineticObject* object : telekinetic_objects)
 	{
 		object->release();
 		xr_delete(object);
 	}
 }
 
-void CTelekinesis::append_tobject(CTelekineticObject* tele_object)
+void CTelekinesis::append_tobject(STelekineticObject* tele_object)
 {
 	active = true;
 
@@ -61,7 +61,7 @@ void CTelekinesis::deactivate()
 	active = false;
 
 	// отпустить все объекты
-	for (CTelekineticObject* object : telekinetic_objects)
+	for (STelekineticObject* object : telekinetic_objects)
 	{
 		object->release();
 		xr_delete(object);
@@ -76,7 +76,7 @@ void CTelekinesis::clear_deactivate()
 	active = false;
 
 	// отпустить все объекты
-	for (CTelekineticObject* object : telekinetic_objects)
+	for (STelekineticObject* object : telekinetic_objects)
 	{
 		object->switch_state(ETelekineticState::TS_NONE);
 		xr_delete(object);
@@ -135,7 +135,7 @@ void CTelekinesis::throw_all_objects(const Fvector& target)
 	if (!active)
 		return;
 
-	for (CTelekineticObject* object : telekinetic_objects)
+	for (STelekineticObject* object : telekinetic_objects)
 		object->throw_object(target, 1.f);
 
 	deactivate();
@@ -182,7 +182,7 @@ void CTelekinesis::schedule_update()
 	
 	for (u32 i = 0; i < telekinetic_objects.size(); i++)
 	{
-		CTelekineticObject* cur_obj = telekinetic_objects[i];
+		STelekineticObject* cur_obj = telekinetic_objects[i];
 		cur_obj->update_state();
 
 		if (cur_obj->is_released())
@@ -195,7 +195,7 @@ void CTelekinesis::PhDataUpdate(float step)
 	if (!active)
 		return;
 
-	for (CTelekineticObject* object : telekinetic_objects)
+	for (STelekineticObject* object : telekinetic_objects)
 	{
 		switch (object->get_state())
 		{
@@ -235,7 +235,7 @@ void CTelekinesis::PhTune(float step)
 
 	clear_notrelevant();
 
-	for (CTelekineticObject* telekinetic_object : telekinetic_objects)
+	for (STelekineticObject* telekinetic_object : telekinetic_objects)
 	{
 		switch (telekinetic_object->get_state())
 		{
@@ -254,7 +254,7 @@ u32 CTelekinesis::get_controlled_objects_count() const
 {
 	u32 count = 0;
 
-	for (CTelekineticObject* object : telekinetic_objects)
+	for (STelekineticObject* object : telekinetic_objects)
 	{
 		ETelekineticState state = object->get_state();
 

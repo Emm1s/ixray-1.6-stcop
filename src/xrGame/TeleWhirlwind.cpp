@@ -55,7 +55,7 @@ void CTeleWhirlwind::draw_out_impact(Fvector& dir,float& val)
 	}
 }
 
-static bool RemovePred(CTelekineticObject *tele_object)
+static bool RemovePred(STelekineticObject *tele_object)
 {
 	return (!tele_object->get_object() || 
 		tele_object->get_object()->getDestroy());
@@ -80,7 +80,7 @@ void CTeleWhirlwind::play_destroy(CTeleWhirlwindObject *obj)
 	
 }
 CTeleWhirlwindObject::CTeleWhirlwindObject(CTelekinesis* tele, CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot) :
-	CTelekineticObject(tele, owner, s, h, ttk, rot)
+	STelekineticObject(tele, owner, s, h, ttk, rot)
 {
 	m_telekinesis = static_cast<CTeleWhirlwind*>(tele);
 

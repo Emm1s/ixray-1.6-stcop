@@ -362,23 +362,3 @@ private:
 
 	bool trace_object(CObject* ignore_object, const Fvector& target);
 };
-
-// class CTelekineticWeaponController
-// {
-// 	CTelekineticPoltergeist* telekinetic_poltergeist_;
-// 	xr_vector<CTelekineticObject*> tele_weapons_;
-// 	
-// 	void update_auto_aim(CTelekineticObject* wpn, const CEntityAlive* enemy);
-// 	void update_weapon_behaviour(CTelekineticObject* wpn, const CEntityAlive* enemy) const;
-// 	bool can_shoot(CTelekineticObject* telekinetic_weapon, const CEntityAlive* enemy) const;
-// 	void try_shoot(CTelekineticObject* telekinetic_weapon);
-// 	void debug_draw(CTelekineticObject* telekinetic_weapon, const CEntityAlive* enemy);
-//
-// public:
-// 	explicit CTelekineticWeaponController(CTelekineticPoltergeist* telekinetic_poltergeist);
-// 	~CTelekineticWeaponController();
-// 	
-// 	void register_object(CTelekineticObject* obj);
-// 	void unregister_object(CTelekineticObject* obj);
-// 	void update(const CEntityAlive* enemy);
-// };

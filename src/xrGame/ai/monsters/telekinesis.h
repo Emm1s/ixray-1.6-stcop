@@ -6,7 +6,7 @@
 class CTelekinesis : public CPHUpdateObject
 {
 public:
-	using TELEKINETIC_OBJECTS = xr_vector<CTelekineticObject*>;
+	using TELEKINETIC_OBJECTS = xr_vector<STelekineticObject*>;
 	using TELE_OBJECTS_IT = TELEKINETIC_OBJECTS::iterator;
 protected:
 	TELEKINETIC_OBJECTS telekinetic_objects;
@@ -19,7 +19,7 @@ public:
 	~CTelekinesis() override;
 	
 	// активировать объект
-	virtual void append_tobject(CTelekineticObject* telekinetic_object);
+	virtual void append_tobject(STelekineticObject* telekinetic_object);
 	// деактивировать все объекты
 	void deactivate();
 	//clear objects (does not call release, but call switch to TS_None)
@@ -45,7 +45,7 @@ public:
 	// вернуть количество контролируемых объектов (в состо€нии TS_Raise & TS_Keep)
 	u32 get_controlled_objects_count() const;
 	ICF TELEKINETIC_OBJECTS& get_tele_objects() { return telekinetic_objects; }
-	ICF CTelekineticObject* get_object_by_index(u32 index)
+	ICF STelekineticObject* get_object_by_index(u32 index)
 	{
 		VERIFY(objects.size() > index);
 		return telekinetic_objects[index];

@@ -108,7 +108,7 @@ bool CBaseGraviZone ::IdleState()
 
 					if (GO && GO->PPhysicsShell() && !Telekinesis().is_active_object(GO))
 					{
-						Telekinesis().append_tobject(new CTelekineticObject(&Telekinesis(), GO, 0.1f, m_fTeleHeight, m_dwTimeToTele, true));
+						Telekinesis().append_tobject(new STelekineticObject(&Telekinesis(), GO, 0.1f, m_fTeleHeight, m_dwTimeToTele, true));
 						PlayTeleParticles(GO);
 					}
 				}

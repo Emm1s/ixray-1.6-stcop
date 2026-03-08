@@ -252,14 +252,14 @@ bool CTelekineticPoltergeist::tele_raise_objects()
 		CPhysicsShellHolder* obj = tele_objects[0] != nullptr ? tele_objects[0]->cast_physics_shell_holder() : nullptr;
 		bool rotate = false;
 
-		CTelekineticObject* tele_obj = nullptr;
+		STelekineticObject* tele_obj = nullptr;
 
 		if (obj->cast_weapon_magazined())
-			tele_obj = new CTelekineticWeaponObject(m_poltergeist, obj, m_pmt_raise_speed, m_pmt_object_height, m_pmt_time_object_keep, rotate);
+			tele_obj = new STelekineticWeaponObject(m_poltergeist, obj, m_pmt_raise_speed, m_pmt_object_height, m_pmt_time_object_keep, rotate);
 		else if(obj->cast_grenade())
-			tele_obj = new CTelekineticGrenadeObject(m_poltergeist, obj, m_pmt_raise_speed, m_pmt_object_height, m_pmt_time_object_keep, rotate);
+			tele_obj = new STelekineticGrenadeObject(m_poltergeist, obj, m_pmt_raise_speed, m_pmt_object_height, m_pmt_time_object_keep, rotate);
 		else
-			tele_obj = new CTelekineticObject(m_poltergeist, obj, m_pmt_raise_speed, m_pmt_object_height, m_pmt_time_object_keep, rotate);
+			tele_obj = new STelekineticObject(m_poltergeist, obj, m_pmt_raise_speed, m_pmt_object_height, m_pmt_time_object_keep, rotate);
 
 		m_poltergeist->CTelekinesis::append_tobject(tele_obj);
 		
@@ -403,7 +403,7 @@ void CTelekineticPoltergeist::throw_objects()
 		return;
 	}
 
-	for (CTelekineticObject* tele_object : m_poltergeist->telekinetic_objects)
+	for (STelekineticObject* tele_object : m_poltergeist->telekinetic_objects)
 	{
 		if (tele_object->get_state() == ETelekineticState::TS_KEEP)
 		{

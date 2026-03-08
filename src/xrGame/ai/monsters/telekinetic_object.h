@@ -17,16 +17,16 @@ enum ETelekineticTimings : u16
 
 class CGameObject;
 class CPhysicsShellHolder;
-class CTelekineticObject;
+class STelekineticObject;
 class CPHUpdateObject;
 class CTelekinesis;
 class CWeaponMagazined;
 class CGrenade;
 class CPoltergeist;
 struct CTeleWhirlwindObject;
-struct CTelekineticWeaponObject;
+struct STelekineticWeaponObject;
 
-struct CTelekineticObject
+struct STelekineticObject
 {
     ETelekineticState state;
 
@@ -47,8 +47,8 @@ struct CTelekineticObject
 	
     bool rotate_object;
 
-    CTelekineticObject(CTelekinesis* tele, CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot);
-    virtual ~CTelekineticObject() {};
+    STelekineticObject(CTelekinesis* tele, CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot);
+    virtual ~STelekineticObject() {};
 
     void set_sound(const ref_sound& snd_hold, const ref_sound& snd_throw);
 
@@ -85,14 +85,14 @@ struct CTelekineticObject
     void update_hold_sound();
     virtual bool can_be_thrown() { return true; };
 
-    virtual CTelekineticObject* cast_telekinetic_object() { return this; }
-    virtual CTelekineticWeaponObject* cast_telekinetic_weapon_object() { return nullptr; }
+    virtual STelekineticObject* cast_telekinetic_object() { return this; }
+    virtual STelekineticWeaponObject* cast_telekinetic_weapon_object() { return nullptr; }
     virtual CTeleWhirlwindObject* cast_whirlwind_object() { return nullptr; }
 };
 
-struct CTelekineticWeaponObject : CTelekineticObject
+struct STelekineticWeaponObject : STelekineticObject
 {
-	using inherited = CTelekineticObject;
+	using inherited = STelekineticObject;
 
 	CWeaponMagazined* weapon;
 	CPoltergeist* parent;
@@ -105,13 +105,12 @@ struct CTelekineticWeaponObject : CTelekineticObject
 	u32 last_slide_time;
 	u32 delay_between_weapon_slides;
 	
-	
 	float backup_weapon_dispersion = 9999.f;
 	s8 backup_weapon_fire_mode = s8(-1);
 
 	bool is_shooting;
 	
-	CTelekineticWeaponObject(CPoltergeist* parent, CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot);
+	STelekineticWeaponObject(CPoltergeist* parent, CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot);
 
 	void setup_local_weapon_things();
 	void restore_global_weapon_things();
@@ -121,6 +120,8 @@ struct CTelekineticWeaponObject : CTelekineticObject
     bool can_shoot();
 	void shoot();
 	
+	bool is_enemy_tracing() const;
+	
     virtual void perform_keep_object();
 
     virtual bool can_be_thrown();
@@ -128,21 +129,24 @@ struct CTelekineticWeaponObject : CTelekineticObject
     virtual void release();
     virtual void switch_state(ETelekineticState new_state);
 
-    virtual CTelekineticWeaponObject* cast_telekinetic_weapon_object() { return this; }
+    virtual STelekineticWeaponObject* cast_telekinetic_weapon_object() { return this; }
 };
 
-struct CTelekineticGrenadeObject : CTelekineticObject
+struct STelekineticGrenadeObject : STelekineticObject
 {
-	using inherited = CTelekineticObject;
+	using inherited = STelekineticObject;
 	
     CPoltergeist* parent;
 	CGrenade* grenade;
 	
-	u32 throw_threshold = 1000;
-	u32 time_to_explode = 3000;
+	u32 throw_threshold = 700;
+	u32 time_to_explode = 2000;
 	
-    CTelekineticGrenadeObject(CPoltergeist* parent, CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot);
+    STelekineticGrenadeObject(CPoltergeist* parent, CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot);
 	
+	void debug_draw();
+	
+	virtual void perform_keep_object();
     virtual bool can_be_thrown();
     virtual void switch_state(ETelekineticState new_state);
 };
