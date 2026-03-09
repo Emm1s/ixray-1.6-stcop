@@ -83,7 +83,9 @@ struct STelekineticObject
 
     void rotate() const;
     void update_hold_sound();
-    virtual bool can_be_thrown() { return true; };
+	
+    virtual bool can_be_thrown() { return true; }
+	virtual bool can_be_picked_up() { return true; }
 
     virtual STelekineticObject* cast_telekinetic_object() { return this; }
     virtual STelekineticWeaponObject* cast_telekinetic_weapon_object() { return nullptr; }
@@ -146,8 +148,9 @@ struct STelekineticGrenadeObject : STelekineticObject
     STelekineticGrenadeObject(CPoltergeist* parent, CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot);
 	
 	void debug_draw();
-	
+
 	virtual void perform_keep_object();
-    virtual bool can_be_thrown();
-    virtual void switch_state(ETelekineticState new_state);
+	virtual void switch_state(ETelekineticState new_state);
+	virtual bool can_be_thrown();
+	virtual bool can_be_picked_up();
 };

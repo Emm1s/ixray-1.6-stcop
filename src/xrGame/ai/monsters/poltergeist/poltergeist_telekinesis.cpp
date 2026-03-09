@@ -193,7 +193,7 @@ void CTelekineticPoltergeist::tele_find_objects(xr_vector<CObject*>& objects, co
 
 		CPhysicsShellHolder* obj = pObject->cast_physics_shell_holder();
 		CMonsterEnemyManager& enemy = this->m_poltergeist->EnemyMan;
-
+		
 		if (!obj ||
 			!obj->PPhysicsShell() ||
 			!obj->PPhysicsShell()->isActive() ||
@@ -244,29 +244,30 @@ bool CTelekineticPoltergeist::tele_raise_objects()
 	// оставить уникальные объекты
 	tele_objects.erase(std::ranges::unique(tele_objects).begin(), tele_objects.end());
 
-	if (!tele_objects.empty())
-	{
-		CPhysicsShellHolder* obj = tele_objects[0] != nullptr ? tele_objects[0]->cast_physics_shell_holder() : nullptr;
-		bool rotate = false;
+	if (tele_objects.empty())
+		return false;
+	
+	CPhysicsShellHolder* obj = tele_objects[0] != nullptr ? tele_objects[0]->cast_physics_shell_holder() : nullptr;
+	bool rotate = false;
 
-		STelekineticObject* tele_obj = nullptr;
+	STelekineticObject* tele_obj;
 
-		if (obj->cast_weapon_magazined())
-			tele_obj = new STelekineticWeaponObject(m_poltergeist, obj, m_pmt_raise_speed, m_pmt_object_height,
-			                                        m_pmt_time_object_keep, rotate);
-		else if(obj->cast_grenade())
-			tele_obj = new STelekineticGrenadeObject(m_poltergeist, obj, m_pmt_raise_speed, m_pmt_object_height,
-			                                         m_pmt_time_object_keep, rotate);
-		else
-			tele_obj = new STelekineticObject(m_poltergeist, obj, m_pmt_raise_speed, m_pmt_object_height,
-			                                  m_pmt_time_object_keep, rotate);
-
-		m_poltergeist->CTelekinesis::append_tobject(tele_obj);
+	if (obj->cast_weapon_magazined())
+		tele_obj = new STelekineticWeaponObject(m_poltergeist, obj, m_pmt_raise_speed, m_pmt_object_height,
+												m_pmt_time_object_keep, rotate);
+	else if(obj->cast_grenade())
+		tele_obj = new STelekineticGrenadeObject(m_poltergeist, obj, m_pmt_raise_speed, m_pmt_object_height,
+												 m_pmt_time_object_keep, rotate);
+	else
+		tele_obj = new STelekineticObject(m_poltergeist, obj, m_pmt_raise_speed, m_pmt_object_height,
+										  m_pmt_time_object_keep, rotate);
 		
-		tele_obj->set_sound(m_sound_tele_hold, m_sound_tele_throw);
-		
-		return true;
-	}
+	if (!tele_obj->can_be_picked_up())
+		return false;
+
+	m_poltergeist->CTelekinesis::append_tobject(tele_obj);
+	tele_obj->set_sound(m_sound_tele_hold, m_sound_tele_throw);
+	
 	return false;
 }
 

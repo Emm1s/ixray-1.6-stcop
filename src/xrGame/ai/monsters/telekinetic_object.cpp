@@ -26,9 +26,6 @@ STelekineticObject::STelekineticObject(CTelekinesis* tele, CPhysicsShellHolder* 
 	strength = s;
 	time_throw_started = 0;
 	rotate_object = rot;
-
-	if (object->m_pPhysicsShell)
-		object->m_pPhysicsShell->set_ApplyByGravity(false);
 }
 
 void STelekineticObject::set_sound(const ref_sound& snd_hold, const ref_sound& snd_throw)
@@ -712,4 +709,12 @@ bool STelekineticGrenadeObject::can_be_thrown()
 	u32 elapsed_since_activation = now - activation_time;
 	
 	return elapsed_since_activation > throw_threshold;
+}
+
+bool STelekineticGrenadeObject::can_be_picked_up()
+{
+	if (grenade->destroy_time() != grenade_initial_time)
+		return false;
+	
+	return true;
 }

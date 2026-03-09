@@ -44,6 +44,9 @@ void CTelekinesis::append_tobject(STelekineticObject* tele_object)
 {
 	active = true;
 
+	if (tele_object->object->m_pPhysicsShell)
+		tele_object->object->m_pPhysicsShell->set_ApplyByGravity(FALSE);
+	
 	// добавить объект	
 	telekinetic_objects.push_back(tele_object);
 
