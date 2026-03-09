@@ -153,9 +153,6 @@ void CTelekineticPoltergeist::UpdateCL()
 
 		// Главная фаза телекинеза полтера: стрельба + бросаемся предметами.
 	case ETeleState::MAIN_PHASE:
-		
-		// Это уже каждый кадр вызывать не надо, а тольок тогда, когда время на удержание одного объекта истекло.
-		// Нужно это чтобы сразу же не кидаться поднятыми предметами.
 		if (m_state_start_time + m_pmt_time_to_hold > time() &&
 			m_state_start_time + m_state_next_update > time())
 				break;
@@ -212,7 +209,7 @@ void CTelekineticPoltergeist::tele_find_objects(xr_vector<CObject*>& objects, co
 		Fvector center;
 		enemy.get_enemy()->Center(center);
 
-		if (trace_object(obj, center) ||
+		if (trace_object(obj, center) || 
 			trace_object(obj, get_head_position(fast_dynamic_cast<CObject*>((CEntityAlive*)enemy.get_enemy()))))
 		{
 			objects.push_back(obj);
@@ -255,11 +252,14 @@ bool CTelekineticPoltergeist::tele_raise_objects()
 		STelekineticObject* tele_obj = nullptr;
 
 		if (obj->cast_weapon_magazined())
-			tele_obj = new STelekineticWeaponObject(m_poltergeist, obj, m_pmt_raise_speed, m_pmt_object_height, m_pmt_time_object_keep, rotate);
+			tele_obj = new STelekineticWeaponObject(m_poltergeist, obj, m_pmt_raise_speed, m_pmt_object_height,
+			                                        m_pmt_time_object_keep, rotate);
 		else if(obj->cast_grenade())
-			tele_obj = new STelekineticGrenadeObject(m_poltergeist, obj, m_pmt_raise_speed, m_pmt_object_height, m_pmt_time_object_keep, rotate);
+			tele_obj = new STelekineticGrenadeObject(m_poltergeist, obj, m_pmt_raise_speed, m_pmt_object_height,
+			                                         m_pmt_time_object_keep, rotate);
 		else
-			tele_obj = new STelekineticObject(m_poltergeist, obj, m_pmt_raise_speed, m_pmt_object_height, m_pmt_time_object_keep, rotate);
+			tele_obj = new STelekineticObject(m_poltergeist, obj, m_pmt_raise_speed, m_pmt_object_height,
+			                                  m_pmt_time_object_keep, rotate);
 
 		m_poltergeist->CTelekinesis::append_tobject(tele_obj);
 		

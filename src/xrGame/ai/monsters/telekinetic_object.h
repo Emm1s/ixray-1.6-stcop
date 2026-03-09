@@ -139,6 +139,7 @@ struct STelekineticGrenadeObject : STelekineticObject
     CPoltergeist* parent;
 	CGrenade* grenade;
 	
+	u32 grenade_initial_time = UINT32_MAX;
 	u32 throw_threshold = 700;
 	u32 time_to_explode = 2000;
 	

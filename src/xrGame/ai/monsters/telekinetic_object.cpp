@@ -299,9 +299,9 @@ STelekineticWeaponObject::STelekineticWeaponObject(CPoltergeist* parent, CPhysic
 
 void STelekineticWeaponObject::setup_local_weapon_things()
 {
-	const CEntityAlive* enemy_ = parent->EnemyMan.get_enemy();
+	const CEntityAlive* enemy = parent->EnemyMan.get_enemy();
 	
-	if (enemy_ == nullptr)
+	if (enemy == nullptr)
 		return;
 	
 	if (weapon == nullptr)
@@ -311,38 +311,40 @@ void STelekineticWeaponObject::setup_local_weapon_things()
 		return;
 	
 	backup_weapon_dispersion = weapon->getFireDispersionBase();
-	//Msg("%d: backup_weapon_dispersion: %f", weapon_->ID(), backup_weapon_dispersion);
 	backup_weapon_fire_mode = weapon->GetQueueSize();
 	
-	// WEAPON_ININITE_QUEUE (-1) = auto, 1 = single, 3 = burst
+	// WEAPON_ININITE_QUEUE (-1) = auto, 1 = single, 2 = burst
 	weapon->SetQueueSize(WEAPON_ININITE_QUEUE); // чтобы пистолетам задать режим стрельбы auto
 	
-	if (enemy_ == g_actor)
+	if (CActor* actor = smart_cast<CActor*>(enemy); actor != nullptr)
 	{
 		switch (g_SingleGameDifficulty)
 		{
 		case egdNovice:
-			weapon->setFireDispersionBase(0.20f);
-			return;
+			weapon->setFireDispersionBase(0.16f);
+			break;
 		
 		case egdStalker:
-			weapon->setFireDispersionBase(0.17f);
-			return;
+			weapon->setFireDispersionBase(0.14f);
+			break;
 		
 		case egdVeteran:
-			weapon->setFireDispersionBase(0.15f);
-			return;
+			weapon->setFireDispersionBase(0.12f);
+			break;
 		
 		case egdMaster:
-			weapon->setFireDispersionBase(0.13f);
-			return;
+			weapon->setFireDispersionBase(0.10f);
+			break;
 		}
-
-		weapon->setFireDispersionBase(backup_weapon_dispersion);
-		return;
-	} 
-
-	weapon->setFireDispersionBase(0.25f);
+	}
+	else if (CAI_Stalker* cai_stalker = smart_cast<CAI_Stalker*>(enemy); cai_stalker != nullptr)
+	{
+		// Скипаем некотоыре пушки, ибо шотгану, с его разбросом, ещё поверх крутить точно ничего не нужно и т.д.
+		if (weapon->cast_weapon_shotgun() /*|| weapon->cast_weapon_rg6()*/)
+			return;
+		
+		weapon->setFireDispersionBase(0.18f);
+	}
 }
 
 void STelekineticWeaponObject::restore_global_weapon_things()
@@ -489,7 +491,7 @@ bool STelekineticWeaponObject::can_shoot()
 	if (weapon == nullptr)
 		return false;
 	
-	if (weapon->GetAmmoElapsed() <= 0)
+	if (weapon->GetAmmoElapsed() + weapon->GetAmmoChamberElapsed() <= 0)
 		return false;
 	
 	if (!enemy_->g_Alive())
@@ -607,7 +609,7 @@ void STelekineticWeaponObject::perform_keep_object()
 
 bool STelekineticWeaponObject::can_be_thrown()
 {
-	return weapon->GetAmmoElapsed() <= 0 || weapon->IsMisfire();
+	return weapon->GetAmmoElapsed() + weapon->GetAmmoChamberElapsed() <= 0 || weapon->IsMisfire();
 }
 
 void STelekineticWeaponObject::keep_time_elapsed()
@@ -678,33 +680,36 @@ void STelekineticGrenadeObject::debug_draw()
 void STelekineticGrenadeObject::switch_state(ETelekineticState new_state)
 {
 	inherited::switch_state(new_state);
-	
-	switch (state)
-	{
-		case ETelekineticState::TS_KEEP: 
-		{
-			if (grenade->destroy_time() == 0xffffffff)
-			{
-				grenade->State(CGrenade::eThrowStart);
-				grenade->set_destroy_time(time_to_explode);
-			}
-		}
-		break;
-	}
-};
+}
 
 void STelekineticGrenadeObject::perform_keep_object()
 {
 	STelekineticObject::perform_keep_object();
+	
+	const CEntityAlive* enemy = parent->EnemyMan.get_enemy();
+		
+	if (enemy == nullptr)
+		return;
+	
+	if (grenade->destroy_time() == grenade_initial_time)
+	{
+		grenade->State(CGrenade::eThrowStart);
+		grenade->set_destroy_time(time_to_explode);
+	}
+	else if (time() >= grenade->destroy_time())
+	{
+		grenade->State(CGrenade::eThrowEnd);
+		grenade->DestroyObject();
+	}
 }
 
 bool STelekineticGrenadeObject::can_be_thrown()  
 {
 	u32 now = time();
-	u32 explode_global_time = grenade->destroy_time();  
+	u32 explode_global_time = grenade->destroy_time();
 	
-	u32 activation_time = explode_global_time - time_to_explode;  
+	u32 activation_time = explode_global_time - time_to_explode;
 	u32 elapsed_since_activation = now - activation_time;
 	
-	return elapsed_since_activation > throw_threshold;  
+	return elapsed_since_activation > throw_threshold;
 }
