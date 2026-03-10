@@ -3,6 +3,19 @@
 #include "telekinetic_object.h"
 #include "../../../xrPhysics/PHUpdateObject.h"
 
+struct TelekineticParams
+{
+	float distance;
+	u32 keep_time;
+	
+	void Load(LPCSTR section)
+	{
+		distance = READ_IF_EXISTS(pSettings, r_float, section, "Tele_Distance", 50.f);
+		keep_time = READ_IF_EXISTS(pSettings, r_u32, section, "Tele_Time_Object_Keep", 10000);
+	}
+};
+
+
 class CTelekinesis : public CPHUpdateObject
 {
 public:
@@ -15,6 +28,8 @@ protected:
 	bool active;
 
 public:
+	TelekineticParams telekinetic_params;
+	
 	CTelekinesis();
 	~CTelekinesis() override;
 	
@@ -54,10 +69,13 @@ public:
 	void schedule_update();
 	// объект был удален - удалить все св€зи на объект
 	void remove_links(CObject* O);
+	
+	virtual CEntityAlive* get_enemy() { return nullptr; }
+	virtual float get_tele_distance() { return FLT_MAX; }
+	virtual u32 get_tele_keep_time()  { return UINT32_MAX; }
 
 private:
 	// обновление на шагах физики
 	void PhDataUpdate(float step) override;
 	void PhTune(float step) override;
 };
-

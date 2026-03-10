@@ -112,6 +112,15 @@ public:
 
 	void EnableHide() { m_disable_hide = false; }
 	void DisableHide() { m_disable_hide = true; }
+	
+	virtual CEntityAlive* get_enemy()
+	{
+		const CEntityAlive* entity_alive = EnemyMan.get_enemy();
+		return entity_alive ? const_cast<CEntityAlive*>(entity_alive) : nullptr;
+	}
+	
+	virtual float get_tele_distance() override;
+	virtual u32 get_tele_keep_time() override;
 
 public:
 	bool run_home_point_when_enemy_inaccessible() const override { return false; }
@@ -271,6 +280,7 @@ public:
 	virtual void on_destroy() override;
 	virtual void on_die() override;
 	virtual void UpdateCL() override;
+	
 	virtual CFlamePoltergeist* cast_to_polter_flame() override { return this; }
 
 private:

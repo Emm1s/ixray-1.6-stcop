@@ -132,12 +132,13 @@ void CBurer::Load(const char* section)
 	m_shield_penetration_border			=	READ_IF_EXISTS(pSettings, r_float, section, "shield_penetration_border", m_shield_penetration_border);
 	m_shield_penetration_damage_coeff	=	READ_IF_EXISTS(pSettings, r_float, section, "shield_penetration_damage_coeff", m_shield_penetration_damage_coeff);
 	
+		
+	m_tele_find_radius					= 	pSettings->r_float(section,"Tele_Find_Radius");
+	m_tele_object_min_mass				= 	pSettings->r_float(section,"Tele_Object_Min_Mass");
+	m_tele_object_max_mass				= 	pSettings->r_float(section,"Tele_Object_Max_Mass");
 	m_tele_max_handled_objects			= 	pSettings->r_u32(section,"Tele_Max_Handled_Objects");
 	m_tele_max_time						= 	READ_IF_EXISTS(pSettings, r_u32, section, "Tele_Max_Time", 10000);
 	m_tele_time_to_hold					= 	pSettings->r_u32(section,"Tele_Time_To_Hold");
-	m_tele_object_min_mass				= 	pSettings->r_float(section,"Tele_Object_Min_Mass");
-	m_tele_object_max_mass				= 	pSettings->r_float(section,"Tele_Object_Max_Mass");
-	m_tele_find_radius					= 	pSettings->r_float(section,"Tele_Find_Radius");
 	m_tele_min_distance					= 	READ_IF_EXISTS(pSettings, r_float, section, "tele_min_distance", 8);
 	m_tele_max_distance					= 	READ_IF_EXISTS(pSettings, r_float, section, "tele_max_distance", 30);
 	m_tele_raise_speed					= 	READ_IF_EXISTS(pSettings, r_float, section, "tele_raise_speed", 5.f);
@@ -314,8 +315,6 @@ void CBurer::PostLoad (const char* section)
 void CBurer::shedule_Update(u32 dt)
 {
 	inherited::shedule_Update		(dt);
-
-	CTelekinesis::schedule_update	();
 }
 
 void CBurer::CheckSpecParams(u32 spec_params)
@@ -579,6 +578,7 @@ void CBurer::UpdateGraviObjectCL()
 void CBurer::UpdateCL()
 {
 	inherited::UpdateCL();
+	CTelekinesis::schedule_update();
 
 	if (OnServer() && m_shield_active && m_shield_expire_time && Device.dwTimeGlobal >= m_shield_expire_time)
 	{

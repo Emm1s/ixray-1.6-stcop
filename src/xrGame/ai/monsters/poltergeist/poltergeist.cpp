@@ -284,6 +284,16 @@ void CPoltergeist::reinit()
 	DisableHide();
 }
 
+float CPoltergeist::get_tele_distance()
+{
+	return m_poltergeist->cast_to_polter_tele()->m_pmt_distance;
+}
+
+u32 CPoltergeist::get_tele_keep_time()
+{
+	return m_poltergeist->cast_to_polter_tele()->m_pmt_time_object_keep;
+}
+
 void CPoltergeist::Hide()
 {
 	if (state_invisible) return;

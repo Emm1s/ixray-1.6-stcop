@@ -97,7 +97,7 @@ struct STelekineticWeaponObject : STelekineticObject
 	using inherited = STelekineticObject;
 
 	CWeaponMagazined* weapon;
-	CPoltergeist* parent;
+	CTelekinesis* parent;
 
 	u32 shoot_phase_start;
 	u32 shoot_phase_end;
@@ -112,7 +112,7 @@ struct STelekineticWeaponObject : STelekineticObject
 
 	bool is_shooting;
 	
-	STelekineticWeaponObject(CPoltergeist* parent, CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot);
+	STelekineticWeaponObject(CTelekinesis* telekinesis, CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot);
 
 	void setup_local_weapon_things();
 	void restore_global_weapon_things();
@@ -138,14 +138,14 @@ struct STelekineticGrenadeObject : STelekineticObject
 {
 	using inherited = STelekineticObject;
 	
-    CPoltergeist* parent;
+    CTelekinesis* parent;
 	CGrenade* grenade;
 	
 	u32 grenade_initial_time = UINT32_MAX;
 	u32 throw_threshold = 700;
 	u32 time_to_explode = 2000;
 	
-    STelekineticGrenadeObject(CPoltergeist* parent, CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot);
+    STelekineticGrenadeObject(CTelekinesis* telekinesis, CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot);
 	
 	void debug_draw();
 
