@@ -11,6 +11,7 @@ class ITelekineticEnemy;
 struct STelekineticObject;
 struct CTeleWhirlwindObject;
 struct STelekineticWeaponObject;
+struct STelekineticGrenadeObject;
 
 enum class ETelekineticState : u8
 {
@@ -50,29 +51,29 @@ struct STelekineticObject
     STelekineticObject(CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot);
     virtual ~STelekineticObject() {};
 
-    void set_sound(const ref_sound& snd_hold, const ref_sound& snd_throw);
+    virtual void set_sound(const ref_sound& snd_hold, const ref_sound& snd_throw);
 
     virtual void raise(float step);
     virtual void raise_update();
 
-    void prepare_keep();
+    virtual void prepare_keep();
     virtual void perform_keep_object();
     virtual void keep_update();
     virtual void release();
     virtual void throw_object(const Fvector& target, float power);
-    void throw_object_time(const Fvector& target, float time);
+    virtual void throw_object_time(const Fvector& target, float time);
     virtual void throw_update();
     virtual void update_state();
-    ICF bool is_released() const { return state == ETelekineticState::TS_NONE; }
-    virtual void switch_state(ETelekineticState new_state);
-    ICF ETelekineticState get_state() const { return state; }
-    ICF CPhysicsShellHolder* get_object() const { return object; }
+	ICF virtual bool is_released() const { return state == ETelekineticState::TS_NONE; }
+		virtual void switch_state(ETelekineticState new_state);
+	ICF virtual ETelekineticState get_state() const { return state; }
+	ICF virtual CPhysicsShellHolder* get_object() const { return object; }
 
-    bool check_height() const;
-    bool check_raise_time_out() const;
+    virtual bool check_height() const;
+    virtual bool check_raise_time_out() const;
 
-    bool keep_time_elapsed() const;
-    bool throw_time_elapsed() const;
+    virtual bool keep_time_elapsed() const;
+    virtual bool throw_time_elapsed() const;
     
     void enable() const;
 
@@ -89,6 +90,7 @@ struct STelekineticObject
 
     virtual STelekineticObject* cast_telekinetic_object() { return this; }
     virtual STelekineticWeaponObject* cast_telekinetic_weapon_object() { return nullptr; }
+	virtual STelekineticGrenadeObject* cast_telekinetic_grenade_object() { return nullptr; }
     virtual CTeleWhirlwindObject* cast_whirlwind_object() { return nullptr; }
 };
 
@@ -127,12 +129,12 @@ struct STelekineticWeaponObject : STelekineticObject
 	
     virtual void perform_keep_object();
 
-    virtual bool can_be_thrown();
-    virtual void keep_time_elapsed();
-    virtual void release();
-    virtual void switch_state(ETelekineticState new_state);
+	bool can_be_thrown() override;
+	void keep_time_elapsed();
+	void release() override;
+	void switch_state(ETelekineticState new_state) override;
 
-    virtual STelekineticWeaponObject* cast_telekinetic_weapon_object() { return this; }
+	STelekineticWeaponObject* cast_telekinetic_weapon_object() override { return this; }
 };
 
 struct STelekineticGrenadeObject : STelekineticObject
@@ -150,8 +152,10 @@ struct STelekineticGrenadeObject : STelekineticObject
 	
 	void debug_draw();
 
-	virtual void perform_keep_object();
-	virtual void switch_state(ETelekineticState new_state);
-	virtual bool can_be_thrown();
-	virtual bool can_be_picked_up();
+	void perform_keep_object() override;
+	void switch_state(ETelekineticState new_state) override;
+	bool can_be_thrown() override;
+	bool can_be_picked_up() override;
+	
+	STelekineticGrenadeObject* cast_telekinetic_grenade_object() override { return this; }
 };
