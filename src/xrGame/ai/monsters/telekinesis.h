@@ -26,7 +26,6 @@ public:
 	virtual u32 get_tele_keep_time()  = 0;
 };
 
-
 class CTelekinesis : public CPHUpdateObject
 {
 public:

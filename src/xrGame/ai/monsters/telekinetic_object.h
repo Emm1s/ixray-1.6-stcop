@@ -102,8 +102,8 @@ struct STelekineticWeaponObject : STelekineticObject
 	
 	CWeaponMagazined* weapon;
 	
-	u32 shoot_phase_start;
-	u32 shoot_phase_end;
+	u32 weapon_phase_start_time;
+	u32 weapon_next_phase_time;
 
 	u32 delay_before_first_shoot;
 	
@@ -123,14 +123,13 @@ struct STelekineticWeaponObject : STelekineticObject
 	void debug_draw();
 	void update_auto_aim();
     bool can_shoot();
-	void shoot();
-	
-	bool is_enemy_tracing() const;
-	
-    virtual void perform_keep_object();
+	void try_shoot();
+	void weapon_start_shooting(u32 shoot_time);
+	void weapon_end_shooting(u32 pause_time);
+	bool is_enemy_tracing();
 
+	void perform_keep_object() override;
 	bool can_be_thrown() override;
-	void keep_time_elapsed();
 	void release() override;
 	void switch_state(ETelekineticState new_state) override;
 

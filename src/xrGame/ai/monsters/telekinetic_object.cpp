@@ -283,7 +283,7 @@ STelekineticWeaponObject::STelekineticWeaponObject(ITelekineticEnemy* tele_enemy
 	STelekineticObject(owner, s, h, ttk, rot),
 	telekinetic_enemy(tele_enemy),
 	weapon(owner->cast_weapon_magazined()),
-	shoot_phase_end(0),
+	weapon_next_phase_time(0),
 	delay_before_first_shoot(0),
 	last_slide_time(time()),
 	delay_between_weapon_slides(1000), 
@@ -407,15 +407,15 @@ void STelekineticWeaponObject::debug_draw()
 	case true:
 		{
 			u32 shot_interval = static_cast<u32>(weapon->getRPM() * 1000.f);
-			u32 shot_time = shoot_phase_end - shoot_phase_start;
+			u32 shot_time = weapon_next_phase_time - weapon_phase_start_time;
 			u32 doing_shoots = shot_time / shot_interval;
 			
-			time_to_shoot_end = shared_str().printf("Time to shoot end: %u, doing %u shots", shoot_phase_end - time(), doing_shoots);
+			time_to_shoot_end = shared_str().printf("Time to shoot end: %u, doing %u shots", weapon_next_phase_time - time(), doing_shoots);
 		}	
 		break;
 		
 	case false:
-		time_to_shoot_end = shared_str().printf("Time to start shoot: %u", shoot_phase_end - time());	
+		time_to_shoot_end = shared_str().printf("Time to start shoot: %u", weapon_next_phase_time - time());	
 		break;
 	}
 	
@@ -501,51 +501,50 @@ bool STelekineticWeaponObject::can_shoot()
 	return true;
 }
 
-void STelekineticWeaponObject::shoot()
+void STelekineticWeaponObject::try_shoot()
 {
-	if (u32 now = time(); now >= shoot_phase_end)
+	if (u32 now = time(); now >= weapon_next_phase_time)
 	{
 		u32 shot_interval = static_cast<u32>(weapon->getRPM() * 1000.f);
 		u32 mag_size_third = weapon->GetAmmoMagSize() / 3;
-		
 		mag_size_third = std::max(2u, mag_size_third);
 		
-		if (is_shooting)
+		if (weapon->IsWorking())
 		{
 			u32 shots_skip = Random.randI(1, mag_size_third);
 			u32 pause_time = time() + shot_interval * shots_skip;
-			
-			is_shooting = false;
-			shoot_phase_end = pause_time;
-			
-			weapon->FireEnd();
+			weapon_end_shooting(pause_time);
 		}
 		else
 		{
 			if (weapon->IsGrenadeMode())
 			{
 				weapon->cast_weapon_magazined_w_grenade()->state_Fire(Device.fTimeDelta);
-				
-				shoot_phase_start = time();
-				shoot_phase_end = time();
-				
+				weapon_end_shooting();
 				return;
 			}
-			
 			u32 do_shots = Random.randI(1, mag_size_third);
 			u32 end_shoot_time = time() + shot_interval * do_shots;
-			
-			
-			is_shooting = true;
-			shoot_phase_start = time();
-			shoot_phase_end = end_shoot_time;
-			
-			weapon->FireStart();
+			weapon_start_shooting(end_shoot_time);
 		}
 	}
 }
 
-bool STelekineticWeaponObject::is_enemy_tracing() const
+void STelekineticWeaponObject::weapon_start_shooting(u32 shoot_time)
+{
+	weapon_next_phase_time = shoot_time;
+	weapon_phase_start_time = time();
+	weapon->FireStart();
+}
+
+void STelekineticWeaponObject::weapon_end_shooting(u32 pause_time = 0)
+{
+	weapon_phase_start_time = time();
+	weapon_next_phase_time = pause_time;
+	weapon->FireEnd();
+}
+
+bool STelekineticWeaponObject::is_enemy_tracing()
 {
 	CEntityAlive* enemy = telekinetic_enemy->get_enemy();
 	
@@ -571,6 +570,8 @@ bool STelekineticWeaponObject::is_enemy_tracing() const
 
 void STelekineticWeaponObject::perform_keep_object()
 {
+	inherited::perform_keep_object();
+	
 	if (last_slide_time + delay_between_weapon_slides < time())
 	{
 		Fvector random_lr_dir;
@@ -597,20 +598,14 @@ void STelekineticWeaponObject::perform_keep_object()
 		delay_between_weapon_slides = Random.randI(static_cast<s32>(min), static_cast<s32>(max));
 	}
 	
-	inherited::perform_keep_object();
-	
 	update_auto_aim();
 
 	if (!can_shoot())
 	{
-		is_shooting = false;
-		shoot_phase_end = time();
-		
-		weapon->FireEnd();
-		
+		weapon_end_shooting();
 		return;
 	}
-	shoot();
+	try_shoot();
 }
 
 bool STelekineticWeaponObject::can_be_thrown()
@@ -621,16 +616,10 @@ bool STelekineticWeaponObject::can_be_thrown()
 	return current_elapsed + current_champer <= 0 || weapon->IsMisfire();
 }
 
-void STelekineticWeaponObject::keep_time_elapsed()
-{
-	inherited::keep_time_elapsed();
-	weapon->FireEnd();
-}
-
 void STelekineticWeaponObject::release()
 {
 	inherited::release();
-	weapon->FireEnd();
+	weapon_end_shooting();
 }
 
 void STelekineticWeaponObject::switch_state(ETelekineticState new_state)
@@ -646,6 +635,7 @@ void STelekineticWeaponObject::switch_state(ETelekineticState new_state)
 	if (state == ETelekineticState::TS_THROW || new_state == ETelekineticState::TS_NONE)
 	{
 		weapon->SetCanTake(true);
+		weapon_end_shooting();
 		restore_global_weapon_things();
 	}
 }
@@ -693,7 +683,7 @@ void STelekineticGrenadeObject::switch_state(ETelekineticState new_state)
 
 void STelekineticGrenadeObject::perform_keep_object()
 {
-	STelekineticObject::perform_keep_object();
+	inherited::perform_keep_object();
 	
 	const CEntityAlive* enemy = telekinetic_enemy->get_enemy();
 		
