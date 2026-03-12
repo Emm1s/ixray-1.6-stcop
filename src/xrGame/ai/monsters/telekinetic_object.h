@@ -1,5 +1,17 @@
 #pragma once
 
+class CGameObject;
+class CPhysicsShellHolder;
+class CPHUpdateObject;
+class CTelekinesis;
+class CWeaponMagazined;
+class CGrenade;
+class CPoltergeist;
+class ITelekineticEnemy;
+struct STelekineticObject;
+struct CTeleWhirlwindObject;
+struct STelekineticWeaponObject;
+
 enum class ETelekineticState : u8
 {
     TS_NONE,
@@ -15,23 +27,11 @@ enum ETelekineticTimings : u16
     RAISE_MAX_TIME = 5000
 };
 
-class CGameObject;
-class CPhysicsShellHolder;
-class STelekineticObject;
-class CPHUpdateObject;
-class CTelekinesis;
-class CWeaponMagazined;
-class CGrenade;
-class CPoltergeist;
-struct CTeleWhirlwindObject;
-struct STelekineticWeaponObject;
-
 struct STelekineticObject
 {
     ETelekineticState state;
 
     CPhysicsShellHolder* object;
-    CTelekinesis* telekinesis = nullptr;
     ref_sound sound_hold;
     ref_sound sound_throw;
 
@@ -47,7 +47,7 @@ struct STelekineticObject
 	
     bool rotate_object;
 
-    STelekineticObject(CTelekinesis* tele, CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot);
+    STelekineticObject(CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot);
     virtual ~STelekineticObject() {};
 
     void set_sound(const ref_sound& snd_hold, const ref_sound& snd_throw);
@@ -96,9 +96,10 @@ struct STelekineticWeaponObject : STelekineticObject
 {
 	using inherited = STelekineticObject;
 
+	ITelekineticEnemy* telekinetic_enemy;
+	
 	CWeaponMagazined* weapon;
-	CTelekinesis* parent;
-
+	
 	u32 shoot_phase_start;
 	u32 shoot_phase_end;
 
@@ -112,7 +113,7 @@ struct STelekineticWeaponObject : STelekineticObject
 
 	bool is_shooting;
 	
-	STelekineticWeaponObject(CTelekinesis* telekinesis, CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot);
+	STelekineticWeaponObject(ITelekineticEnemy* tele_enemy, CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot);
 
 	void setup_local_weapon_things();
 	void restore_global_weapon_things();
@@ -138,14 +139,14 @@ struct STelekineticGrenadeObject : STelekineticObject
 {
 	using inherited = STelekineticObject;
 	
-    CTelekinesis* parent;
+	ITelekineticEnemy* telekinetic_enemy;
 	CGrenade* grenade;
 	
 	u32 grenade_initial_time = UINT32_MAX;
 	u32 throw_threshold = 700;
 	u32 time_to_explode = 2000;
 	
-    STelekineticGrenadeObject(CTelekinesis* telekinesis, CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot);
+    STelekineticGrenadeObject(ITelekineticEnemy* tele_enemy, CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot);
 	
 	void debug_draw();
 

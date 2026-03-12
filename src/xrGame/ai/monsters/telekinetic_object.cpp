@@ -11,9 +11,8 @@
 #include "poltergeist/poltergeist.h"
 extern ESingleGameDifficulty g_SingleGameDifficulty; 
 
-STelekineticObject::STelekineticObject(CTelekinesis* tele, CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot)
+STelekineticObject::STelekineticObject(CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot)
 {
-	telekinesis = tele;
 	STelekineticObject::switch_state(ETelekineticState::TS_RAISE);
 	object = owner;
 
@@ -279,11 +278,11 @@ void STelekineticObject::update_hold_sound()
 
 // -------------------- WEAPON CONTROLLER --------------------
 
-STelekineticWeaponObject::STelekineticWeaponObject(CTelekinesis* telekinesis, CPhysicsShellHolder* owner, float s, float h,
+STelekineticWeaponObject::STelekineticWeaponObject(ITelekineticEnemy* tele_enemy, CPhysicsShellHolder* owner, float s, float h,
                                                    u32 ttk, bool rot) :
-	STelekineticObject(telekinesis, owner, s, h, ttk, rot),
+	STelekineticObject(owner, s, h, ttk, rot),
+	telekinetic_enemy(tele_enemy),
 	weapon(owner->cast_weapon_magazined()),
-	parent(telekinesis),
 	shoot_phase_end(0),
 	delay_before_first_shoot(0),
 	last_slide_time(time()),
@@ -296,7 +295,7 @@ STelekineticWeaponObject::STelekineticWeaponObject(CTelekinesis* telekinesis, CP
 
 void STelekineticWeaponObject::setup_local_weapon_things()
 {
-	const CEntityAlive* enemy = parent->get_enemy();
+	const CEntityAlive* enemy = telekinetic_enemy->get_enemy();
 	
 	if (enemy == nullptr)
 		return;
@@ -355,7 +354,7 @@ void STelekineticWeaponObject::restore_global_weapon_things()
 
 void STelekineticWeaponObject::debug_draw()
 {
-	const CEntityAlive* enemy_ = parent->get_enemy();
+	const CEntityAlive* enemy_ = telekinetic_enemy->get_enemy();
 	if (!enemy_) return;
 
 	Fvector enemy_pos = enemy_->Position();
@@ -442,14 +441,14 @@ void STelekineticWeaponObject::update_auto_aim()
 	if (weapon->IsMisfire())
 		return;
 	
-	const CEntityAlive* enemy = parent->get_enemy();
+	const CEntityAlive* enemy = telekinetic_enemy->get_enemy();
 	
 	if (enemy == nullptr)
 		return;
 	
-	Fvector pos = smart_cast<CGameObject*>(parent)->Position();
+	Fvector pos = smart_cast<CGameObject*>(telekinetic_enemy)->Position();
 	float current_distance = enemy->Position().distance_to_sqr(pos);
-	float max_tele_work_distance = _sqr(parent->get_tele_distance());
+	float max_tele_work_distance = _sqr(telekinetic_enemy->get_tele_distance());
 
 	if (current_distance > max_tele_work_distance)
 		return;
@@ -479,7 +478,7 @@ void STelekineticWeaponObject::update_auto_aim()
 
 bool STelekineticWeaponObject::can_shoot()
 {
-	const CEntityAlive* enemy_ = parent->get_enemy();
+	const CEntityAlive* enemy_ = telekinetic_enemy->get_enemy();
 	
 	if (enemy_ == nullptr) 
 		return false;
@@ -548,7 +547,7 @@ void STelekineticWeaponObject::shoot()
 
 bool STelekineticWeaponObject::is_enemy_tracing() const
 {
-	CEntityAlive* enemy = parent->get_enemy();
+	CEntityAlive* enemy = telekinetic_enemy->get_enemy();
 	
 	if (enemy == nullptr) 
 		return false;
@@ -587,7 +586,7 @@ void STelekineticWeaponObject::perform_keep_object()
 		
 		object->m_pPhysicsShell->applyImpulseTrace(object_position, random_lr_dir, object->GetMass() * 5.0f);
 		
-		u32 max_keep_time = parent->get_tele_keep_time();
+		u32 max_keep_time = telekinetic_enemy->get_tele_keep_time();
 		
 		// Скалируем случайное время для слайдов в зависимости от max_keep_time, нижний порог не <1s и верхний не <2s.
 		// Ибо если max_keep_time = 2000ms, то 2000 / 5 = 400ms, а 2000 / 2 = 1000ms, то будет слишком дико)))
@@ -653,10 +652,10 @@ void STelekineticWeaponObject::switch_state(ETelekineticState new_state)
 
 // -------------------- GRENADE CONTROLLER --------------------
 
-STelekineticGrenadeObject::STelekineticGrenadeObject(CTelekinesis* telekinesis, CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot) :
-	STelekineticObject(telekinesis, owner, s, h, ttk, rot),
+STelekineticGrenadeObject::STelekineticGrenadeObject(ITelekineticEnemy* tele_enemy, CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot) :
+	STelekineticObject(owner, s, h, ttk, rot),
 	grenade(owner->cast_grenade()),
-	parent(telekinesis)
+	telekinetic_enemy(tele_enemy)
 {
 	STelekineticGrenadeObject::switch_state(ETelekineticState::TS_RAISE);
 }
@@ -696,7 +695,7 @@ void STelekineticGrenadeObject::perform_keep_object()
 {
 	STelekineticObject::perform_keep_object();
 	
-	const CEntityAlive* enemy = parent->get_enemy();
+	const CEntityAlive* enemy = telekinetic_enemy->get_enemy();
 		
 	if (enemy == nullptr)
 		return;

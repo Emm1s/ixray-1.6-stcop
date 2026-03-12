@@ -259,7 +259,7 @@ bool CTelekineticPoltergeist::tele_raise_objects()
 		tele_obj = new STelekineticGrenadeObject(m_poltergeist, obj, m_pmt_raise_speed, m_pmt_object_height,
 												 m_pmt_time_object_keep, rotate);
 	else
-		tele_obj = new STelekineticObject(m_poltergeist, obj, m_pmt_raise_speed, m_pmt_object_height,
+		tele_obj = new STelekineticObject(obj, m_pmt_raise_speed, m_pmt_object_height,
 										  m_pmt_time_object_keep, rotate);
 		
 	if (!tele_obj->can_be_picked_up())

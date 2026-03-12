@@ -9,7 +9,7 @@ class CCharacterPhysicsSupport;
 class CBurerFastGravi;
 
 class CBurer final :	public CBaseMonster,
-				public CTelekinesis 
+				public CTelekinesis, public ITelekineticEnemy
 {
 
 	typedef		CBaseMonster				inherited;
@@ -164,22 +164,10 @@ public:
 
 	virtual bool	ability_distant_feel() {return true;}
 	virtual	char*	get_monster_class_name () { return (char*) "burer"; }
-	
-	virtual CEntityAlive* get_enemy() override
-			{
-				const CEntityAlive* entity_alive = EnemyMan.get_enemy();
-				return entity_alive ? const_cast<CEntityAlive*>(entity_alive) : nullptr;
-			}
-	
-	virtual float get_tele_distance() override
-			{
-				return m_tele_max_distance;
-			}
-	
-	virtual u32 get_tele_keep_time() override
-			{
-				return m_tele_time_to_hold;
-			}
+
+	CEntityAlive* get_enemy() override;
+	float get_tele_distance() override;
+	u32 get_tele_keep_time() override;
 
 #ifdef DEBUG
 	virtual CBaseMonster::SDebugInfo show_debug_info();

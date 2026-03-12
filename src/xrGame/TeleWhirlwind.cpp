@@ -80,7 +80,7 @@ void CTeleWhirlwind::play_destroy(CTeleWhirlwindObject *obj)
 	
 }
 CTeleWhirlwindObject::CTeleWhirlwindObject(CTelekinesis* tele, CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot) :
-	STelekineticObject(tele, owner, s, h, ttk, rot)
+	STelekineticObject(owner, s, h, ttk, rot)
 {
 	m_telekinesis = static_cast<CTeleWhirlwind*>(tele);
 

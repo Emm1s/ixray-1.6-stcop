@@ -15,6 +15,17 @@ struct TelekineticParams
 	}
 };
 
+class ITelekineticEnemy
+{
+public:
+	ITelekineticEnemy() = default;
+	virtual ~ITelekineticEnemy() = default;
+	
+	virtual CEntityAlive* get_enemy() = 0;
+	virtual float get_tele_distance() = 0;
+	virtual u32 get_tele_keep_time()  = 0;
+};
+
 
 class CTelekinesis : public CPHUpdateObject
 {
@@ -70,10 +81,6 @@ public:
 	// объект был удален - удалить все св€зи на объект
 	void remove_links(CObject* O);
 	
-	virtual CEntityAlive* get_enemy() { return nullptr; }
-	virtual float get_tele_distance() { return FLT_MAX; }
-	virtual u32 get_tele_keep_time()  { return UINT32_MAX; }
-
 private:
 	// обновление на шагах физики
 	void PhDataUpdate(float step) override;

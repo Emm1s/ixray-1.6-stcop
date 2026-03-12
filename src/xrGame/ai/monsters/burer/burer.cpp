@@ -89,6 +89,22 @@ void CBurer::DeactivateShield()
 	m_shield_expire_time = 0;
 }
 
+CEntityAlive* CBurer::get_enemy()
+{
+	const CEntityAlive* entity_alive = EnemyMan.get_enemy();
+	return entity_alive ? const_cast<CEntityAlive*>(entity_alive) : nullptr;
+}
+
+float CBurer::get_tele_distance()
+{
+	return m_tele_max_distance;
+}
+
+u32 CBurer::get_tele_keep_time()
+{
+	return m_tele_time_to_hold;
+}
+
 void CBurer::Load(const char* section)
 {
 	inherited::Load							(section);

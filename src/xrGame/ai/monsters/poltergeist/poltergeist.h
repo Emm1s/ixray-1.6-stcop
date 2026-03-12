@@ -15,7 +15,8 @@ class CGrenade;
 
 class CPoltergeist final : public CBaseMonster,
                            public CTelekinesis,
-                           public CEnergyHolder
+                           public CEnergyHolder,
+						   public ITelekineticEnemy
 {
 	using inherited = CBaseMonster;
 	using Energy = CEnergyHolder;
@@ -113,14 +114,14 @@ public:
 	void EnableHide() { m_disable_hide = false; }
 	void DisableHide() { m_disable_hide = true; }
 	
-	virtual CEntityAlive* get_enemy()
+	CEntityAlive* get_enemy() override
 	{
 		const CEntityAlive* entity_alive = EnemyMan.get_enemy();
 		return entity_alive ? const_cast<CEntityAlive*>(entity_alive) : nullptr;
 	}
 	
-	virtual float get_tele_distance() override;
-	virtual u32 get_tele_keep_time() override;
+	float get_tele_distance() override;
+	u32 get_tele_keep_time() override;
 
 public:
 	bool run_home_point_when_enemy_inaccessible() const override { return false; }

@@ -204,12 +204,13 @@ void CStateBurerAttackTele<Object>::FindFreeObjects(xr_vector<ISpatialShared>& t
 		CCreature* custom_monster = object->cast_creature();
 		CGrenade* grenade = object->cast_grenade();
 
-		if ((grenade && (grenade->IsExploding() || grenade->destroy_time() != UINT32_MAX)) || // grenades are handled by HandleGrenades function
+		if ((grenade && (grenade->IsExploding() || grenade->destroy_time() != UINT32_MAX)) ||
 			!obj ||
 			!obj->PPhysicsShell() ||
 			!obj->PPhysicsShell()->isActive() ||
 			custom_monster ||
 			(obj->spawn_ini() && obj->spawn_ini()->section_exist("ph_heavy")) ||
+			obj->cast_car() ||
 			// (obj->m_pPhysicsShell->getMass() < this->object->m_tele_object_min_mass) ||
 			// (obj->m_pPhysicsShell->getMass() > this->object->m_tele_object_max_mass) ||
 			(obj == this->object) ||
@@ -258,44 +259,35 @@ void CStateBurerAttackTele<Object>::FindObjects()
 template <typename Object>
 void CStateBurerAttackTele<Object>::FireAllToEnemy()
 {
-	if ( !this->object->CTelekinesis::is_active() )
-	{
+	if (!this->object->CTelekinesis::is_active())
 		return;
-	}
 
-	if ( !this->object->EnemyMan.get_enemy() )
-	{
+	if (!this->object->EnemyMan.get_enemy())
 		return;
-	}
 
-	Fvector enemy_pos;
-	enemy_pos	= get_head_position(const_cast<CEntityAlive*>(this->object->EnemyMan.get_enemy()));
-
-	for ( u32 i=0; i<this->object->CTelekinesis::get_controlled_objects_count(); ++i ) 
+	Fvector enemy_pos = get_head_position(const_cast<CEntityAlive*>(this->object->EnemyMan.get_enemy()));
+	
+	for (STelekineticObject* telekinetic_object : this->object->CTelekinesis::get_tele_objects())
 	{
-		u32 const prev_num_objects				=	this->object->CTelekinesis::get_controlled_objects_count();
-
-		CPhysicsShellHolder* const cur_object	=	this->object->CTelekinesis::get_object_by_index(i)->object;
-		if ( !cur_object )
-		{
+		if (!telekinetic_object->can_be_thrown())
 			continue;
-		}
-		float const dist_to_enemy				=	cur_object->Position().distance_to(enemy_pos);
-		float const	fire_time					=	dist_to_enemy / this->object->m_tele_fly_velocity;
-
-		this->object->CTelekinesis::throw_object_time				(cur_object, enemy_pos, fire_time);
-
-		u32 const new_num_objects				=	this->object->CTelekinesis::get_controlled_objects_count();
-		if ( new_num_objects < prev_num_objects )
-		{
-			VERIFY									(new_num_objects == prev_num_objects-1);
-			--i;
-		}
+		
+		ETelekineticState object_state = telekinetic_object->get_state();
+		
+		if (object_state != ETelekineticState::TS_KEEP)
+			continue;
+		
+		CPhysicsShellHolder* object = telekinetic_object->get_object();
+		
+		if (object == nullptr)
+			continue;
+		
+		float const dist_to_enemy =	object->Position().distance_to(enemy_pos);
+		float const	fire_time =	dist_to_enemy / this->object->m_tele_fly_velocity;
+		
+		this->object->CTelekinesis::throw_object_time(object, enemy_pos, fire_time);
+		this->object->sound().play(CBurer::eMonsterSoundTeleAttack);
 	}
-
-	//this->object->CTelekinesis::fire_all(enemy_pos);
-
-	this->object->sound().play			(CBurer::eMonsterSoundTeleAttack);
 }
 
 template <typename Object>
@@ -442,7 +434,7 @@ void CStateBurerAttackTele<Object>::SelectObjects()
 			tele_obj = new STelekineticGrenadeObject(this->object, obj, this->object->m_tele_raise_speed, height, 10000,
 			                                         rotate);
 		else
-			tele_obj = new STelekineticObject(this->object, obj, this->object->m_tele_raise_speed, height, 10000,
+			tele_obj = new STelekineticObject(obj, this->object->m_tele_raise_speed, height, 10000,
 			                                  rotate);
 		
 		if (!tele_obj->can_be_picked_up())
@@ -502,7 +494,7 @@ void CStateBurerAttackTele<Object>::HandleGrenades()
 		float const height = 2.5f;
 		bool const rotate = false;
 
-		STelekineticObject* tele_obj = new STelekineticObject(this->object, grenade, 3.0f, height, 10000, rotate);
+		STelekineticObject* tele_obj = new STelekineticObject(grenade, 3.0f, height, 10000, rotate);
 		this->object->CTelekinesis::append_tobject(tele_obj);
 		tele_obj->set_sound(this->object->sound_tele_hold, this->object->sound_tele_throw);
 		this->object->StartTeleObjectParticle(grenade);
