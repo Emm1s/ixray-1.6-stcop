@@ -261,7 +261,7 @@ u32 CTelekinesis::get_controlled_objects_count() const
 	{
 		ETelekineticState state = object->get_state();
 
-		if (state == ETelekineticState::TS_RAISE || state == ETelekineticState::TS_KEEP)
+		if (state == ETelekineticState::TS_KEEP)
 			count++;
 	}
 	return count;

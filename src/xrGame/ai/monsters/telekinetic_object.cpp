@@ -286,8 +286,7 @@ STelekineticWeaponObject::STelekineticWeaponObject(ITelekineticEnemy* tele_enemy
 	weapon_next_phase_time(0),
 	delay_before_first_shoot(0),
 	last_slide_time(time()),
-	delay_between_weapon_slides(1000), 
-	is_shooting(false)
+	delay_between_weapon_slides(1000)
 {
 	delay_before_first_shoot = time() + 1500;
 	STelekineticWeaponObject::switch_state(ETelekineticState::TS_RAISE);
@@ -402,7 +401,7 @@ void STelekineticWeaponObject::debug_draw()
 	
 	shared_str time_to_shoot_end;
 	
-	switch (is_shooting)
+	switch (weapon->IsWorking())
 	{
 	case true:
 		{
@@ -537,7 +536,7 @@ void STelekineticWeaponObject::weapon_start_shooting(u32 shoot_time)
 	weapon->FireStart();
 }
 
-void STelekineticWeaponObject::weapon_end_shooting(u32 pause_time = 0)
+void STelekineticWeaponObject::weapon_end_shooting(u32 pause_time)
 {
 	weapon_phase_start_time = time();
 	weapon_next_phase_time = pause_time;

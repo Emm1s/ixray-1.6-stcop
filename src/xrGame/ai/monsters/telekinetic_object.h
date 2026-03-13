@@ -113,8 +113,6 @@ struct STelekineticWeaponObject : STelekineticObject
 	float backup_weapon_dispersion = 9999.f;
 	s8 backup_weapon_fire_mode = s8(-1);
 
-	bool is_shooting;
-	
 	STelekineticWeaponObject(ITelekineticEnemy* tele_enemy, CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot);
 
 	void setup_local_weapon_things();
@@ -125,7 +123,7 @@ struct STelekineticWeaponObject : STelekineticObject
     bool can_shoot();
 	void try_shoot();
 	void weapon_start_shooting(u32 shoot_time);
-	void weapon_end_shooting(u32 pause_time);
+	void weapon_end_shooting(u32 pause_time = 0);
 	bool is_enemy_tracing();
 
 	void perform_keep_object() override;
