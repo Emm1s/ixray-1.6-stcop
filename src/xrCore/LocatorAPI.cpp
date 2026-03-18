@@ -617,10 +617,11 @@ bool CLocatorAPI::Recurse(const char* path)
 		for (size_t i = oldSize; i < newSize; i++)
 		{
 			auto& chache = GetScanCacheBuffer()->at(i);
-			
+
+			auto path_len = xr_strlen(path);
 			string_path N;
-			VERIFY(path[xr_strlen(path)-1] == '\\');
-			VERIFY(path[xr_strlen(path)-2] != '\\');
+			VERIFY(path[path_len-1] == '\\');
+			VERIFY(path_len <= 1 || path[path_len-2] != '\\');
 			xr_strcpy(N, sizeof(N), path);
 			xr_strcat(N, chache.fileName.c_str());
 			xr_strlwr(N);
