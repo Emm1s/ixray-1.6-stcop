@@ -694,3 +694,12 @@ $def_sphere = 1
 class = DYNA_WM
 
 shape_transp_color    = 135, 245, 66, 24
+
+[trade_storage_box_base]
+GroupControlSection	= spawn_group
+discovery_dependency =
+$spawn 				= "devices\trade_storade_box"
+class				= O_TRDBOX
+cform				= skeleton
+visual				= dynamics\equipment_cache\equipment_box_01_case.ogf
+script_binding      = bind_physic_object.init
