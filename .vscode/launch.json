@@ -26,6 +26,19 @@
             "externalConsole": true,
             "MIMode": "gdb",
             "miDebuggerPath": "/usr/bin/gdb"
+        },
+        {
+            "type": "lua",
+            "request": "launch",
+            "name": "LuaPanda",
+            "description": "IX-Ray Lua Debug",
+            "cwd": "${workspaceFolder}/gamedata/scripts",
+            "luaFileExtension": "script",
+            "connectionPort": 8818,
+            "stopOnEntry": true,
+            "useCHook": true,
+            "autoPathMode": true,
+            "updateTips": true
         }
     ]
 }
