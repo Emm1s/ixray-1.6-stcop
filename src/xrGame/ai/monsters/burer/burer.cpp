@@ -104,9 +104,9 @@ void CBurer::Load(const char* section)
 	::Sound->create(sound_tele_hold,	pSettings->r_string(section,"sound_tele_hold"),	st_Effect,SOUND_TYPE_WORLD);
 	::Sound->create(sound_tele_throw,	pSettings->r_string(section,"sound_tele_throw"),st_Effect,SOUND_TYPE_WORLD);
 
-	m_gravi.cooldown					= 	READ_IF_EXISTS(pSettings, r_u32, section,"Gravi_Cooldown", 0.f);
-	m_gravi.min_dist					= 	READ_IF_EXISTS(pSettings, r_float, section,"Gravi_MinDist", 6.f);
-	m_gravi.max_dist					= 	READ_IF_EXISTS(pSettings, r_float, section,"Gravi_MaxDist", 0);
+	m_gravi.cooldown					= 	pSettings->read_if_exists<u32>(section,"Gravi_Cooldown", 0.f);
+	m_gravi.min_dist					= 	pSettings->read_if_exists<float>(section,"Gravi_MinDist", 6.f);
+	m_gravi.max_dist					= 	pSettings->read_if_exists<float>(section,"Gravi_MaxDist", 0);
 	m_gravi.speed						= 	pSettings->r_float(section,"Gravi_Speed");
 	m_gravi.step						= 	pSettings->r_float(section,"Gravi_Step");
 	m_gravi.time_to_hold				= 	pSettings->r_u32(section,"Gravi_Time_To_Hold");
@@ -115,34 +115,34 @@ void CBurer::Load(const char* section)
 	m_gravi.impulse_to_enemy			= 	pSettings->r_float(section,"Gravi_Impulse_To_Enemy");
 	m_gravi.hit_power					= 	pSettings->r_float(section,"Gravi_Hit_Power");
 
-	m_weight_to_stamina_hit				= 	READ_IF_EXISTS(pSettings, r_float, section, "weight_to_stamina_hit", 0.02f);
-	m_weapon_drop_stamina_k				= 	READ_IF_EXISTS(pSettings, r_float, section, "weapon_drop_stamina_k", 3.f);
+	m_weight_to_stamina_hit				= 	pSettings->read_if_exists<float>(section, "weight_to_stamina_hit", 0.02f);
+	m_weapon_drop_stamina_k				= 	pSettings->read_if_exists<float>(section, "weapon_drop_stamina_k", 3.f);
 
-	m_runaway_distance					= 	READ_IF_EXISTS(pSettings, r_float, section, "runaway_distance", 6.f);
-	m_normal_distance					= 	READ_IF_EXISTS(pSettings, r_float, section, "normal_distance", 12.f);
-	m_max_runaway_time					= 	READ_IF_EXISTS(pSettings, r_u32, section, "max_runaway_time", 5000);
+	m_runaway_distance					= 	pSettings->read_if_exists<float>(section, "runaway_distance", 6.f);
+	m_normal_distance					= 	pSettings->read_if_exists<float>(section, "normal_distance", 12.f);
+	m_max_runaway_time					= 	pSettings->read_if_exists<u32>(section, "max_runaway_time", 5000);
 
-	m_weapon_drop_velocity				= 	READ_IF_EXISTS(pSettings, r_float, section, "weapon_drop_velocity", 8);
+	m_weapon_drop_velocity				= 	pSettings->read_if_exists<float>(section, "weapon_drop_velocity", 8);
 
-	m_shield_cooldown					= 	READ_IF_EXISTS(pSettings, r_u32, section, "shield_cooldown", 4000);
-	m_shield_time						= 	READ_IF_EXISTS(pSettings, r_u32, section, "shield_time", 3000);	
-	m_shield_keep_particle				= 	READ_IF_EXISTS(pSettings, r_string, section, "shield_keep_particle", 0);	
-	m_shield_keep_particle_period		= 	READ_IF_EXISTS(pSettings, r_u32, section, "shield_keep_particle_period", 1000);
+	m_shield_cooldown					= 	pSettings->read_if_exists<u32>(section, "shield_cooldown", 4000);
+	m_shield_time						= 	pSettings->read_if_exists<u32>(section, "shield_time", 3000);	
+	m_shield_keep_particle				= 	pSettings->read_if_exists<LPCSTR>(section,"shield_keep_particle",nullptr);	
+	m_shield_keep_particle_period		= 	pSettings->read_if_exists<u32>(section, "shield_keep_particle_period", 1000);
 
-	m_shield_penetration_border			=	READ_IF_EXISTS(pSettings, r_float, section, "shield_penetration_border", m_shield_penetration_border);
-	m_shield_penetration_damage_coeff	=	READ_IF_EXISTS(pSettings, r_float, section, "shield_penetration_damage_coeff", m_shield_penetration_damage_coeff);
+	m_shield_penetration_border			=	pSettings->read_if_exists<float>(section, "shield_penetration_border", m_shield_penetration_border);
+	m_shield_penetration_damage_coeff	=	pSettings->read_if_exists<float>(section, "shield_penetration_damage_coeff", m_shield_penetration_damage_coeff);
 	
 	m_tele_max_handled_objects			= 	pSettings->r_u32(section,"Tele_Max_Handled_Objects");
-	m_tele_max_time						= 	READ_IF_EXISTS(pSettings, r_u32, section, "Tele_Max_Time", 10000);
+	m_tele_max_time						= 	pSettings->read_if_exists<u32>(section, "Tele_Max_Time", 10000);
 	m_tele_time_to_hold					= 	pSettings->r_u32(section,"Tele_Time_To_Hold");
 	m_tele_object_min_mass				= 	pSettings->r_float(section,"Tele_Object_Min_Mass");
 	m_tele_object_max_mass				= 	pSettings->r_float(section,"Tele_Object_Max_Mass");
 	m_tele_find_radius					= 	pSettings->r_float(section,"Tele_Find_Radius");
-	m_tele_min_distance					= 	READ_IF_EXISTS(pSettings, r_float, section, "tele_min_distance", 8);
-	m_tele_max_distance					= 	READ_IF_EXISTS(pSettings, r_float, section, "tele_max_distance", 30);
-	m_tele_raise_speed					= 	READ_IF_EXISTS(pSettings, r_float, section, "tele_raise_speed", 5.f);
-	m_tele_fly_velocity					=	READ_IF_EXISTS(pSettings, r_float, section, "tele_fly_velocity", 30.f);
-	m_tele_object_height				=	READ_IF_EXISTS(pSettings, r_float, section, "tele_object_height", 2.f);
+	m_tele_min_distance					= 	pSettings->read_if_exists<float>(section, "tele_min_distance", 8);
+	m_tele_max_distance					= 	pSettings->read_if_exists<float>(section, "tele_max_distance", 30);
+	m_tele_raise_speed					= 	pSettings->read_if_exists<float>(section, "tele_raise_speed", 5.f);
+	m_tele_fly_velocity					=	pSettings->read_if_exists<float>(section, "tele_fly_velocity", 30.f);
+	m_tele_object_height				=	pSettings->read_if_exists<float>(section, "tele_object_height", 2.f);
 	
 	particle_fire_shield				= 	pSettings->r_string(section,"Particle_Shield");
 	

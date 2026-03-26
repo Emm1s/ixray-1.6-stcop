@@ -101,28 +101,28 @@ void CArtefact::Load(const char* section)
 	Stats.m_fHealthRestoreSpeed = pSettings->r_float(section, "health_restore_speed");
 	Stats.m_fRadiationRestoreSpeed = pSettings->r_float(section, "radiation_restore_speed");
 	Stats.m_fSatietyRestoreSpeed = pSettings->r_float(section, "satiety_restore_speed");
-	Stats.m_fThirstRestoreSpeed = READ_IF_EXISTS(pSettings, r_float, section, "thirst_restore_speed", 0.0f);
-	Stats.m_fSleepinessRestoreSpeed = READ_IF_EXISTS(pSettings, r_float, section, "sleepiness_restore_speed", 0.0f);
+	Stats.m_fThirstRestoreSpeed = pSettings->read_if_exists<float>(section,"thirst_restore_speed",0.0f);
+	Stats.m_fSleepinessRestoreSpeed = pSettings->read_if_exists<float>(section, "sleepiness_restore_speed", 0.0f);
 	Stats.m_fPowerRestoreSpeed = pSettings->r_float(section, "power_restore_speed");
 	Stats.m_fBleedingRestoreSpeed = pSettings->r_float(section, "bleeding_restore_speed");
-	Stats.m_fEquipmentDurabilityModifier = READ_IF_EXISTS(pSettings, r_float, section, "equipment_durability_modifier", 1.0f);
-	Stats.m_fInventoryWeightModifier = READ_IF_EXISTS(pSettings, r_float, section, "inventory_weight_modifier", 1.0f);
-	Stats.m_fJumpHeightModifier = READ_IF_EXISTS(pSettings, r_float, section, "jump_height_modifier", 0.0f);
-	Stats.m_fMovementSpeedModifier = READ_IF_EXISTS(pSettings, r_float, section, "movement_speed_modifier", 0.0f);
+	Stats.m_fEquipmentDurabilityModifier = pSettings->read_if_exists<float>(section, "equipment_durability_modifier", 1.0f);
+	Stats.m_fInventoryWeightModifier = pSettings->read_if_exists<float>(section, "inventory_weight_modifier", 1.0f);
+	Stats.m_fJumpHeightModifier = pSettings->read_if_exists<float>(section, "jump_height_modifier", 0.0f);
+	Stats.m_fMovementSpeedModifier = pSettings->read_if_exists<float>(section, "movement_speed_modifier", 0.0f);
 	
 	if(pSettings->section_exist(pSettings->r_string(section,"hit_absorbation_sect")))
 	{
 		Stats.m_ArtefactHitImmunities.LoadImmunities(pSettings->r_string(section,"hit_absorbation_sect"),pSettings);
 	}
 	m_bCanSpawnZone			= !!pSettings->line_exist("artefact_spawn_zones", section);
-	m_af_rank				= READ_IF_EXISTS(pSettings, r_u8, section, "af_rank", 0);
-	Stats.m_additional_weight		= READ_IF_EXISTS(pSettings, r_float, section,"additional_inventory_weight", 0.0f);
-	m_fDegradationRate		= READ_IF_EXISTS(pSettings, r_float, section, "degrade_rate", 0.0f);
+	m_af_rank				= pSettings->read_if_exists<u8>(section,"af_rank",0);
+	Stats.m_additional_weight		= pSettings->read_if_exists<float>(section,"additional_inventory_weight",0.0f);
+	m_fDegradationRate		= pSettings->read_if_exists<float>(section,"degrade_rate",0.0f);
 }
 
 bool CArtefact::net_Spawn(CSE_Abstract* DC) 
 {
-	if(READ_IF_EXISTS(pSettings, r_bool, cNameSect(),"can_be_controlled", false) )
+	if(pSettings->read_if_exists<bool>(cNameSect(),"can_be_controlled",false) )
 	{
 		m_detectorObj				= xr_make_unique<SArtefactDetectorsSupport>(this);
 	}
@@ -139,7 +139,7 @@ bool CArtefact::net_Spawn(CSE_Abstract* DC)
 	SetState						(eHidden);
 
 	m_pTrailLight = ::Render->light_create();
-	bool const b_light_shadow = READ_IF_EXISTS(pSettings, r_bool, cNameSect(), "idle_light_shadow", false);
+	bool const b_light_shadow = pSettings->read_if_exists<bool>(cNameSect(),"idle_light_shadow",false);
 
 	m_pTrailLight->set_shadow(b_light_shadow);
 

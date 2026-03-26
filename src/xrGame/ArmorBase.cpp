@@ -72,43 +72,46 @@ void CArmorBase::Load(const char* section)
 	m_HitTypeProtection[ALife::eHitTypeTelepatic] = pSettings->r_float(section, "telepatic_protection");
 	m_HitTypeProtection[ALife::eHitTypeChemicalBurn] = pSettings->r_float(section, "chemical_burn_protection");
 	m_HitTypeProtection[ALife::eHitTypeExplosion] = pSettings->r_float(section, "explosion_protection");
-	m_HitTypeProtection[ALife::eHitTypeFireWound] = READ_IF_EXISTS(pSettings, r_float, section, "fire_wound_protection", 0.0f);
-	m_HitTypeProtection[ALife::eHitTypePhysicStrike] = READ_IF_EXISTS(pSettings, r_float, section, "physic_strike_protection", m_HitTypeProtection[ALife::eHitTypeStrike]);
+	m_HitTypeProtection[ALife::eHitTypeFireWound] = pSettings->read_if_exists<float>(section,"fire_wound_protection",0.0f);
+	m_HitTypeProtection[ALife::eHitTypePhysicStrike] = pSettings->read_if_exists<float>(section,"physic_strike_protection",m_HitTypeProtection[ALife::eHitTypeStrike]);
 	m_HitTypeProtection[ALife::eHitTypeLightBurn] = m_HitTypeProtection[ALife::eHitTypeBurn];
-    if (pSettings->line_exist(section, "hit_fraction_actor"))
-    {
-        m_boneProtection->m_fHitFrac = pSettings->r_float(section, "hit_fraction_actor");
+	if (pSettings->line_exist(section, "hit_fraction_actor"))
+	{
+		m_boneProtection->m_fHitFrac = pSettings->r_float(section, "hit_fraction_actor");
 
-        // Since hit_fraction_actor exists both in CS and COP, but fire_wound_protection was removed in COP,
-        // We can use this hacky solution to determine which damage formula to use.
-        // It not robust for mods, because they can have fire_wound_protection in configs, despite that
-        // original COP engine doesn't read it.
-        if (pSettings->line_exist(section, "fire_wound_protection"))
-            m_boneProtection->m_hitFracType = SBoneProtections::HitFractionActorCS;
-        else
-            m_boneProtection->m_hitFracType = SBoneProtections::HitFractionActorCOP;
-    }
+		// Since hit_fraction_actor exists both in CS and COP, but fire_wound_protection was removed in COP,
+		// We can use this hacky solution to determine which damage formula to use.
+		// It not robust for mods, because they can have fire_wound_protection in configs, despite that
+		// original COP engine doesn't read it.
+		if (pSettings->line_exist(section, "fire_wound_protection"))
+			m_boneProtection->m_hitFracType = SBoneProtections::HitFractionActorCS;
+		else
+			m_boneProtection->m_hitFracType = SBoneProtections::HitFractionActorCOP;
+	}
 
 	if (pSettings->line_exist(section, "nightvision_sect"))
 	{
 		m_NightVisionSect = pSettings->r_string(section, "nightvision_sect");
 	}
 
-	pSettings->read_if_exists(m_bTorchAvailable, section, "torch_available");
+	{
+		auto res = pSettings->r_bool_nullable(section, "torch_available", m_bTorchAvailable);
+		m_bTorchAvailable &= res;
+	}
 
-	m_fHealthRestoreSpeed = READ_IF_EXISTS(pSettings, r_float, section, "health_restore_speed", 0.0f);
-	m_fRadiationRestoreSpeed = READ_IF_EXISTS(pSettings, r_float, section, "radiation_restore_speed", 0.0f);
-	m_fSatietyRestoreSpeed = READ_IF_EXISTS(pSettings, r_float, section, "satiety_restore_speed", 0.0f);
-	m_fThirstRestoreSpeed = READ_IF_EXISTS(pSettings, r_float, section, "thirst_restore_speed", 0.0f);
-	m_fPowerRestoreSpeed = READ_IF_EXISTS(pSettings, r_float, section, "power_restore_speed", 0.0f);
-	m_fBleedingRestoreSpeed = READ_IF_EXISTS(pSettings, r_float, section, "bleeding_restore_speed", 0.0f);
-	m_fPowerLoss = READ_IF_EXISTS(pSettings, r_float, section, "power_loss", 1.0f);
+	m_fHealthRestoreSpeed = pSettings->read_if_exists<float>(section,"health_restore_speed",0.0f);
+	m_fRadiationRestoreSpeed = pSettings->read_if_exists<float>(section,"radiation_restore_speed",0.0f);
+	m_fSatietyRestoreSpeed = pSettings->read_if_exists<float>(section,"satiety_restore_speed",0.0f);
+	m_fThirstRestoreSpeed = pSettings->read_if_exists<float>(section,"thirst_restore_speed",0.0f);
+	m_fPowerRestoreSpeed = pSettings->read_if_exists<float>(section,"power_restore_speed",0.0f);
+	m_fBleedingRestoreSpeed = pSettings->read_if_exists<float>(section,"bleeding_restore_speed",0.0f);
+	m_fPowerLoss = pSettings->read_if_exists<float>(section,"power_loss",1.0f);
 	clamp(m_fPowerLoss, 0.0f, 1.0f);
 
-	m_BonesProtectionSect = READ_IF_EXISTS(pSettings, r_string, section, "bones_koeff_protection", "");
+	m_BonesProtectionSect = pSettings->read_if_exists<LPCSTR>(section,"bones_koeff_protection","");
 
-	bIsHudGasMaskAvailable = !!READ_IF_EXISTS(pSettings, r_bool, section, "hud_gas_mask_avaliable", true);		// FFx0001 ++
-	bIsHudRainDropsAvailable = !!READ_IF_EXISTS(pSettings, r_bool, section, "hud_rain_drops_avaliable", true);  // FFx0001 ++
+	bIsHudGasMaskAvailable = pSettings->read_if_exists<bool>(section,"hud_gas_mask_avaliable",true);		// FFx0001 ++
+	bIsHudRainDropsAvailable = pSettings->read_if_exists<bool>(section,"hud_rain_drops_avaliable",true);  // FFx0001 ++
 
 	if (pSettings->line_exist(section, "glass_present"))
 	{
@@ -116,7 +119,7 @@ void CArmorBase::Load(const char* section)
 	}
 
 	// Added by Axel, to enable optional condition use on any item
-	m_flags.set(FUsingCondition, READ_IF_EXISTS(pSettings, r_bool, section, "use_condition", true));
+	m_flags.set(FUsingCondition, pSettings->read_if_exists<bool>(section,"use_condition",true));
 	IAntigas::SetOwner(this, m_HitTypeProtection);	// FFx0001 ++
 	IAntigas::Load(section);						// FFx0001 ++
 }

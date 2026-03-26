@@ -102,17 +102,17 @@ void CPoltergeist::Load(const char* section)
 	//READ_IF_EXISTS(pSettings,r_u32,section,"PsyAura_Fake_Delay", 8000);
 	//READ_IF_EXISTS(pSettings,r_float,section,"PsyAura_Fake_MaxAddDist", 90.f);
 
-	m_height_change_velocity = READ_IF_EXISTS(pSettings,r_float,section,"Height_Change_Velocity", 0.5f);
-	m_height_change_min_time = READ_IF_EXISTS(pSettings,r_u32,section,"Height_Change_Min_Time", 3000);
-	m_height_change_max_time = READ_IF_EXISTS(pSettings,r_u32,section,"Height_Change_Max_Time", 10000);
-	m_height_min			 = READ_IF_EXISTS(pSettings,r_float,section,"Height_Min", 0.4f);
-	m_height_max			 = READ_IF_EXISTS(pSettings,r_float,section,"Height_Max", 2.f);
+	m_height_change_velocity = pSettings->read_if_exists<float>(section,"Height_Change_Velocity", 0.5f);
+	m_height_change_min_time = pSettings->read_if_exists<u32>(section,"Height_Change_Min_Time", 3000);
+	m_height_change_max_time = pSettings->read_if_exists<u32>(section,"Height_Change_Max_Time", 10000);
+	m_height_min			 = pSettings->read_if_exists<float>(section,"Height_Min", 0.4f);
+	m_height_max			 = pSettings->read_if_exists<float>(section,"Height_Max", 2.f);
 
-	m_fly_around_level		 = READ_IF_EXISTS(pSettings,r_float,section,"detection_fly_around_level", 5.f);
-	m_fly_around_distance	 = READ_IF_EXISTS(pSettings,r_float,section,"detection_fly_around_distance", 15.f);
+	m_fly_around_level		 = pSettings->read_if_exists<float>(section,"detection_fly_around_level", 5.f);
+	m_fly_around_distance	 = pSettings->read_if_exists<float>(section,"detection_fly_around_distance", 15.f);
 
 	m_fly_around_change_direction_time	 
-							 = READ_IF_EXISTS(pSettings,r_float,section,"detection_fly_around_change_direction_time", 7);
+							 = pSettings->read_if_exists<float>(section,"detection_fly_around_change_direction_time", 7);
 
 	if (pSettings->line_exist(section,"type"))
 	{
@@ -127,36 +127,36 @@ void CPoltergeist::Load(const char* section)
 		}
 	} else
 	{
-		if (READ_IF_EXISTS(pSettings, r_bool, section, "use_flame", false)) {
+		if (pSettings->read_if_exists<bool>(section, "use_flame", false)) {
 			m_flame = xr_make_unique<CPolterFlame>(this);
 			m_flame->load(section);
 		}
 
-		if (READ_IF_EXISTS(pSettings, r_bool, section, "use_tele", false)) {
+		if (pSettings->read_if_exists<bool>(section, "use_tele", false)) {
 			m_tele = xr_make_unique<CPolterTele>(this);
 			m_tele->load(section);
 		}
 
-		if (READ_IF_EXISTS(pSettings, r_bool, section, "use_chem", false)) {
+		if (pSettings->read_if_exists<bool>(section, "use_chem", false)) {
 			m_chem = xr_make_unique<CPolterChem>(this);
 			m_chem->load(section);
 		}
 	}
 
-	m_detection_pp_effector_name		= READ_IF_EXISTS(pSettings,r_string,section, "detection_pp_effector_name",		"");
-	m_detection_near_range_factor		= READ_IF_EXISTS(pSettings,r_float,section, "detection_near_range_factor",		2.f);
-	m_detection_far_range_factor		= READ_IF_EXISTS(pSettings,r_float,section, "detection_far_range_factor",		1.f);
-	m_detection_speed_factor			= READ_IF_EXISTS(pSettings,r_float,section, "detection_speed_factor",			1.f);
-	m_detection_loose_speed				= READ_IF_EXISTS(pSettings,r_float,section, "detection_loose_speed",			5.f);
-	m_detection_far_range				= READ_IF_EXISTS(pSettings,r_float,section, "detection_far_range",				20.f);
-	m_detection_success_level			= READ_IF_EXISTS(pSettings,r_float,section, "detection_success_level",			4.f);
-	m_detection_max_level				= READ_IF_EXISTS(pSettings,r_float,section, "detection_max_level",				100.f);
+	m_detection_pp_effector_name		= pSettings->read_if_exists<LPCSTR>(section, "detection_pp_effector_name",		"");
+	m_detection_near_range_factor		= pSettings->read_if_exists<float>(section, "detection_near_range_factor",		2.f);
+	m_detection_far_range_factor		= pSettings->read_if_exists<float>(section, "detection_far_range_factor",		1.f);
+	m_detection_speed_factor			= pSettings->read_if_exists<float>(section, "detection_speed_factor",			1.f);
+	m_detection_loose_speed				= pSettings->read_if_exists<float>(section, "detection_loose_speed",			5.f);
+	m_detection_far_range				= pSettings->read_if_exists<float>(section, "detection_far_range",				20.f);
+	m_detection_success_level			= pSettings->read_if_exists<float>(section, "detection_success_level",			4.f);
+	m_detection_max_level				= pSettings->read_if_exists<float>(section, "detection_max_level",				100.f);
 
 	m_current_detection_level			= 	0;
 	m_last_detection_time				= 	0;
 	m_detection_pp_type_index			= 	0;
 
-	m_enable_corpse_on_death			= READ_IF_EXISTS(pSettings, r_bool, section, "enable_corpse_on_death", false);
+	m_enable_corpse_on_death			= pSettings->read_if_exists<bool>(section, "enable_corpse_on_death", false);
 
 	PostLoad					(section);	
 }

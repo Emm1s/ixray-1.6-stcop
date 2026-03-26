@@ -24,17 +24,17 @@ bool Feel::auto_aim_pick_target(CActor* pActor, CActorMemory* pMem, CEntityAlive
 
 	// distance thresholds a-b-c
 	float distA = 0.0f;
-	float distB = READ_IF_EXISTS(pSettings, r_float, "auto_aiming", "distance_b", 5.1f);
-	float distC = READ_IF_EXISTS(pSettings, r_float, "auto_aiming", "distance_c", 200.1f);
+	float distB = pSettings->read_if_exists<float>("auto_aiming","distance_b",5.1f);
+	float distC = pSettings->read_if_exists<float>("auto_aiming","distance_c",200.1f);
 	
 	// dotp thresholds easy,norm
-	double dotpA_n = READ_IF_EXISTS(pSettings, r_float, "auto_aiming", "dotp_a_norm", 0.5f);
-	double dotpB_n = READ_IF_EXISTS(pSettings, r_float, "auto_aiming", "dotp_b_norm", 0.97f);
-	double dotpC_n = READ_IF_EXISTS(pSettings, r_float, "auto_aiming", "dotp_c_norm", 0.97f);
+	double dotpA_n = pSettings->read_if_exists<float>("auto_aiming","dotp_a_norm",0.5f);
+	double dotpB_n = pSettings->read_if_exists<float>("auto_aiming","dotp_b_norm",0.97f);
+	double dotpC_n = pSettings->read_if_exists<float>("auto_aiming","dotp_c_norm",0.97f);
 
-	double dotpA_e = READ_IF_EXISTS(pSettings, r_float, "auto_aiming", "dotp_a_easy", 0.5f);
-	double dotpB_e = READ_IF_EXISTS(pSettings, r_float, "auto_aiming", "dotp_b_easy", 0.97f);
-	double dotpC_e = READ_IF_EXISTS(pSettings, r_float, "auto_aiming", "dotp_c_easy", 0.97f);
+	double dotpA_e = pSettings->read_if_exists<float>("auto_aiming","dotp_a_easy",0.5f);
+	double dotpB_e = pSettings->read_if_exists<float>("auto_aiming","dotp_b_easy",0.97f);
+	double dotpC_e = pSettings->read_if_exists<float>("auto_aiming","dotp_c_easy",0.97f);
 
 	// lerp easiness
 	double easiness;
@@ -42,7 +42,7 @@ bool Feel::auto_aim_pick_target(CActor* pActor, CActorMemory* pMem, CEntityAlive
 		easiness = 1.0;
 	else
 	{
-		easiness = READ_IF_EXISTS(pSettings, r_float, "auto_aiming", "easiness", 1.0f);
+		easiness = pSettings->read_if_exists<float>("auto_aiming","easiness",1.0f);
 		clamp(easiness, 0.0, 1.0);
 	}
 
@@ -51,7 +51,7 @@ bool Feel::auto_aim_pick_target(CActor* pActor, CActorMemory* pMem, CEntityAlive
 	double dotpC = dotpC_e + (dotpC_n - dotpC_e) * (1.0 - easiness);
 
 	// What Y to aim at
-	float heightFraction = READ_IF_EXISTS(pSettings, r_float, "auto_aiming", "height_fraction", 0.7f);
+	float heightFraction = pSettings->read_if_exists<float>("auto_aiming","height_fraction",0.7f);
 
 	std::vector<Feel::AutoAimCandidate> targets;
 

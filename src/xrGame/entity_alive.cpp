@@ -202,8 +202,8 @@ void CEntityAlive::reload		(const char* section)
 //	CEntityCondition::reload(section);
 
 	m_ef_creature_type		= pSettings->r_u32		(section,"ef_creature_type");
-	m_ef_weapon_type		= READ_IF_EXISTS(pSettings,r_u32,section,"ef_weapon_type",u32(-1));
-	m_ef_detector_type		= READ_IF_EXISTS(pSettings,r_u32,section,"ef_detector_type",u32(-1));
+	m_ef_weapon_type		= pSettings->read_if_exists<u32>(section,"ef_weapon_type",u32(-1));
+	m_ef_detector_type		= pSettings->read_if_exists<u32>(section,"ef_detector_type",u32(-1));
 
 	m_fFood					= 100*pSettings->r_float	(section,"ph_mass");
 }
