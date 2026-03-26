@@ -551,7 +551,7 @@ Msg("%s",(*I).first);
 //////////////////////////////////////////////////////////////////////////
 bool CPhysicObject::is_ai_obstacle		() const
 {
-	return							!!( READ_IF_EXISTS(pSettings, r_bool, cNameSect(), "is_ai_obstacle", true ) );
+	return							pSettings->read_if_exists<bool>(cNameSect(), "is_ai_obstacle", true );
 }
 
 // network synchronization ----------------------------

@@ -164,10 +164,10 @@ void CAnomalyZone::Load(const char* section)
 	ParseRandomSounds(section, "hit_sound", m_hit_sounds_variants);
 	ParseRandomSounds(section, "entrance_sound", m_entrance_sounds_variants);
 
-	if (READ_IF_EXISTS(pSettings, r_bool, section, "use_electric_curve", false))
+	if (pSettings->read_if_exists<bool>(section, "use_electric_curve", false))
 	{
 		m_use_electric_curve = true;
-		m_electric_curve_particle_path = READ_IF_EXISTS(pSettings, r_string, section, "electric_curve_particle_path", "");
+		m_electric_curve_particle_path = pSettings->read_if_exists<LPCSTR>(section, "electric_curve_particle_path", "");
 		m_snd_emmiter_electric_core_target_damage.clear();
 		m_snd_emmiter_electric_core_loop.clear();
 
@@ -178,8 +178,8 @@ void CAnomalyZone::Load(const char* section)
 		m_snd_emmiter_electric_core_loop.push_back(new CRandomSoundEmmiter(section, "electric_core_loop"));
 		m_snd_emmiter_electric_core_target_damage.push_back(new CRandomSoundEmmiter(section, "electric_core_target_damage"));
 
-		m_max_count_electric_curves = READ_IF_EXISTS(pSettings, r_u8, section, "max_count_electric_curves", m_max_count_electric_curves);
-		max_trace_curve_distance = READ_IF_EXISTS(pSettings, r_float, section, "max_trace_curve_distance", max_trace_curve_distance);
+		m_max_count_electric_curves =  pSettings->read_if_exists<u8>(section, "max_count_electric_curves", m_max_count_electric_curves);
+		max_trace_curve_distance = pSettings->read_if_exists<float>(section, "max_trace_curve_distance", max_trace_curve_distance);
 
 		for (u8 i = 0; i < m_max_count_electric_curves; i++)
 		{
@@ -188,28 +188,28 @@ void CAnomalyZone::Load(const char* section)
 			m_snd_emmiter_electric_curve_end.push_back(new CRandomSoundEmmiter(section, "electric_curve_end"));
 		}
 
-		m_max_curve_damage = READ_IF_EXISTS(pSettings, r_float, section, "max_curve_damage", m_max_curve_damage);
-		m_max_curve_impulse = READ_IF_EXISTS(pSettings, r_float, section, "max_curve_impulse", m_max_curve_impulse);
-		m_cascade_curves = READ_IF_EXISTS(pSettings, r_bool, section, "cascade_curves", m_cascade_curves);
-		m_cascade_curves_by_anomalies = READ_IF_EXISTS(pSettings, r_bool, section, "cascade_curves_by_anomalies", m_cascade_curves_by_anomalies);
+		m_max_curve_damage = pSettings->read_if_exists<float>(section, "max_curve_damage", m_max_curve_damage);
+		m_max_curve_impulse = pSettings->read_if_exists<float>(section, "max_curve_impulse", m_max_curve_impulse);
+		m_cascade_curves = pSettings->read_if_exists<bool>(section, "cascade_curves", m_cascade_curves);
+		m_cascade_curves_by_anomalies = pSettings->read_if_exists<bool>(section, "cascade_curves_by_anomalies", m_cascade_curves_by_anomalies);
 	}
 
-	if (READ_IF_EXISTS(pSettings, r_bool, section, "use_movement", false))
+	if (pSettings->read_if_exists<bool>(section, "use_movement", false))
 	{
 		m_use_movement = true;
-		max_processing_distance = READ_IF_EXISTS(pSettings, r_float, section, "max_processing_distance", max_processing_distance);
-		draw_dbg = READ_IF_EXISTS(pSettings, r_bool, section, "draw_debug", false);
-		m_use_movement_always_mode = READ_IF_EXISTS(pSettings, r_bool, section, "use_movement_always_mode", false);
+		max_processing_distance = pSettings->read_if_exists<float>(section, "max_processing_distance", max_processing_distance);
+		draw_dbg = pSettings->read_if_exists<bool>(section, "draw_debug", false);
+		m_use_movement_always_mode = pSettings->read_if_exists<bool>(section, "use_movement_always_mode", false);
 
-		m_use_movement_magnetic_on_inside_alive_mode = READ_IF_EXISTS(pSettings, r_bool, section, "use_movement_magnetic_on_inside_alive_mode", false);
-		movement_magnetic_on_inside_alive_mode_speed = READ_IF_EXISTS(pSettings, r_float, section, "movement_magnetic_on_inside_alive_mode_speed", false);
+		m_use_movement_magnetic_on_inside_alive_mode = pSettings->read_if_exists<bool>(section, "use_movement_magnetic_on_inside_alive_mode", false);
+		movement_magnetic_on_inside_alive_mode_speed = pSettings->read_if_exists<float>(section, "movement_magnetic_on_inside_alive_mode_speed", false);
 
-		m_use_movement_magnetic_on_take_artefacts_mode = READ_IF_EXISTS(pSettings, r_bool, section, "use_movement_magnetic_on_take_artefacts_mode", false);
-		m_max_timer_magnetic_on_take_artefacts = READ_IF_EXISTS(pSettings, r_float, section, "milliseconds_time_magnetic_on_take_artefacts", 0.f);
-		movement_magnetic_on_take_artefacts_mode_speed = READ_IF_EXISTS(pSettings, r_float, section, "movement_magnetic_on_take_artefacts_mode_speed", 0.f);
+		m_use_movement_magnetic_on_take_artefacts_mode = pSettings->read_if_exists<bool>(section, "use_movement_magnetic_on_take_artefacts_mode", false);
+		m_max_timer_magnetic_on_take_artefacts = pSettings->read_if_exists<float>(section, "milliseconds_time_magnetic_on_take_artefacts", 0.f);
+		movement_magnetic_on_take_artefacts_mode_speed = pSettings->read_if_exists<float>(section, "movement_magnetic_on_take_artefacts_mode_speed", 0.f);
 
-		m_movement_speed = READ_IF_EXISTS(pSettings, r_float, section, "movement_speed", 1.5f);
-		m_movement_radius = READ_IF_EXISTS(pSettings, r_float, section, "movement_radius", 15.f);
+		m_movement_speed = pSettings->read_if_exists<float>(section, "movement_speed", 1.5f);
+		m_movement_radius = pSettings->read_if_exists<float>(section, "movement_radius", 15.f);
 	}
 	
 
@@ -361,10 +361,10 @@ void CAnomalyZone::Load(const char* section)
 	}
 
 	// volumetric light
-	m_bVolumetricBlowout   = READ_IF_EXISTS(pSettings, r_bool,  section, "volumetric_blowout",   false);
-	m_fVolumetricQuality   = READ_IF_EXISTS(pSettings, r_float, section, "volumetric_quality",   1.f);
-	m_fVolumetricDistance  = READ_IF_EXISTS(pSettings, r_float, section, "volumetric_distance",  1.f);
-	m_fVolumetricIntensity = READ_IF_EXISTS(pSettings, r_float, section, "volumetric_intensity", 1.f);
+	m_bVolumetricBlowout   = pSettings->read_if_exists<bool>(section,"volumetric_blowout",false);
+	m_fVolumetricQuality   = pSettings->read_if_exists<float>(section,"volumetric_quality",1.f);
+	m_fVolumetricDistance  = pSettings->read_if_exists<float>(section,"volumetric_distance",1.f);
+	m_fVolumetricIntensity = pSettings->read_if_exists<float>(section,"volumetric_intensity",1.f);
 
 	//загрузить параметры idle подсветки
 	m_zone_flags.set(eIdleLight,	pSettings->r_bool (section, "idle_light"));
@@ -374,12 +374,12 @@ void CAnomalyZone::Load(const char* section)
 		const char* light_anim		= pSettings->r_string(section,"idle_light_anim");
 		m_pIdleLAnim			= LALib.FindItem(light_anim);
 		m_fIdleLightHeight		= pSettings->r_float(section,"idle_light_height");
-		m_zone_flags.set(eIdleLightVolumetric,READ_IF_EXISTS(pSettings, r_bool, section, "idle_light_volumetric", false) );
-		m_zone_flags.set(eIdleLightShadow,READ_IF_EXISTS(pSettings, r_bool, section, "idle_light_shadow", true) );
-		m_zone_flags.set(eIdleLightR1,READ_IF_EXISTS(pSettings, r_bool, section, "idle_light_r1", true) );
+		m_zone_flags.set(eIdleLightVolumetric,pSettings->read_if_exists<bool>(section,"idle_light_volumetric",false) );
+		m_zone_flags.set(eIdleLightShadow,pSettings->read_if_exists<bool>(section,"idle_light_shadow",true) );
+		m_zone_flags.set(eIdleLightR1,pSettings->read_if_exists<bool>(section,"idle_light_r1",true) );
 	}
 
-	bool use = !!READ_IF_EXISTS(pSettings, r_bool, section, "use_secondary_hit", false);
+	bool use = pSettings->read_if_exists<bool>(section,"use_secondary_hit",false);
 	m_zone_flags.set(eUseSecondaryHit, use);
 	if(use)
 		m_fSecondaryHitPower	= pSettings->r_float(section,"secondary_hit_power");
@@ -387,7 +387,7 @@ void CAnomalyZone::Load(const char* section)
 	m_ef_anomaly_type			= pSettings->r_u32(section,"ef_anomaly_type");
 	m_ef_weapon_type			= pSettings->r_u32(section,"ef_weapon_type");
 	
-	m_zone_flags.set			(eAffectPickDOF, READ_IF_EXISTS(pSettings, r_bool, section, "pick_dof_effector", false));
+	m_zone_flags.set			(eAffectPickDOF, pSettings->read_if_exists<bool>(section,"pick_dof_effector",false));
 }
 
 bool CAnomalyZone::net_Spawn(CSE_Abstract* DC) 

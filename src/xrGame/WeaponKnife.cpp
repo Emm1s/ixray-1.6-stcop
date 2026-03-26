@@ -64,9 +64,9 @@ void CWeaponKnife::Load(const char* section)
 	m_NextHitDivideFactor = pSettings->r_float(section, "splash_hit_divide_factor");
 
 	knife_material_idx = GMLib.GetMaterialIdx(KNIFE_MATERIAL_NAME);
-	m_bShowKnifeStats = READ_IF_EXISTS(pSettings, r_bool, section, "show_knife_stats", true);
+	m_bShowKnifeStats = pSettings->read_if_exists<bool>(section, "show_knife_stats", true);
 
-	m_flags.set(FUsingCondition, READ_IF_EXISTS(pSettings, r_bool, section, "use_condition", false));
+	m_flags.set(FUsingCondition, pSettings->read_if_exists<bool>(section, "use_condition", false));
 }
 
 void CWeaponKnife::LoadSounds(const char* section)
