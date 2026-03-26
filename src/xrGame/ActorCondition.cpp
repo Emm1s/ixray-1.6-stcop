@@ -92,7 +92,7 @@ void CActorCondition::LoadCondition(const char* entity_section)
 {
 	inherited::LoadCondition(entity_section);
 
-	const char*						section = READ_IF_EXISTS(pSettings,r_string,entity_section,"condition_sect",entity_section);
+	const char*						section = pSettings->read_if_exists<LPCSTR>(entity_section,"condition_sect",entity_section);
 
 	m_fJumpPower				= pSettings->r_float(section,"jump_power");
 	m_fStandPower				= pSettings->r_float(section,"stand_power");
@@ -163,15 +163,15 @@ void CActorCondition::LoadCondition(const char* entity_section)
 		Sleepiness.HealthBoost		= pSettings->r_float(section,"sleepiness_health_v");
 	}
 
-	m_zone_max_power[ALife::infl_rad]	= READ_IF_EXISTS(pSettings, r_float, section, "radio_zone_max_power", 1.0f);
-	m_zone_max_power[ALife::infl_fire]	= READ_IF_EXISTS(pSettings, r_float, section, "fire_zone_max_power", 1.0f);
-	m_zone_max_power[ALife::infl_acid]	= READ_IF_EXISTS(pSettings, r_float, section, "acid_zone_max_power", 1.0f);
-	m_zone_max_power[ALife::infl_psi]	= READ_IF_EXISTS(pSettings, r_float, section, "psi_zone_max_power", 1.0f);
-	m_zone_max_power[ALife::infl_electra]= READ_IF_EXISTS(pSettings, r_float, section, "electra_zone_max_power", 1.0f);
+	m_zone_max_power[ALife::infl_rad]	= pSettings->read_if_exists<float>(section,"radio_zone_max_power",1.0f);
+	m_zone_max_power[ALife::infl_fire]	= pSettings->read_if_exists<float>(section,"fire_zone_max_power",1.0f);
+	m_zone_max_power[ALife::infl_acid]	= pSettings->read_if_exists<float>(section,"acid_zone_max_power",1.0f);
+	m_zone_max_power[ALife::infl_psi]	= pSettings->read_if_exists<float>(section,"psi_zone_max_power",1.0f);
+	m_zone_max_power[ALife::infl_electra]= pSettings->read_if_exists<float>(section,"electra_zone_max_power",1.0f);
 
-	m_max_power_restore_speed = READ_IF_EXISTS(pSettings, r_float, section, "max_power_restore_speed", 1.0f);
-	m_max_wound_protection = READ_IF_EXISTS(pSettings,r_float,section,"max_wound_protection",1.0f);
-	m_max_fire_wound_protection = READ_IF_EXISTS(pSettings,r_float,section,"max_fire_wound_protection",1.0f);
+	m_max_power_restore_speed = pSettings->read_if_exists<float>(section,"max_power_restore_speed",1.0f);
+	m_max_wound_protection = pSettings->read_if_exists<float>(section,"max_wound_protection",1.0f);
+	m_max_fire_wound_protection = pSettings->read_if_exists<float>(section,"max_fire_wound_protection",1.0f);
 
 	VERIFY( !fis_zero(m_zone_max_power[ALife::infl_rad]) );
 	VERIFY( !fis_zero(m_zone_max_power[ALife::infl_fire]) );

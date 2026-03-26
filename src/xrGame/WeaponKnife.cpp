@@ -147,9 +147,9 @@ void CWeaponKnife::Load(const char* section)
 #ifdef DEBUG
 	m_dbg_data.m_pick_vectors.reserve(std::max(m_Splash1HitsCount, m_Splash2HitsCount));
 #endif
-	m_bShowKnifeStats = READ_IF_EXISTS(pSettings, r_bool, section, "show_knife_stats", true);
+	m_bShowKnifeStats = pSettings->read_if_exists<bool>(section, "show_knife_stats", true);
 
-	m_flags.set(FUsingCondition, READ_IF_EXISTS(pSettings, r_bool, section, "use_condition", false));
+	m_flags.set(FUsingCondition, pSettings->read_if_exists<bool>(section, "use_condition", false));
 }
 
 void CWeaponKnife::LoadSounds(const char* section)

@@ -159,14 +159,14 @@ void CControllerAura::load(const char* section)
 	aura_sound.left.create		(pSettings->r_string(section,"PsyAura_SoundLeftPath"),st_Effect,sg_SourceType);
 	aura_sound.right.create		(pSettings->r_string(section,"PsyAura_SoundRightPath"),st_Effect,sg_SourceType);
 
-	aura_radius					= READ_IF_EXISTS(pSettings,r_float,section,"PsyAura_Radius", 40.f);
+	aura_radius					= pSettings->read_if_exists<float>(section,"PsyAura_Radius", 40.f);
 
 	m_time_fake_aura			= 0;
 
-	m_time_fake_aura_duration	= READ_IF_EXISTS(pSettings,r_u32,section,"PsyAura_Fake_Duration", 3000);
-	m_time_fake_aura_delay		= READ_IF_EXISTS(pSettings,r_u32,section,"PsyAura_Fake_Delay", 8000);
-	m_fake_max_add_dist			= READ_IF_EXISTS(pSettings,r_float,section,"PsyAura_Fake_MaxAddDist", 90.f);
-	m_fake_min_add_dist			= READ_IF_EXISTS(pSettings,r_float,section,"PsyAura_Fake_MinAddDist", 20.f);
+	m_time_fake_aura_duration	= pSettings->read_if_exists<u32>(section,"PsyAura_Fake_Duration", 3000);
+	m_time_fake_aura_delay		= pSettings->read_if_exists<u32>(section,"PsyAura_Fake_Delay", 8000);
+	m_fake_max_add_dist			= pSettings->read_if_exists<float>(section,"PsyAura_Fake_MaxAddDist", 90.f);
+	m_fake_min_add_dist			= pSettings->read_if_exists<float>(section,"PsyAura_Fake_MinAddDist", 20.f);
 
 	m_time_started				= 0;
 }

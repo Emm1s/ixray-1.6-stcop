@@ -905,7 +905,7 @@ void CWeaponMagazinedWGrenade::InitAddons()
 		if (IsGrenadeLauncherAttached())
 		{
 			CRocketLauncher::m_fLaunchSpeed = pSettings->r_float(*m_sGrenadeLauncherName, "grenade_vel");
-			m_fGrenadeAttachedRecoil = READ_IF_EXISTS(pSettings, r_float, *m_sGrenadeLauncherName, "grenade_attached_recoil", 1.0f);
+			m_fGrenadeAttachedRecoil = pSettings->read_if_exists<float>(*m_sGrenadeLauncherName, "grenade_attached_recoil", 1.0f);
 		}
 	}
 

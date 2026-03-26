@@ -1,4 +1,3 @@
-#pragma once
 #include "StdAfx.h"
 #include "AnomalyElectricCurve.h"
 #include "object_broker.h"
@@ -42,7 +41,7 @@ void TAnomalyElectricCurve::InitElectricCurves()
 	}
 }
 
-// ГГ берет артефакт с земли где то в пределах 160 метров радиуса от аномалии
+// пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ 160 пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 void TAnomalyElectricCurve::OnActorTakeArtefact(float scan_radius, CArtefact* artefact, Fvector actorPos)
 {
 
@@ -76,31 +75,31 @@ void TAnomalyElectricCurve::Load(const char* section)
 	m_snd_emmiter_electric_curve_loop.clear();
 	m_snd_emmiter_electric_curve_end.clear();
 
-	xr_string options_section = READ_IF_EXISTS(pSettings, r_string, section, "electric_curve_options_section", "");
+	xr_string options_section = pSettings->read_if_exists<str_c>(section, "electric_curve_options_section", "");
 	if (!options_section.empty())
 	{
 		const char* sect = options_section.c_str();
-		m_use_electric_curve = READ_IF_EXISTS(pSettings, r_bool, sect, "use_electric_curve", false);
+		m_use_electric_curve = pSettings->read_if_exists<bool>(sect, "use_electric_curve", false);
 
 		if (m_use_electric_curve)
 		{
-			draw_dbg = READ_IF_EXISTS(pSettings, r_bool, sect, "draw_debug", false); // отладка
+			draw_dbg = pSettings->read_if_exists<bool>(sect, "draw_debug", false); // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 
-			max_processing_distance = READ_IF_EXISTS(pSettings, r_float, sect, "max_processing_distance", max_processing_distance); // дистанция обновления
+			max_processing_distance = pSettings->read_if_exists<float>(sect, "max_processing_distance", max_processing_distance); // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 
-			m_electric_curve_particle_path = READ_IF_EXISTS(pSettings, r_string, sect, "electric_curve_particle_path", "");
-			m_max_count_electric_curves = READ_IF_EXISTS(pSettings, r_u8, sect, "max_count_electric_curves", m_max_count_electric_curves);
-			max_trace_curve_distance = READ_IF_EXISTS(pSettings, r_float, sect, "max_trace_curve_distance", max_trace_curve_distance);
+			m_electric_curve_particle_path = pSettings->read_if_exists<str_c>(sect, "electric_curve_particle_path", "");
+			m_max_count_electric_curves = pSettings->read_if_exists<u8>(sect, "max_count_electric_curves", m_max_count_electric_curves);
+			max_trace_curve_distance = pSettings->read_if_exists<float>(sect, "max_trace_curve_distance", max_trace_curve_distance);
 
-			max_blastTimeProcessing = READ_IF_EXISTS(pSettings, r_float, sect, "max_curve_atack_damage_time", max_blastTimeProcessing);
-			m_max_curve_radius = READ_IF_EXISTS(pSettings, r_float, sect, "max_curve_atack_radius", m_max_curve_radius);// для атак
-			m_max_curve_damage = READ_IF_EXISTS(pSettings, r_float, sect, "max_curve_atack_damage", m_max_curve_damage);
-			m_max_curve_impulse = READ_IF_EXISTS(pSettings, r_float, sect, "max_curve_atack_impulse", m_max_curve_impulse);
+			max_blastTimeProcessing = pSettings->read_if_exists<float>(sect, "max_curve_atack_damage_time", max_blastTimeProcessing);
+			m_max_curve_radius = pSettings->read_if_exists<float>(sect, "max_curve_atack_radius", m_max_curve_radius);// пїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
+			m_max_curve_damage = pSettings->read_if_exists<float>(sect, "max_curve_atack_damage", m_max_curve_damage);
+			m_max_curve_impulse = pSettings->read_if_exists<float>(sect, "max_curve_atack_impulse", m_max_curve_impulse);
 
-			m_cascade_curves = READ_IF_EXISTS(pSettings, r_bool, sect, "use_cascade_electric_curves", m_cascade_curves); // цепные молнии
+			m_cascade_curves = pSettings->read_if_exists<bool>(sect, "use_cascade_electric_curves", m_cascade_curves); // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
 			if (m_cascade_curves)
 			{
-				m_cascade_curves_by_anomalies = READ_IF_EXISTS(pSettings, r_bool, sect, "cascade_curves_between_anomalies", m_cascade_curves_by_anomalies); // бить между аномалиями
+				m_cascade_curves_by_anomalies = pSettings->read_if_exists<bool>(sect, "cascade_curves_between_anomalies", m_cascade_curves_by_anomalies); // пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 			}
 
 			m_snd_emmiter_electric_core_loop.push_back(new CRandomSoundEmmiter(sect, "sounds_electric_core_loop"));

@@ -782,7 +782,7 @@ void CActor::IR_GamepadKeyPress(int id)
 					CCameraFirstEye* pCamera = smart_cast<CCameraFirstEye*>(cam_Active());
 					if (pCamera)
 					{
-						float heightFraction = READ_IF_EXISTS(pSettings, r_float, "auto_aiming", "height_fraction", 0.71f);
+						float heightFraction = pSettings->read_if_exists<float>("auto_aiming","height_fraction",0.71f);
 
 						Fvector pos;
 						Feel::look_at_pos_for_aiming(pos, pAim, heightFraction);

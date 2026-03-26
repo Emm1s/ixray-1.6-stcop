@@ -144,17 +144,17 @@ void CInventorySorter::LoadCategoryFromXml(const shared_str& categoryId, EInvent
 
     SInventorySortCategoryInfo& info = it->second;
 
-    info._name = READ_IF_EXISTS(pSettings, r_string, "inventory_sort_categories", namePath, info._name.c_str());
-    info._hint = READ_IF_EXISTS(pSettings, r_string, "inventory_sort_categories", hintPath, info._hint.c_str());
+    info._name = pSettings->read_if_exists<LPCSTR>("inventory_sort_categories", namePath, info._name.c_str());
+    info._hint = pSettings->read_if_exists<LPCSTR>("inventory_sort_categories", hintPath, info._hint.c_str());
     
-    shared_str iconTexture = READ_IF_EXISTS(pSettings, r_string, "inventory_sort_categories", iconPath, nullptr);
+    shared_str iconTexture = pSettings->read_if_exists<LPCSTR>("inventory_sort_categories",iconPath,nullptr);
     if (iconTexture && iconTexture.size() > 0)
     {
         info._iconTexture = iconTexture;
         info._hasIcon = true;
     }
 
-    bool showText = READ_IF_EXISTS(pSettings, r_bool, "inventory_sort_categories", showTextPath, true);
+    bool showText = pSettings->read_if_exists<bool>("inventory_sort_categories", showTextPath, true);
     info._hasText = showText;
 }
 
@@ -183,7 +183,7 @@ void CInventorySorter::LoadCustomCategories()
         xr_sprintf(path, "inventory_sort_custom:%s", lineName);
 
         shared_str name = pSettings->r_string(path, "name");
-        shared_str hint = READ_IF_EXISTS(pSettings, r_string, path, "hint", "");
+        shared_str hint = pSettings->read_if_exists<LPCSTR>(path, "hint", "");
         
         AddCustomCategory(lineName, name, hint);
 

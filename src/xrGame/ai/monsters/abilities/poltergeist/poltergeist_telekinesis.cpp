@@ -24,22 +24,22 @@ void CPolterTele::load(const char* section)
 {
 	inherited::load(section);
 
-	m_pmt_radius						= READ_IF_EXISTS(pSettings,r_float,section,	"Tele_Find_Radius",					10.f);
-	m_pmt_object_min_mass				= READ_IF_EXISTS(pSettings,r_float,section,	"Tele_Object_Min_Mass",				40.f);
-	m_pmt_object_max_mass				= READ_IF_EXISTS(pSettings,r_float,section,	"Tele_Object_Max_Mass",				500.f);
-	m_pmt_object_count					= READ_IF_EXISTS(pSettings,r_u32,section,	"Tele_Object_Count",				10);
-	m_pmt_time_to_hold					= READ_IF_EXISTS(pSettings,r_u32,section,	"Tele_Hold_Time",					3000);
-	m_pmt_time_to_wait					= READ_IF_EXISTS(pSettings,r_u32,section,	"Tele_Wait_Time",					3000);
-	m_pmt_time_to_wait_in_objects		= READ_IF_EXISTS(pSettings,r_u32,section,	"Tele_Delay_Between_Objects_Time",	500);
-	m_pmt_distance						= READ_IF_EXISTS(pSettings,r_float,section,	"Tele_Distance",					50.f);
-	m_pmt_object_height					= READ_IF_EXISTS(pSettings,r_float,section,	"Tele_Object_Height",				10.f);
-	m_pmt_time_object_keep				= READ_IF_EXISTS(pSettings,r_u32,section,	"Tele_Time_Object_Keep",			10000);
-	m_pmt_raise_speed					= READ_IF_EXISTS(pSettings,r_float,section,	"Tele_Raise_Speed",					3.f);
-	m_pmt_raise_time_to_wait_in_objects	= READ_IF_EXISTS(pSettings,r_u32,section,	"Tele_Delay_Between_Objects_Raise_Time", 500);
-	m_pmt_fly_velocity					= READ_IF_EXISTS(pSettings,r_float,section, "Tele_Fly_Velocity",				30.f);
-	m_pmt_object_collision_damage		= READ_IF_EXISTS(pSettings,r_float,section, "Tele_Collision_Damage",			0.5f);
-	::Sound->create						(m_sound_tele_hold,		pSettings->r_string(section,"sound_tele_hold"),	st_Effect,SOUND_TYPE_WORLD);
-	::Sound->create						(m_sound_tele_throw,	pSettings->r_string(section,"sound_tele_throw"),st_Effect,SOUND_TYPE_WORLD);
+	m_pmt_radius						= pSettings->read_if_exists<float>(section,	"Tele_Find_Radius",					10.f);
+	m_pmt_object_min_mass				= pSettings->read_if_exists<float>(section,	"Tele_Object_Min_Mass",				40.f);
+	m_pmt_object_max_mass				= pSettings->read_if_exists<float>(section,	"Tele_Object_Max_Mass",				500.f);
+	m_pmt_object_count					= pSettings->read_if_exists<u32>(section,	"Tele_Object_Count",				10);
+	m_pmt_time_to_hold					= pSettings->read_if_exists<u32>(section,	"Tele_Hold_Time",					3000);
+	m_pmt_time_to_wait					= pSettings->read_if_exists<u32>(section,	"Tele_Wait_Time",					3000);
+	m_pmt_time_to_wait_in_objects		= pSettings->read_if_exists<u32>(section,	"Tele_Delay_Between_Objects_Time",	500);
+	m_pmt_distance						= pSettings->read_if_exists<float>(section,	"Tele_Distance",					50.f);
+	m_pmt_object_height					= pSettings->read_if_exists<float>(section,	"Tele_Object_Height",				10.f);
+	m_pmt_time_object_keep				= pSettings->read_if_exists<u32>(section,	"Tele_Time_Object_Keep",			10000);
+	m_pmt_raise_speed					= pSettings->read_if_exists<float>(section,	"Tele_Raise_Speed",					3.f);
+	m_pmt_raise_time_to_wait_in_objects	= pSettings->read_if_exists<u32>(section,	"Tele_Delay_Between_Objects_Raise_Time", 500);
+	m_pmt_fly_velocity					= pSettings->read_if_exists<float>(section, "Tele_Fly_Velocity",				30.f);
+	m_pmt_object_collision_damage		= pSettings->read_if_exists<float>(section, "Tele_Collision_Damage",			0.5f);
+	::Sound->create						(m_sound_tele_hold, pSettings->r_string(section,"sound_tele_hold"),	st_Effect,SOUND_TYPE_WORLD);
+	::Sound->create						(m_sound_tele_throw, pSettings->r_string(section,"sound_tele_throw"),st_Effect,SOUND_TYPE_WORLD);
 
 	m_state								= 	eWait;
 	m_time								= 	0;
