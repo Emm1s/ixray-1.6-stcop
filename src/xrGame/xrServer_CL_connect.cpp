@@ -8,7 +8,7 @@
 
 void xrServer::Perform_connect_spawn(CSE_Abstract* E, xrClientData* CL, NET_Packet& P)
 {
-	P.B.count = 0;
+	P.B.data.clear();
 	auto it = std::ranges::find(conn_spawned_ids, E->ID);
 	if(it != conn_spawned_ids.end())
 	{

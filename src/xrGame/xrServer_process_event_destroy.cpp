@@ -80,15 +80,15 @@ void xrServer::Process_event_destroy	(NET_Packet& P, ClientID sender, u32 time, 
 		
 			if (!pEventPack) pEventPack = &P2;
 			
-			pEventPack->w_u8(u8(tmpP.B.count));
-			pEventPack->w(&tmpP.B.data, tmpP.B.count);
-		};
+			pEventPack->w_u8(u8(tmpP.B.data.size()));
+			pEventPack->w(tmpP.B.data.data(), tmpP.B.data.size());
+		}
 		
  		game->u_EventGen(tmpP, GE_DESTROY, id_dest);
 		
-		pEventPack->w_u8(u8(tmpP.B.count));
-		pEventPack->w(&tmpP.B.data, tmpP.B.count);
-	};
+		pEventPack->w_u8(u8(tmpP.B.data.size()));
+		pEventPack->w(tmpP.B.data.data(), tmpP.B.data.size());
+	}
 
 	if (nullptr == pEPack && nullptr != pEventPack)
 	{
