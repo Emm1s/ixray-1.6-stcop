@@ -314,7 +314,7 @@ void xrServer::MakeUpdatePackets()
 		if (Test.s_flags.is(M_SPAWN_OBJECT_PHANTOM) || !Test.Net_Relevant())	
 			continue;
 
-		tmpPacket.B.count = 0;
+		tmpPacket.B.data.clear();
 
 		// write specific data
 		{
@@ -515,9 +515,9 @@ void xrServer::SendUpdatePacketsToAll()
 			for (update_iterator_t i = m_update_begin; i != m_update_end; ++i)
 			{
 				NET_Packet& P = **i;
-				if (P.B.count > 2)
+				if (P.B.data.size() > 2)
 				{
-					m_owner->SendTo_LL(client->ID, P.B.data, P.B.count, m_dwFlags);
+					m_owner->SendTo_LL(client->ID, P.B.data.data(), P.B.data.size(), m_dwFlags);
 				}
 			}
 		}
@@ -694,8 +694,8 @@ u32 xrServer::OnMessage	(NET_Packet& P, ClientID sender)			// Non-Zero means bro
 			NET_Packet	tmpP;
 			while (!P.r_eof())
 			{
-				tmpP.B.count		= P.r_u8();
-				P.r					(&tmpP.B.data, tmpP.B.count);
+				tmpP.B.data.resize(P.r_u8());
+				P.r					(tmpP.B.data.data(), tmpP.B.data.size());
 
 				OnMessage			(tmpP, sender);
 			};			
@@ -991,7 +991,7 @@ void xrServer::SendBroadcast(ClientID exclude, NET_Packet& P, u32 dwFlags)
 			m_owner->SendTo_LL(client->ID, m_data, m_size, m_dwFlags);			
 		}
 	};
-	ClientSenderFunctor temp_functor(this, P.B.data, P.B.count, dwFlags);
+	ClientSenderFunctor temp_functor(this, P.B.data.data(), P.B.data.size(), dwFlags);
 	net_players.ForFoundClientsDo(ClientExcluderPredicate(exclude), temp_functor);
 }
 //--------------------------------------------------------------------
@@ -1267,7 +1267,12 @@ void xrServer::AddDelayedPacket	(NET_Packet& Packet, ClientID Sender)
 	m_aDelayedPackets.push_back(DelayedPacket());
 	DelayedPacket* NewPacket = &(m_aDelayedPackets.back());
 	NewPacket->SenderID = Sender;
-	CopyMemory	(&(NewPacket->Packet),&Packet,sizeof(NET_Packet));	
+	NewPacket->Packet.B.data.resize(Packet.B.data.size());
+	CopyMemory(NewPacket->Packet.B.data.data(), Packet.B.data.data(), Packet.B.data.size());
+	NewPacket->Packet.inistream = Packet.inistream;
+	NewPacket->Packet.r_pos = Packet.r_pos;
+	NewPacket->Packet.w_allow = Packet.w_allow;
+	NewPacket->Packet.timeReceive = Packet.timeReceive;
 
 	DelayedPackestCS.Leave();
 }

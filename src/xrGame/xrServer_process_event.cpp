@@ -161,7 +161,7 @@ void xrServer::Process_event	(NET_Packet& P, ClientID sender)
 			P.r_pos -= sizeof(ALife::_OBJECT_ID);
 			if (type == GE_HIT_STATISTIC) 
 			{
-				P.B.count -= 4;
+				P.B.data.resize(P.B.data.size()-4);
 				P.w_u32(sender.value());
 			};
 			game->AddDelayedEvent(P,GAME_EVENT_ON_HIT, 0, ClientID() );
