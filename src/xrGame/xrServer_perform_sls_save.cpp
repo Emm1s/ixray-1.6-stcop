@@ -17,8 +17,9 @@ void xrServer::SLS_Save	(IWriter& fs)
 
 		// Spawn
 		E_->Spawn_Write		(P,true);
-		fs.w_u16			(u16(P.B.count));
-		fs.w				(P.B.data,P.B.count);
+		I_ASSERT_M(P.B.data.size() <= u16(-1), "(Spawn_Write) Object [%s] contains more data than save data limit, current size [%d], max [%d]", E_->name(), P.B.data.size(), u16(-1));
+		fs.w_u16			(u16(P.B.data.size()));
+		fs.w				(P.B.data.data(),P.B.data.size());
 
 		// Update
 		P.w_begin			(M_UPDATE);
@@ -27,8 +28,9 @@ void xrServer::SLS_Save	(IWriter& fs)
 		E_->UPDATE_Write		(P);
 		P.w_chunk_close8	(position);
 
-		fs.w_u16			(u16(P.B.count));
-		fs.w				(P.B.data,P.B.count);
+		I_ASSERT_M(P.B.data.size() <= u16(-1), "(Spawn_Write) Object [%s] contains more data than save data limit, current size [%d], max [%d]", E_->name(), P.B.data.size(), u16(-1));
+		fs.w_u16			(u16(P.B.data.size()));
+		fs.w				(P.B.data.data(),P.B.data.size());
 
 		fs.close_chunk		();
 	}

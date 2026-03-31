@@ -101,7 +101,7 @@ IClient* xrServer::new_client( SClientConnectData* cl_data )
 	CL->pass._set	( cl_data->pass );
 
 	NET_Packet		P;
-	P.B.count		= 0;
+	P.B.data.clear();
 	P.r_pos			= 0;
 
 	game->AddDelayedEvent( P, GAME_EVENT_CREATE_CLIENT, 0, CL->ID );
