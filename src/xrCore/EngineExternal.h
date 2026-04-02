@@ -60,6 +60,7 @@ enum class EEngineExternalGame
 	EnableBurerShieldPenetrationWithGauss,
 	EnableWeaponAlternateRPMSystem,
 	EnableRagdolledZombiePseudodeath,
+	EnableStackWindow,
 	None
 };
 
