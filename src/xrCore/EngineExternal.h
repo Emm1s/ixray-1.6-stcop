@@ -63,6 +63,7 @@ enum class EEngineExternalGame
 	EnableRealBulletPos,
 	EnableWeaponAffectsOnMouseSensitivity,
 	EnableRagdolledZombiePseudodeath,
+	EnableStackWindow,
 	None
 };
 
