@@ -59,6 +59,7 @@ enum class EEngineExternalGame
 	EnableQuickReload,
 	EnableBurerShieldPenetrationWithGauss,
 	EnableRagdolledZombiePseudodeath,
+	EnableStackWindow,
 	None
 };
 
