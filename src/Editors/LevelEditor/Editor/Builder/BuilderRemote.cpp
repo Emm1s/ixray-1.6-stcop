@@ -344,6 +344,10 @@ void SceneBuilder::SaveBuild()
 		F->w	  		(&Scene->m_LevelOp.m_BuildParams,sizeof(b_params));
 		F->close_chunk	();
 
+		F->open_chunk	(EB_SeparateStaticFromLevel);
+		F->w_u8(Scene->m_LevelOp.m_SeparateStaticFromLevel);
+		F->close_chunk	();
+
 		F->open_chunk	(EB_Vertices);
 		F->w		  	(l_verts.data(),sizeof(b_vertex)*l_vert_it); 	//. l_vert_cnt
 		F->close_chunk	();

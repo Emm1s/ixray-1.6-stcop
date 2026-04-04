@@ -157,6 +157,50 @@ struct b_mu_reference
     u32					reserved	[8];
 };
 
+/*
+ * New generation object (both static and MU)
+ */
+struct b_complex_material
+{
+	xr_stack_string_path name;
+	xr_vector<b_shader> l_shaders;
+	xr_vector<b_shader> l_shaders_xrlc;
+	xr_vector<b_material> l_materials;
+};
+
+struct b_complex_material_ref
+{
+	xr_stack_string_path name;
+	u32 ID;
+};
+
+struct b_static_model_lod
+{
+	xr_vector<b_vertex> m_pVertices;
+	xr_vector<b_face> m_pFaces;
+	xr_vector<u32> m_smgroups;
+	xr_unique_ptr<CDB::MODEL> Collision;
+};
+
+struct b_static_model
+{
+	xr_stack_string_path name;
+	xr_vector<b_static_model_lod> lods;
+	xr_vector<b_complex_material_ref> materials;
+};
+
+struct b_static_model_instance
+{
+	struct Serializable
+	{
+		xr_stack_string_path name;
+		Fmatrix transform;
+		Fmatrix inverse_transform;
+		Fbox AABB;
+	} SerializableData;
+	b_static_model*	pData;
+};
+
 struct b_params
 {
 	// Normals & optimization
@@ -260,6 +304,7 @@ enum EBUILD_CHUNKS
     EB_MU_refs,
     EB_SmoothGroups,
 	EB_MaterialsShared,
+	EB_SeparateStaticFromLevel,
 
 	EB_FORCE_DWORD = u32(-1)
 };

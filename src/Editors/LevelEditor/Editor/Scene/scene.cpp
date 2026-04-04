@@ -691,6 +691,8 @@ void EScene::FillProp(const char* pref, PropItemVec& items, ObjClassID cls_id)
 	B=PHelper().CreateButton	(items,PrepareKey(pref,"Scene\\Build options\\Quality"), "Draft,High,Custom",0);
 	B->OnBtnClickEvent.bind		(this,&EScene::OnBuildControlClick);
 
+	PHelper().CreateBool(items,PrepareKey(pref,"Scene\\Build options\\Separate static from level"), &m_LevelOp.m_SeparateStaticFromLevel);
+
 	bool enabled				= (m_LevelOp.m_BuildParams.m_quality==ebqCustom);
 	V=PHelper().CreateU8		(items,PrepareKey(pref,"Scene\\Build options\\Lighting\\Hemisphere quality [0-3]"),	&m_LevelOp.m_LightHemiQuality,	0,3);		V->Owner()->Enable(enabled);
 	V=PHelper().CreateU8		(items,PrepareKey(pref,"Scene\\Build options\\Lighting\\Sun shadow quality [0-3]"),	&m_LevelOp.m_LightSunQuality,	0,3);       V->Owner()->Enable(enabled);

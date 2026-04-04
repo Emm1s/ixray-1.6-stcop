@@ -73,6 +73,8 @@ struct st_LevelOptions{
 	u8	 			m_LightHemiQuality;
 	u8 				m_LightSunQuality;
 
+	bool m_SeparateStaticFromLevel = false;
+
 	b_params		m_BuildParams;
 
 	GameTypeChooser	m_mapUsage;
