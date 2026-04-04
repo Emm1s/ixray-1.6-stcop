@@ -9,12 +9,14 @@
 #include "../xrForms/CompilersUI.h"
 
 
-Shader_xrLC_LIB*				g_shaders_xrlc	;
-xr_vector<b_material>			g_materials		;
-xr_vector<b_shader>				g_shader_render	;
-xr_vector<b_shader>				g_shader_compile;
-xr_vector<b_BuildTexture>		g_textures		;
-xr_vector<b_rc_face>			g_rc_faces		;
+Shader_xrLC_LIB* SAICompilerGlobalData::g_shaders_xrlc;
+xr_vector<b_material> SAICompilerGlobalData::g_materials;
+xr_vector<b_material_shared> SAICompilerGlobalData::g_materials_shared;
+xr_vector<b_shader> SAICompilerGlobalData::g_shader_render;
+xr_vector<b_shader> SAICompilerGlobalData::g_shader_compile;
+xr_vector<b_BuildTexture> SAICompilerGlobalData::g_textures;
+xr_hash_map<b_material_shared*, b_BuildTexture> SAICompilerGlobalData::g_textures_shared;
+xr_vector<b_rc_face> SAICompilerGlobalData::g_rc_faces;
 
 typedef xr_vector<bool>			COVER_NODES;
 COVER_NODES						g_cover_nodes;
@@ -35,19 +37,10 @@ IC float getLastRP_Scale(CDB::COLLIDER* DB, RayCache& C)
 	for (u32 I = 0; I < tris_count; I++)
 	{
 		CDB::RESULT& rpinf = DB->r_begin()[I];
-		b_rc_face& F = g_rc_faces[rpinf.id];
+		b_rc_face& F = SAICompilerGlobalData::g_rc_faces[rpinf.id];
 
-		if (F.dwMaterial >= g_materials.size())
-			Msg("[%d] -> [%d]", F.dwMaterial, g_materials.size());
-
-		b_material& M = g_materials[F.dwMaterial];
-		b_texture& T = g_textures[M.surfidx];
-		Shader_xrLCVec& LIB = g_shaders_xrlc->Library();
-
-		if (M.shader_xrlc >= LIB.size())
-			return 0;		//. hack
-
-		Shader_xrLC& SH = LIB[M.shader_xrlc];
+		b_texture& T = SAICompilerGlobalData::GetTexture(F.dwMaterial, F.extra_data.bSharedMaterial);
+		Shader_xrLC& SH = SAICompilerGlobalData::GetShaderXRLC(F.dwMaterial, F.extra_data.bSharedMaterial);
 
 		if (!SH.flags.bLIGHT_CastShadow)
 			continue;
@@ -551,7 +544,7 @@ void	xrCover	(bool pure_covers)
 	// Start threads, wait, continue --- perform all the work
 	u32	start_time		= timeGetTime();
  
-	// se7kills : Переработал 
+	// se7kills : пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ 
 	tAtomicIndex = 0;
  	xr_parallel_for(size_t(0), size_t(gCompilerMode.ThreadsPerWork),
 	[](size_t threadID) 

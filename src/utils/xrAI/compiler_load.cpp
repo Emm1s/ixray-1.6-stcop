@@ -1,10 +1,9 @@
 #include "StdAfx.h"
 #include "compiler.h"
 //.#include "communicate.h"
-#include "levelgamedef.h"
-#include "level_graph.h"
 #include "AIMapExport.h"
 #include "../../xrCore/FormatParsers/LevelCForm/CFormIO.h"
+#include "src/xrCore/SharedMaterialLibrary.h"
 
 size_t BuildAIMapVersion = 0;
 
@@ -58,6 +57,27 @@ void transfer(const char *name, xr_vector<T> &dest, IReader& F, u32 chunk)
 	if (O)		O->close	();
 }
 
+b_texture& SAICompilerGlobalData::GetTexture(u32 ID, bool Shared)
+{
+	if (Shared)
+	{
+		return g_textures_shared[&g_materials_shared[ID]];
+	}
+	return g_textures[g_materials[ID].surfidx];
+}
+
+Shader_xrLC& SAICompilerGlobalData::GetShaderXRLC(u32 ID, bool Shared)
+{
+	if (Shared)
+	{
+		auto ShaderName = CSharedMaterialLibrary::Instance().GetData(g_materials_shared[ID].Name)->m_ShaderXRLCName.c_str();
+		auto Shader = g_shaders_xrlc->Get(ShaderName);
+		R_ASSERT(Shader, "Unknown compile shader %s", ShaderName);
+		return *Shader;
+	}
+	return *g_shaders_xrlc->Get(g_materials[ID].shader_xrlc);
+}
+
 void xrLoad(const char* name, bool draft_mode, bool skipThm)
 {
 	FS.get_path("$level$")->_set((LPSTR)name);
@@ -66,8 +86,8 @@ void xrLoad(const char* name, bool draft_mode, bool skipThm)
 		// shaders
 		string_path				N__;
 		FS.update_path(N__, "$game_data$", "shaders_xrlc.xr");
-		g_shaders_xrlc = new Shader_xrLC_LIB();
-		g_shaders_xrlc->Load(N__);
+		SAICompilerGlobalData::g_shaders_xrlc = new Shader_xrLC_LIB();
+		SAICompilerGlobalData::g_shaders_xrlc->Load(N__);
 
 		// Load CFORM
 		{
@@ -86,9 +106,9 @@ void xrLoad(const char* name, bool draft_mode, bool skipThm)
 			LevelPtr->wait_loading();
 			Msg("* Level CFORM: %dK", LevelPtr->memory() / 1024);
 
-			g_rc_faces.resize(H.facecount);
+			SAICompilerGlobalData::g_rc_faces.resize(H.facecount);
 			R_ASSERT(fs->find_chunk(1));
-			fs->r(&*g_rc_faces.begin(), g_rc_faces.size() * sizeof(b_rc_face));
+			fs->r(SAICompilerGlobalData::g_rc_faces.data(), SAICompilerGlobalData::g_rc_faces.size() * sizeof(b_rc_face));
 
 			LevelBB.set(H.aabb);
 			FS.r_close(fs);
@@ -98,7 +118,6 @@ void xrLoad(const char* name, bool draft_mode, bool skipThm)
 		{
 			xr_strconcat(N__, name, "build.prj");
 			IReader* fs = FS.r_open(N__);
-			IReader* F;
 
 			// Version
 			u32 version;
@@ -111,8 +130,9 @@ void xrLoad(const char* name, bool draft_mode, bool skipThm)
 			fs->r_chunk(EB_Parameters, &Params);
 
 			// Load level data
-			transfer("materials", g_materials, *fs, EB_Materials);
-			transfer("shaders_xrlc", g_shader_compile, *fs, EB_Shaders_Compile);
+			transfer("materials", SAICompilerGlobalData::g_materials, *fs, EB_Materials);
+			transfer("materials_shared", SAICompilerGlobalData::g_materials_shared, *fs, EB_MaterialsShared);
+			transfer("shaders_xrlc", SAICompilerGlobalData::g_shader_compile, *fs, EB_Shaders_Compile);
 
 			// process textures
 			bool is_thm_missing = false;
@@ -120,25 +140,16 @@ void xrLoad(const char* name, bool draft_mode, bool skipThm)
 
 			Status("Processing textures...");
 			{
-				F = fs->open_chunk(EB_Textures);
-				u32 tex_count = F->length() / sizeof(b_texture_real);
-				for (u32 t = 0; t < tex_count; t++)
+				auto TextureProcess = [&](b_BuildTexture& BT)
 				{
-					Progress(float(t) / float(tex_count));
-
-					b_texture_real	TEX;
-					F->r(&TEX, sizeof(TEX));
-					b_BuildTexture	BT;
-
-					// ptr should be copied separately
-					CopyMemory(&BT, &TEX, sizeof(TEX) - 4);
-
 					// load thumbnail
 					string128& N_ = BT.name;
 					LPSTR extension = strext(N_);
 
 					if (extension)
+					{
 						*extension = 0;
+					}
 
 					xr_strlwr(N_);
 
@@ -162,8 +173,7 @@ void xrLoad(const char* name, bool draft_mode, bool skipThm)
 							BT.bHasAlpha = false;
 							clMsg("cannot find thm: %s", th_name);
 							is_thm_missing = true;
-							g_textures.push_back(BT);
-							continue;
+							return;
 						}
 
 						// version
@@ -182,7 +192,10 @@ void xrLoad(const char* name, bool draft_mode, bool skipThm)
 						BT.THM.width = THM->r_u32();
 						BT.THM.height = THM->r_u32();
 						bool			bLOD = false;
-						if (N_[0] == 'l' && N_[1] == 'o' && N_[2] == 'd' && N_[3] == '\\') bLOD = true;
+						if (N_[0] == 'l' && N_[1] == 'o' && N_[2] == 'd' && N_[3] == '\\')
+						{
+							bLOD = true;
+						}
 
 						// load surface if it has an alpha channel or has "implicit lighting" flag
 						BT.dwWidth = BT.THM.width;
@@ -199,8 +212,7 @@ void xrLoad(const char* name, bool draft_mode, bool skipThm)
 								{
 									clMsg("cannot find tga texture: %s", N_);
 									is_tga_missing = true;
-									g_textures.push_back(BT);
-									continue;
+									return;
 								}
 
 								BT.pSurface.ClearMipLevels();
@@ -217,9 +229,42 @@ void xrLoad(const char* name, bool draft_mode, bool skipThm)
 							}
 						}
 					}
+				};
 
-					// save all the stuff we've created
-					g_textures.push_back(BT);
+				u32 TotalCount = SAICompilerGlobalData::g_materials_shared.size();
+				u32 tex_count = 0;
+				if (IReader* F = fs->open_chunk(EB_Textures); F)
+				{
+					tex_count = F->length() / sizeof(b_texture_real);
+					TotalCount += tex_count;
+					for (u32 t = 0; t < tex_count; t++)
+					{
+						Progress(float(t) / float(TotalCount));
+
+						b_texture_real	TEX;
+						F->r(&TEX, sizeof(TEX));
+						b_BuildTexture	BT;
+
+						// ptr should be copied separately
+						CopyMemory(&BT, &TEX, sizeof(TEX) - 4);
+
+						// load thumbnail
+						TextureProcess(BT);
+
+						// save all the stuff we've created
+						SAICompilerGlobalData::g_textures.push_back(BT);
+					}
+				}
+
+				for (auto& elem : SAICompilerGlobalData::g_materials_shared)
+				{
+					Progress(float(tex_count++) / float(TotalCount));
+					
+					auto Data = CSharedMaterialLibrary::Instance().GetData(elem.Name);
+					b_BuildTexture& BT = SAICompilerGlobalData::g_textures_shared.try_emplace(&elem).first->second;
+					xr_strcpy(BT.name, Data->m_Texture.c_str());
+					
+					TextureProcess(BT);
 				}
 
 				if (!skipThm)

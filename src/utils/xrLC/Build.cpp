@@ -111,20 +111,176 @@ CMemoryWriter&	CBuild::err_multiedge()
 	VERIFY(lc_global_data()); 
 	return lc_global_data()->err_multiedge(); 
 }
-CMemoryWriter	&CBuild::err_tjunction()
+CMemoryWriter& CBuild::err_tjunction()
 {
 	VERIFY(lc_global_data()); 
 	return lc_global_data()->err_tjunction(); 
 }
-xr_vector<b_material>&	CBuild::materials()	
+
+u16 CBuild::GetMaterialSector(const Face& F)
+{
+	if (F.flags.bSharedMaterial)
+	{
+		auto& Arr = materials_shared();
+		VERIFY(F.dwMaterial < Arr.size());
+		return Arr[F.dwMaterial].sector;
+	}
+	auto& Arr = materials();
+	VERIFY(F.dwMaterial < Arr.size());
+	return Arr[F.dwMaterial].sector;
+}
+
+u16 CBuild::GetMaterialReserved(const Face& F)
+{
+	if (F.flags.bSharedMaterial)
+	{
+		auto& Arr = materials_shared();
+		VERIFY(F.dwMaterial < Arr.size());
+		return Arr[F.dwMaterial].reserved;
+	}
+	auto& Arr = materials();
+	VERIFY(F.dwMaterial < Arr.size());
+	return Arr[F.dwMaterial].reserved;
+}
+
+u32 CBuild::GetMaterialInternalMaxArea(const Face& F)
+{
+	if (F.flags.bSharedMaterial)
+	{
+		auto& Arr = materials_shared();
+		VERIFY(F.dwMaterial < Arr.size());
+		return Arr[F.dwMaterial].internal_max_area;
+	}
+	auto& Arr = materials();
+	VERIFY(F.dwMaterial < Arr.size());
+	return Arr[F.dwMaterial].internal_max_area;
+}
+
+u32& CBuild::GetMutableMaterialInternalMaxArea(const Face& F)
+{
+	if (F.flags.bSharedMaterial)
+	{
+		auto& Arr = materials_shared();
+		VERIFY(F.dwMaterial < Arr.size());
+		return Arr[F.dwMaterial].internal_max_area;
+	}
+	auto& Arr = materials();
+	VERIFY(F.dwMaterial < Arr.size());
+	return Arr[F.dwMaterial].internal_max_area;
+}
+
+b_BuildTexture& CBuild::GetTexture(const Face& F)
+{
+	if (!F.flags.bSharedMaterial)
+	{
+		return textures()[materials()[F.dwMaterial].surfidx];
+	}
+	return textures_shared()[&materials_shared()[F.dwMaterial]];
+}
+
+u16 CBuild::GetMaterialSector(u16 index, bool shared)
+{
+	if (shared)
+	{
+		auto& Arr = materials_shared();
+		VERIFY(index < Arr.size());
+		return Arr[index].sector;
+	}
+	auto& Arr = materials();
+	VERIFY(index < Arr.size());
+	return Arr[index].sector;
+}
+
+u16 CBuild::GetMaterialReserved(u16 index, bool shared)
+{
+	if (shared)
+	{
+		auto& Arr = materials_shared();
+		VERIFY(index < Arr.size());
+		return Arr[index].reserved;
+	}
+	auto& Arr = materials();
+	VERIFY(index < Arr.size());
+	return Arr[index].reserved;
+}
+
+u32 CBuild::GetMaterialInternalMaxArea(u16 index, bool shared)
+{
+	if (shared)
+	{
+		auto& Arr = materials_shared();
+		VERIFY(index < Arr.size());
+		return Arr[index].internal_max_area;
+	}
+	auto& Arr = materials();
+	VERIFY(index < Arr.size());
+	return Arr[index].internal_max_area;
+}
+
+b_BuildTexture& CBuild::GetTexture(u16 index, bool shared)
+{
+	if (!shared)
+	{
+		return textures()[materials()[index].surfidx];
+	}
+	return textures_shared()[&materials_shared()[index]];
+}
+
+LPCSTR CBuild::GetMaterialShaderName(const Face& F) const
+{
+	if (F.flags.bSharedMaterial)
+	{
+		return CSharedMaterialLibrary::Instance().GetData(materials_shared()[F.dwMaterial].Name)->m_ShaderName.c_str();
+	}
+	return shader_render[materials()[F.dwMaterial].shader].name;
+}
+
+LPCSTR CBuild::GetMaterialShaderName(u16 index, bool shared) const
+{
+	if (shared)
+	{
+		return CSharedMaterialLibrary::Instance().GetData(materials_shared()[index].Name)->m_ShaderName.c_str();
+	}
+	return shader_render[materials()[index].shader].name;
+}
+
+LPCSTR CBuild::GetMaterialShaderXRLCName(const Face& F) const
+{
+	if (F.flags.bSharedMaterial)
+	{
+		return CSharedMaterialLibrary::Instance().GetData(materials_shared()[F.dwMaterial].Name)->m_ShaderXRLCName.c_str();
+	}
+	return shader_compile[materials()[F.dwMaterial].shader_xrlc].name;
+}
+
+LPCSTR CBuild::GetMaterialShaderXRLCName(u16 index, bool shared) const
+{
+	if (shared)
+	{
+		return CSharedMaterialLibrary::Instance().GetData(materials_shared()[index].Name)->m_ShaderXRLCName.c_str();
+	}
+	return shader_compile[materials()[index].shader_xrlc].name;
+}
+
+xr_vector<b_material>& CBuild::materials()
 {
 	VERIFY(lc_global_data()); 
 	return lc_global_data()->materials(); 
 }
-xr_vector<b_BuildTexture>&	CBuild::textures()		
+xr_vector<b_material_shared>& CBuild::materials_shared()
+{
+	VERIFY(lc_global_data()); 
+	return lc_global_data()->materials_shared(); 
+}
+xr_vector<b_BuildTexture>& CBuild::textures()
 {
 	VERIFY(lc_global_data());
 	return lc_global_data()->textures(); 
+}
+xr_hash_map<b_material_shared*, b_BuildTexture>& CBuild::textures_shared()
+{
+	VERIFY(lc_global_data());
+	return lc_global_data()->textures_shared(); 
 }
 
 base_lighting&	CBuild::L_static()
@@ -140,8 +296,14 @@ Shader_xrLC_LIB&	CBuild::shaders()
 
 void CBuild::Light_prepare()
 {
-	for (vecFaceIt I=lc_global_data()->g_faces().begin();	I!=lc_global_data()->g_faces().end(); I++) (*I)->CacheOpacity();
-	for (u32 m=0; m<mu_models().size(); m++)	mu_models()[m]->calc_faceopacity();
+	for (auto Face : lc_global_data()->g_faces())
+	{
+		Face->CacheOpacity();
+	}
+	for (auto elem : mu_models())
+	{
+		elem->calc_faceopacity();
+	}
 }
 
 size_t GetHeapMemory()

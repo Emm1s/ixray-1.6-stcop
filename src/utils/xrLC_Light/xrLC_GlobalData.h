@@ -21,7 +21,9 @@ class base_Face;
 struct compilers_global_data
 {
 	xr_vector<b_BuildTexture>		_textures;
+	xr_hash_map<b_material_shared*, b_BuildTexture> _textures_shared;
 	xr_vector<b_material>			_materials;
+	xr_vector<b_material_shared>	_materials_shared;
 	Shader_xrLC_LIB					_shaders;
 	b_params						_g_params;
 	base_lighting					_L_static;
@@ -55,8 +57,10 @@ public:
 	~xrLC_GlobalData();
 
 		IC xr_vector<b_BuildTexture>& textures() { return _cl_globs._textures; }
+		IC xr_hash_map<b_material_shared*, b_BuildTexture>& textures_shared() { return _cl_globs._textures_shared; }
 		IC xr_vector<CLightmap*>& lightmaps() { return _g_lightmaps; }
 		IC xr_vector<b_material>& materials() { return _cl_globs._materials; }
+		IC xr_vector<b_material_shared>& materials_shared() { return _cl_globs._materials_shared; }
 		IC Shader_xrLC_LIB& shaders() { return _cl_globs._shaders; }
 		IC CMemoryWriter& err_invalid() { return _err_invalid; }
 		IC CMemoryWriter& err_multiedge() { return _err_multiedge; };

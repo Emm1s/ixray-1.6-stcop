@@ -278,6 +278,7 @@ void CRender::OnDeviceDestroy()
 }
 
 ref_shader	CRender::getShader(int id) { return nullptr; }
+ref_shader CRender::getShaderShared(shared_str id) {return nullptr;}
 
 bool CRender::occ_visible(Fbox& B)
 {

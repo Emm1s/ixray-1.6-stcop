@@ -1,6 +1,7 @@
-#ifndef SHADER_XRLC_H
-#define SHADER_XRLC_H
 #pragma once
+
+#include "../xrCore/SharedMaterialLibrary.h"
+
 struct Shader_xrLC;
 struct Shader_xrLC
 {
@@ -69,48 +70,58 @@ public:
 		int count			= fs->length()/sizeof(Shader_xrLC);
 		R_ASSERT			(int(fs->length()) == int(count*sizeof(Shader_xrLC)));
 		library.resize		(count);
-		fs->r				(&*library.begin(),fs->length());
+		fs->r				(library.data(),fs->length());
         FS.r_close			(fs);
 	}
 	bool					Save	(LPCSTR name)
 	{
 		IWriter* F			= FS.w_open(name);
         if (F){
-			F->w			(&*library.begin(),(u32)library.size()*sizeof(Shader_xrLC));
+			F->w			(library.data(),(u32)library.size()*sizeof(Shader_xrLC));
     	    FS.w_close		(F);
             return 			true;
         }else{
-        	return 			false;
+        	return false;
         }
 	}
-	void					Unload	()
+	void Unload()
 	{
-		library.clear		();
+		library.clear();
 	}
-	u32						GetID	(LPCSTR name) const
+	u32 GetID(LPCSTR name) const
 	{
-		for (Shader_xrLCVec::const_iterator it=library.begin(); it!=library.end(); it++)
-			if (0==_stricmp(name,it->Name)) return u32(it-library.begin());
+		for (auto it = library.begin(); it!=library.end(); ++it)
+		{
+			if (!_stricmp(name,it->Name))
+			{
+				return u32(it-library.begin());
+			}
+		}
 		return u32(-1);
 	}
-	Shader_xrLC*			Get		(LPCSTR name)
+	Shader_xrLC* Get(LPCSTR name)
 	{
-		for (Shader_xrLCIt it=library.begin(); it!=library.end(); it++)
-			if (0==_stricmp(name,it->Name)) return &(*it);
-		return NULL;
+		for (auto& elem : library)
+		{
+			if (!_stricmp(name,elem.Name))
+			{
+				return &elem;
+			}
+		}
+		return nullptr;
 	}
- IC	Shader_xrLC*			Get		(int id)
+	IC	Shader_xrLC& Get(int id)
 	{
-		return &library[id];
+		return library[id];
 	}
- IC const	Shader_xrLC*		Get		(int id)const
+	IC const Shader_xrLC& Get(int id) const
 	{
-		return &library[id];
+		return library[id];
 	}
-	Shader_xrLC*			Append	(Shader_xrLC* parent=0)
+	Shader_xrLC& Append(Shader_xrLC* parent=0)
 	{
 		library.push_back(parent?Shader_xrLC(*parent):Shader_xrLC());
-		return &library.back();
+		return library.back();
 	}
 	void					Remove	(LPCSTR name)
 	{
@@ -131,10 +142,8 @@ const	Shader_xrLCVec&		Library	()const {return library;}
 
 IC void post_process_materials(const Shader_xrLC_LIB	&shaders, const xr_vector<b_shader> &shader_compile, xr_vector<b_material> &materials )
 {
- 	for (u32 m=0; m<materials.size(); m++)
+ 	for (auto& M : materials)
 	{
-		b_material &M	= materials[m];
-
 		if (65535==M.shader_xrlc)	{
 			// No compiler shader
 			M.reserved	= u16(-1);
@@ -151,10 +160,19 @@ IC void post_process_materials(const Shader_xrLC_LIB	&shaders, const xr_vector<b
 	}
 }
 
-IC const Shader_xrLC& shader( u16 dwMaterial, const Shader_xrLC_LIB &shaders, const xr_vector<b_material>& materials )
+IC void post_process_materials_shared(const Shader_xrLC_LIB	&shaders, xr_vector<b_material_shared> &materials )
 {
- 	u32 shader_id = materials[dwMaterial].reserved;
-	return *( shaders.Get( shader_id ) );
-}
+	for (auto& M : materials)
+	{
+		auto Data = CSharedMaterialLibrary::Instance().GetData(M.Name);
+		int id = shaders.GetID(Data->m_ShaderXRLCName.c_str());
 
-#endif
+		if (I_ASSERT_M(id>=0, "ERROR: Shader '%s' not found in library", Data->m_ShaderXRLCName.c_str())) {
+			M.reserved = u16(id);
+		} else
+		{
+			clMsg("ERROR: Shader '%s' not found in library",Data->m_ShaderXRLCName.c_str());
+			M.reserved = u16(-1);
+		}
+	}
+}

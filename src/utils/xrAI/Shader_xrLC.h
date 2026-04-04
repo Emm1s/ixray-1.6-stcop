@@ -1,5 +1,3 @@
-#ifndef SHADER_XRLC_H
-#define SHADER_XRLC_H
 #pragma once
 
 struct Shader_xrLC
@@ -58,7 +56,18 @@ using Shader_xrLCIt = Shader_xrLCVec::iterator;
 
 class Shader_xrLC_LIB
 {
-	Shader_xrLCVec			library;
+	Shader_xrLCVec library;
+	xr_hash_map<LPCSTR, u32> NameToIndex;
+	
+	void Rehash()
+	{
+		NameToIndex.clear();
+		for (u32 i = 0; i < library.size(); ++i)
+		{
+			NameToIndex[library[i].Name] = i;
+		}
+	}
+	
 public:
 	void Load(const char* name)
 	{
@@ -76,7 +85,9 @@ public:
 		library.resize(count);
 		fs->r(&*library.begin(), fs->length());
 		FS.r_close(fs);
+
 	}
+	
 	bool Save(const char* name)
 	{
 		IWriter* F = FS.w_open(name);
@@ -93,20 +104,27 @@ public:
 	void Unload()
 	{
 		library.clear();
+		NameToIndex.clear();
 	}
 
 	u32 GetID(const char* name)
 	{
-		for (Shader_xrLCIt it = library.begin(); it != library.end(); it++)
-			if (0 == _stricmp(name, it->Name)) return u32(it - library.begin());
-		return u32(-1);
+		auto it = NameToIndex.find(name);
+		if (it == NameToIndex.end())
+		{
+			return u32(-1);
+		}
+		return it->second;
 	}
 
 	Shader_xrLC* Get(const char* name)
 	{
-		for (Shader_xrLCIt it = library.begin(); it != library.end(); it++)
-			if (0 == _stricmp(name, it->Name)) return &(*it);
-		return NULL;
+		auto ID = GetID(name);
+		if (ID == u32(-1))
+		{
+			return nullptr;
+		}
+		return &library[ID];
 	}
 
 	Shader_xrLC* Get(int id)
@@ -114,7 +132,7 @@ public:
 		return &library[id];
 	}
 
-	Shader_xrLC* Append(Shader_xrLC* parent = 0)
+	/*Shader_xrLC* Append(Shader_xrLC* parent = 0)
 	{
 		library.push_back(parent ? Shader_xrLC(*parent) : Shader_xrLC());
 		return &library.back();
@@ -130,12 +148,12 @@ public:
 				break;
 			}
 		}
+		Rehash();
 	}
 
 	void Remove(int id)
 	{
 		library.erase(library.begin() + id);
-	}
+	}*/
 	Shader_xrLCVec& Library() { return library; }
 };
-#endif

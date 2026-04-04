@@ -9,11 +9,12 @@ extern global_claculation_data	gl_data;
 bool CalculateEnergy(int PrimID, Fvector& B, float& energy, float u, float v)
 {
 	auto& F			= gl_data.g_rc_faces[PrimID];
- 	b_material& M	= gl_data.g_materials[F.dwMaterial];
-	b_texture& T	= gl_data.g_textures[M.surfidx];
+	b_texture& T = gl_data.FindTexture(F.dwMaterial, F.extra_data.bSharedMaterial);
 
 	if (!T.bHasAlpha)
+	{
 		return false;
+	}
 
 	if (T.pSurface.Empty())
 	{
@@ -43,7 +44,9 @@ bool CalculateEnergy(int PrimID, Fvector& B, float& energy, float u, float v)
 	// ���������� ���������
 	energy *= opac;
 	if (energy < 0.01f)
+	{
 		return false;
+	}
 
 	return true;
 }

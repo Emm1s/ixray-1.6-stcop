@@ -114,7 +114,7 @@ void CBuild::BuildCForm	()
 
 		CL.add_face(
 			T->v[0]->P, T->v[1]->P, T->v[2]->P,
-			T->dwMaterialGame, materials()[T->dwMaterial].sector, T->sm_group
+			T->dwMaterialGame, GetMaterialSector(*T), T->flags.bSharedMaterial, T->sm_group
 		);
 		Progress(p_total += p_cost);		// progress
 	}

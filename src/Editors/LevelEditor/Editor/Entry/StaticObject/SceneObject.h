@@ -5,13 +5,16 @@ class CSceneObject :
 {
 	friend class UIReferenceReplacer;
 
-	shared_str		m_ReferenceName;
-	CEditableObject*m_pReference;
-	void 			ReferenceChange			(PropValue* sender);
-	void			OnChangeShader(PropValue* sender);
-	void			OnChangeSurface(PropValue* sender);
-	bool			AfterEditGameMtl(PropValue* sender, shared_str& str);
-	void			OnClickClearSurface(ButtonValue*, bool&, bool&);
+	shared_str m_ReferenceName;
+	CEditableObject* m_pReference;
+	void ReferenceChange(PropValue* sender);
+	void OnChangeSharedMode(PropValue* sender = nullptr);
+	void OnChangeSharedMaterial(PropValue* sender = nullptr);
+	void OnChangeShader(PropValue* sender = nullptr);
+	void OnChangeSurface(PropValue* sender = nullptr);
+	bool AfterEditGameMtl(PropValue* sender, shared_str& str);
+	void OnClickClearSurface(ButtonValue*, bool&, bool&);
+	void OnBatchProcessMaterial(ButtonValue* value, bool& bModif, bool& bSafe);
 public:
 
 	SurfaceVec m_Surfaces;
