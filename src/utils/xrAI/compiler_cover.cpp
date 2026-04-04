@@ -42,14 +42,7 @@ IC float rayTrace(CDB::COLLIDER* DB, Fvector& P, Fvector& D, float R)
 			CDB::RESULT& RP = DB->r_begin()[I];
 			FaceDataEmbree& F = (*(FaceDataEmbree*)(CAIRayTrace.static_geom.dummy[RP.id]));
 
-			b_material& M = comp_data.g_materials[F.dwMaterial];
-			Shader_xrLCVec& LIB = comp_data.g_shaders_xrlc->Library();
-			if (M.shader_xrlc >= LIB.size())
-			{
-				return 0;
-			}
-
-			b_texture& T = comp_data.g_textures[M.surfidx];
+			b_texture& T = SAICompilerGlobalData::GetTexture(F.dwMaterial, F.extra_data.bSharedMaterial);
 			if (T.pSurface.Empty())
 			{
 				T.bHasAlpha = false;

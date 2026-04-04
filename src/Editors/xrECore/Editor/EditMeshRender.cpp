@@ -70,7 +70,7 @@ void CEditableMesh::GenerateRenderBuffers()
 		VERIFY3(face_count, "Empty surface arrive.", S->_Name());
 
 		int vertex_count = face_count * 3;
-		if (S->m_Flags.is(CSurface::sf2Sided))
+		if (S->_flags().is(SSurfaceData::sf2Sided))
 		{
 			vertex_count *= 2;
 		}
@@ -209,7 +209,7 @@ void CEditableMesh::FillRenderBuffer(IntVec& face_lst, int start_face, int num_f
 		}
 
 		// Back (2-sided)
-		if (surf->m_Flags.is(CSurface::sf2Sided))
+		if (surf->_flags().is(SSurfaceData::sf2Sided))
 		{
 			for (int k = 2; k >= 0; --k)
 			{
@@ -452,7 +452,7 @@ void CEditableMesh::RenderSkeleton(const Fmatrix&, CSurface* S)
 	}
 
 	ERHI_CULLMODE OldCullMode = GRHI->StateManager->GetCullMode();
-	if (S->m_Flags.is(CSurface::sf2Sided))
+	if (S->_flags().is(SSurfaceData::sf2Sided))
 	{
 		GRHI->StateManager->SetCullMode(ERHI_CULLMODE::NONE);
 	}
@@ -464,7 +464,7 @@ void CEditableMesh::RenderSkeleton(const Fmatrix&, CSurface* S)
 		EDevice->DP(ERHI_PRIMITIVE_TOPOLOGY::TRIANGLE_LIST, m_Parent->vs_SkeletonGeom, vBase, FaceCount);
 	}
 
-	if (S->m_Flags.is(CSurface::sf2Sided))
+	if (S->_flags().is(SSurfaceData::sf2Sided))
 	{
 		GRHI->StateManager->SetCullMode(OldCullMode);
 	}
