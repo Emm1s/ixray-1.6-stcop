@@ -179,7 +179,11 @@ struct b_static_model_lod
 	xr_vector<b_vertex> m_pVertices;
 	xr_vector<b_face> m_pFaces;
 	xr_vector<u32> m_smgroups;
-	xr_unique_ptr<CDB::MODEL> Collision;
+	// TODO: Make collision storage
+	//xr_unique_ptr<CDB::MODEL> Collision;
+	xr_vector<b_vertex> m_pCollisionVertices;
+	xr_vector<b_face> m_pCollisionFaces;
+	bool HasCollisionMesh;
 };
 
 struct b_static_model

@@ -134,7 +134,7 @@ public:
 
 	virtual bool Useful() const { return CanTake(); }
 	virtual bool IsUsingCondition() const { return m_flags.test(FUsingCondition); }
-	virtual bool CanStack() const { return (m_flags.test(FCanStack)); };
+	virtual bool CanStack() const { return m_flags.test(FCanStack); };
 	virtual bool Attach(PIItem pIItem, bool b_send_event) { return false; }
 	virtual bool Detach(PIItem pIItem) { return false; }
 	//при детаче спаунится новая вещь при заданно названии секции
