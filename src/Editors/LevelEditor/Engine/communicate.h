@@ -162,7 +162,7 @@ struct b_mu_reference
  */
 struct b_complex_material
 {
-	xr_stack_string_path name;
+	shared_str name;
 	xr_vector<b_shader> l_shaders;
 	xr_vector<b_shader> l_shaders_xrlc;
 	xr_vector<b_material> l_materials;
@@ -170,7 +170,7 @@ struct b_complex_material
 
 struct b_complex_material_ref
 {
-	xr_stack_string_path name;
+	shared_str name;
 	u32 ID;
 };
 
@@ -184,20 +184,19 @@ struct b_static_model_lod
 
 struct b_static_model
 {
-	xr_stack_string_path name;
+	shared_str name;
 	xr_vector<b_static_model_lod> lods;
 	xr_vector<b_complex_material_ref> materials;
 };
 
 struct b_static_model_instance
 {
-	struct Serializable
-	{
-		xr_stack_string_path name;
-		Fmatrix transform;
-		Fmatrix inverse_transform;
-		Fbox AABB;
-	} SerializableData;
+	shared_str name;
+	Fmatrix transform;
+	Fmatrix inverse_transform;
+	Fbox AABB;
+	int Sector;
+
 	b_static_model*	pData;
 };
 

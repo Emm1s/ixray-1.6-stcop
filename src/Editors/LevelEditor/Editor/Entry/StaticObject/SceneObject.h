@@ -63,9 +63,10 @@ public:
     virtual bool	CanAttach				() {return true;}
 
     // statistics methods
-	IC bool 		IsDynamic     			()	{return (m_pReference?m_pReference->IsDynamic():false); }
-	IC bool 		IsStatic     			()	{return (m_pReference?m_pReference->IsStatic():false); }
-	IC bool 		IsMUStatic     			()	{return (m_pReference?m_pReference->IsMUStatic():false); }
+	IC bool IsDynamic() {return m_pReference ? m_pReference->IsDynamic():false; }
+	IC bool IsStatic() {return m_pReference ? m_pReference->IsStatic():false; }
+	IC bool IsMUStatic() {return m_pReference ? m_pReference->IsMUStatic():false; }
+	IC bool IsInstancedStatic() {return m_pReference ? m_pReference->IsInstancedStatic() : false; }
     int 			GetFaceCount			();
 	int 			GetVertexCount			();
     int 			GetSurfFaceCount		(const char* surf_name);

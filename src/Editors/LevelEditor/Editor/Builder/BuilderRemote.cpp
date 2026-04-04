@@ -866,7 +866,228 @@ bool SceneBuilder::BuildEditableObject(CEditableObject* obj, Fmatrix Transform, 
 	return true;
 }
 
-int	GetModelIdx( const char* model_name )
+bool SceneBuilder::BuildInstancedObject(CSceneObject* obj)
+{
+	bool Result = true;
+	CEditableObject *O = obj->GetReference();
+	auto& elem = l_static_model_instances.emplace_back();
+	elem.name = O->GetName();
+	elem.transform = obj->_Transform();
+	elem.inverse_transform = Fidentity;
+	elem.inverse_transform = elem.inverse_transform.invert44(elem.transform);
+	obj->GetBox(elem.AABB);
+	// TODO: Sector processing
+	elem.Sector = m_iDefaultSectorNum;
+	auto Prototype = l_static_models.find(elem.name);
+	if (Prototype != l_static_models.end())
+	{
+		elem.pData = &Prototype->second;
+	} else
+	{
+		Result = BuildEditableInstancedObject(l_static_models[elem.name] = {}, obj);
+	}
+	return Result;
+}
+
+bool SceneBuilder::BuildEditableInstancedObject(b_static_model& Slot, CSceneObject* obj)
+{
+	Slot.name = obj->GetName();
+	// TODO: LOD system
+	int i = 0;
+	//for (i = 0; i < "number_of_lods"; ++i)
+	{
+		Slot.lods.emplace_back();
+		auto& LodSlot = Slot.lods.back();
+		if(!BuildEditableInstancedObjectLod(LodSlot, Slot, obj->GetReference(), i))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+bool SceneBuilder::BuildEditableInstancedObjectLod(b_static_model_lod& Slot, b_static_model& MeshData, CEditableObject* obj, int LodID)
+{
+	bool bResult = true;
+	
+	// parse mesh data
+	for(auto& Mesh : obj->Meshes())
+	{
+		// fill vertices
+		for (u32 pt_id=0; pt_id<Mesh->GetVCount(); pt_id++){
+			Slot.m_pVertices.emplace_back(Mesh->m_Vertices[pt_id]);
+		}
+		
+		// fill faces
+		for (auto &[MeshSurf, face_lst] : Mesh->m_SurfFaces)
+		{
+			CSurface* surf = nullptr;
+		
+			for (CSurface* SceneSurf : obj->m_Surfaces)
+			{
+				if (SceneSurf->m_Name == MeshSurf->m_Name && SceneSurf->m_id == MeshSurf->m_id)
+				{
+					surf = SceneSurf;
+					break;
+				}
+			}
+		
+			if (surf == nullptr)
+			{
+				surf = MeshSurf;
+			}
+			VERIFY(surf);
+		
+			if (surf->m_GameMtlName == "materials\\occ")
+			{
+				continue;
+			}
+
+			FATAL("NOT IMPLEMENTED!");
+			
+			/*
+			int m_id			= BuildMaterial(surf,sect_num,!object->IsMUStatic());
+			int gm_id			= surf->_GameMtl();
+			if (m_id<0)			{
+				bResult = FALSE;
+				break;
+			}
+			if (gm_id<0)
+			{
+				ELog.DlgMsg		(mtError,"Surface: '%s' contains bad game material.",surf->_Name());
+				bResult 		= FALSE;
+				break;
+			}
+			SGameMtl* M = GameMaterialLibraryEditors->GetMaterialByID(gm_id);
+			if (0==M)
+			{
+				ELog.DlgMsg		(mtError,"Surface: '%s' contains undefined game material.",surf->_Name());
+				bResult 		= FALSE;
+				break;
+			}
+			if (M->Flags.is(SGameMtl::flBreakable))
+			{
+				ELog.Msg		(mtInformation,"Surface: '%s' contains breakable game material.",surf->_Name());
+				continue;
+			}
+			if (M->Flags.is(SGameMtl::flClimable))
+			{
+				ELog.Msg		(mtInformation,"Surface: '%s' contains climable game material.",surf->_Name());
+				continue;
+			}
+			if (M->Flags.is(SGameMtl::flDynamic))
+			{
+				ELog.DlgMsg		(mtError,"Surface: '%s' contains non-static game material.",surf->_Name());
+				bResult 		= FALSE;
+				break;
+			}
+			u32 dwTexCnt 		= ((surf->_FVF()&D3DFVF_TEXCOUNT_MASK)>>D3DFVF_TEXCOUNT_SHIFT);
+			if (dwTexCnt!=1)
+			{
+				ELog.DlgMsg		(mtError,"Surface: '%s' contains more than 1 texture refs.",surf->_Name());
+				bResult 		= FALSE; 
+				break; 
+			}
+			u32 dwInvalidFaces 	= 0;
+			for (int& f_it : face_lst)
+			{
+				if (!IVERIFY(f_it < mesh->m_FaceCount))
+				{
+					continue;
+				}
+				st_Face& face = Mesh->m_Faces[f_it];
+				Fvector p0, p1, p2;
+				real_transform.transform_tiny(p0, mesh->m_Vertices[face.pv[0].pindex]);
+				real_transform.transform_tiny(p1, mesh->m_Vertices[face.pv[1].pindex]);
+				real_transform.transform_tiny(p2, mesh->m_Vertices[face.pv[2].pindex]);
+		
+				float _a = CalcArea(p0, p1, p2);
+				if (!_valid(_a) || (_a<EPS_S))
+				{
+					LTools->m_DebugDraw.AppendWireFace(p0,p1,p2);
+		
+					dwInvalidFaces++;
+					continue;
+				}
+				R_ASSERT				(face_it<face_cnt);
+				b_face& first_face 		= faces[face_it];
+				{
+					smgroups[face_it]			= mesh->m_SmoothGroups[f_it];
+					smgroups[face_it]			&= ~(1<<3);
+		
+					first_face.dwMaterial 		= (u16)m_id;
+					first_face.dwMaterialGame 	= gm_id;
+					for (int k=0; k<3; ++k)
+					{
+						st_FaceVert& fv = face.pv[k];
+						// vertex index
+						R_ASSERT2((fv.pindex+point_offs)<vert_it,"Index out of range");
+						first_face.v[k] = fv.pindex+point_offs;
+						// uv maps
+						int offs = 0;
+						for (u32 t=0; t<dwTexCnt; ++t)
+						{
+							st_VMapPt& vm_pt 	= mesh->m_VMRefs[fv.vmref].pts[t];
+							st_VMap& vmap		= *mesh->m_VMaps[vm_pt.vmap_index];
+							if (vmap.type!=vmtUV)
+							{
+								++offs;
+								--t;
+								continue;
+							}
+							first_face.t[k].set(vmap.getUV(vm_pt.index));
+						}
+					}
+				++face_it;
+				}
+		
+				if (surf->m_Flags.is(CSurface::sf2Sided))
+				{
+					R_ASSERT					(face_it<face_cnt);
+					b_face& second_face 		= faces[face_it];
+					second_face.dwMaterial 		= first_face.dwMaterial;
+					second_face.dwMaterialGame 	= first_face.dwMaterialGame;
+					smgroups[face_it]			= mesh->m_SmoothGroups[f_it];
+					smgroups[face_it]			|= (1<<3);
+		
+					for (int k=0; k<3; ++k)
+					{
+						st_FaceVert& fv 		= face.pv[2-k];
+						// vertex index
+						second_face.v[k]		=fv.pindex+point_offs;
+						// uv maps
+						int offs = 0;
+						for (u32 t=0; t<dwTexCnt; t++)
+						{
+							st_VMapPt& vm_pt 	= mesh->m_VMRefs[fv.vmref].pts[t];
+							st_VMap& vmap		= *mesh->m_VMaps[vm_pt.vmap_index];
+							if (vmap.type!=vmtUV)
+							{
+								++offs;
+								--t;
+								continue;
+							}
+							second_face.t[k].set(vmap.getUV(vm_pt.index));
+						}
+					}
+					++face_it;
+				}
+			}
+			if (dwInvalidFaces)
+			{
+				Msg("!Object '%s' - '%s' has %d invalid face(s). Removed.",object->GetName(),mesh->Name().c_str(),dwInvalidFaces);
+			}
+				
+			if (!bResult)
+			{
+				break;
+			}*/
+		}
+	}
+	return true;
+}
+
+int	GetModelIdx( LPCSTR model_name )
 {
 	int model_idx		= -1;
 
@@ -1040,6 +1261,7 @@ void SceneBuilder::BuildHemiLights(u8 quality, const char* lcontrol)
 		sl.data.direction.set	(0.f,-1.f,0.f);
 	}
 }
+
 bool SceneBuilder::BuildSun(u8 quality, Fvector2 dir)
 {
 	int controller_ID		= BuildLightControl(LCONTROL_SUN);
@@ -1197,7 +1419,6 @@ bool SceneBuilder::BuildLight(CLight* e)
 
 
 // Glow build functions
-
 bool SceneBuilder::BuildGlow(CGlow* e)
 {
 	l_glows.push_back(b_glow());
@@ -1441,9 +1662,9 @@ int SceneBuilder::BuildMaterial(const char* esh_name, const char* csh_name, cons
 }
 
 
-bool SceneBuilder::ParseStaticObjects(ObjectList& lst, const char* prefix, bool b_selected_only)
+bool SceneBuilder::ParseStaticObjects(ObjectList& lst, LPCSTR prefix, bool b_selected_only)
 {
-	bool bResult = true;
+	bool bResult = TRUE;
 	SPBItem* pb	= UI->ProgressStart(lst.size(),"Parse static objects...");
 	for (ObjectIt _F = lst.begin(); _F != lst.end(); _F++)
 	{
@@ -1473,10 +1694,18 @@ bool SceneBuilder::ParseStaticObjects(ObjectList& lst, const char* prefix, bool 
 		case OBJCLASS_SCENEOBJECT:
 		{
 			CSceneObject *obj = (CSceneObject*)(*_F);
-			if (obj->IsStatic()) 		
+			if (obj->IsInstancedStatic())
+			{
+				bResult = BuildInstancedObject(obj);
+			}
+			else if (obj->IsStatic())
+			{
 				bResult = BuildObject(obj);
+			}
 			else if (obj->IsMUStatic())
+			{
 				bResult = BuildMUObject(obj);
+			}
 
 			break;
 		}

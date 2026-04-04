@@ -284,12 +284,14 @@ public:
 		eoMultipleUsage	= (1<<4),			
 		eoSoundOccluder	= (1<<5),
 		eoHQExport      = (1<<6),           
-		eoSkipOpt       = (1<<7),           
+		eoSkipOpt       = (1<<7),
+		eoInstanced		= (1<<8),
 		eoFORCE32		= u32(-1)           
 	};
-	IC bool			IsDynamic				(){return m_objectFlags.is(eoDynamic);}
-	IC bool			IsStatic				(){return !m_objectFlags.is(eoSoundOccluder)&&!m_objectFlags.is(eoDynamic)&&!m_objectFlags.is(eoHOM)&&!m_objectFlags.is(eoMultipleUsage);}
-	IC bool			IsMUStatic				(){return !m_objectFlags.is(eoSoundOccluder)&&!m_objectFlags.is(eoDynamic)&&!m_objectFlags.is(eoHOM)&&m_objectFlags.is(eoMultipleUsage);}
+	IC bool IsDynamic(){return m_objectFlags.is(eoDynamic);}
+	IC bool IsStatic(){return !m_objectFlags.is(eoSoundOccluder)&&!m_objectFlags.is(eoDynamic)&&!m_objectFlags.is(eoHOM)&&!m_objectFlags.is(eoInstanced)&&!m_objectFlags.is(eoMultipleUsage);}
+	IC bool IsMUStatic(){return !m_objectFlags.is(eoSoundOccluder)&&!m_objectFlags.is(eoDynamic)&&!m_objectFlags.is(eoHOM)&&!m_objectFlags.is(eoInstanced)&&m_objectFlags.is(eoMultipleUsage);}
+	IC bool IsInstancedStatic(){return !m_objectFlags.is(eoSoundOccluder)&&!m_objectFlags.is(eoDynamic)&&!m_objectFlags.is(eoHOM)&&m_objectFlags.is(eoInstanced);}
 private:
 	// bounding volume
 	Fbox 			m_BBox;

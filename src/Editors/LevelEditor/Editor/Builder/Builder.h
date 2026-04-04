@@ -50,6 +50,8 @@ public:
 
     xr_vector<b_mu_model>		l_mu_models;
     xr_vector<b_mu_reference>	l_mu_refs;
+	xr_map<shared_str, b_static_model>	l_static_models; // save in separate files
+	xr_vector<b_static_model_instance> l_static_model_instances;
     xr_vector<e_b_lod>			l_lods;
     xr_vector<sb_light_control>	l_light_control;
     xr_vector<b_light_static>	l_light_static;
@@ -77,6 +79,9 @@ public:
     bool    BuildObject     (CSceneObject* obj);
     bool    BuildEditableObject(CEditableObject* obj, Fmatrix T, CSceneObject* Owner);
     bool    BuildMUObject   (CSceneObject* obj);
+	bool    BuildInstancedObject(CSceneObject* obj);
+	bool    BuildEditableInstancedObject(b_static_model& Slot, CSceneObject* obj);
+	bool	BuildEditableInstancedObjectLod(b_static_model_lod& Slot, b_static_model& MeshData, CEditableObject* obj, int LodID);
 
     void    Clear 			();
 
@@ -104,7 +109,7 @@ public:
 	int 	BuildMaterial	(CSurface* surf, int sector_num, bool allow_draft);
 	int 	BuildMaterial	(const char* esh_name, const char* csh_name, const char* tx_name, u32 tx_cnt, int sector_num, bool allow_draft);
 
-    bool	ParseStaticObjects	(ObjectList& lst, const char* prefix, bool b_selected_only);
+    bool ParseStaticObjects(ObjectList& lst, LPCSTR prefix, bool b_selected_only);
 
 	int 	CalculateSector		(const Fvector& P, float R);
 

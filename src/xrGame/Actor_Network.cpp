@@ -1528,6 +1528,9 @@ void CActor::Serialize(ISaveObject& Object)
 		CInventoryOwner::Serialize(Object);
 		Object << m_bOutBorder;
 
+		xr_vector<int*> test_ptr;
+		Object << test_ptr;
+
 		BEGIN_CHUNK(Object,"CActor::PDA")
 		{
 			CUITaskWnd* task_wnd = HUD().GetGameUI()->PdaMenu()->pUITaskWnd;
