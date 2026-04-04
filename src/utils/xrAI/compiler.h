@@ -129,12 +129,20 @@ struct b_BuildTexture :
 	}
 };
 
-extern Shader_xrLC_LIB*				g_shaders_xrlc	;
-extern xr_vector<b_material>		g_materials		;
-extern xr_vector<b_shader>			g_shader_render	;
-extern xr_vector<b_shader>			g_shader_compile;
-extern xr_vector<b_BuildTexture>	g_textures		;
-extern xr_vector<b_rc_face>			g_rc_faces		;
+struct SAICompilerGlobalData
+{
+	static Shader_xrLC_LIB* g_shaders_xrlc;
+	static xr_vector<b_material> g_materials;
+	static xr_vector<b_material_shared> g_materials_shared;
+	static xr_vector<b_shader> g_shader_render;
+	static xr_vector<b_shader> g_shader_compile;
+	static xr_vector<b_BuildTexture> g_textures;
+	static xr_hash_map<b_material_shared*, b_BuildTexture> g_textures_shared;
+	static xr_vector<b_rc_face> g_rc_faces;
+
+	static b_texture& GetTexture(u32 ID, bool Shared);
+	static Shader_xrLC& GetShaderXRLC(u32 ID, bool Shared);
+};
 
 // phases
 void	xrLoad			(const char* name, bool draft_mode, bool skipThm);

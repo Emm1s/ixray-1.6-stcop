@@ -7,6 +7,7 @@
 #include "xrFace.h"
 
 #include "../xrForms/CompilersUI.h"
+#include "src/utils/xrLC/Build.h"
 
 void Jitter_Select(Fvector2* &Jitter, u32& Jcount)
 {
@@ -71,10 +72,9 @@ float getLastRP_Scale(CDB::COLLIDER* DB, CDB::MODEL* MDL, R_Light& L, Face* skip
 				return 0;
 			}
 
-			b_material& M = inlc_global_data()->materials()[F->dwMaterial];
-			b_texture& T = inlc_global_data()->textures()[M.surfidx];
+			b_texture& T = CBuild::GetTexture(F->dwMaterial, F->flags.bSharedMaterial);
 #ifdef		DEBUG
-			const b_BuildTexture& build_texture = inlc_global_data()->textures()[M.surfidx];
+			const b_BuildTexture& build_texture = static_cast<b_BuildTexture&>(T);
  			VERIFY(!!(build_texture.HasSurface()) == !!(!T.pSurface.Empty()));
 #endif
 			if (T.pSurface.Empty())

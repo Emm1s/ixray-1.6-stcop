@@ -46,7 +46,7 @@ void OGF_AddFace( OGF &ogf, const Face& FF, bool _tc_ )
 	// Geometry
 	Face2OGF_Vertices( FF, V );
 	// build face
-	TRY				(ogf._BuildFace(V[0],V[1],V[2],_tc_));
+	ogf._BuildFace(V[0],V[1],V[2],_tc_);
 	V[0].UV.clear();V[1].UV.clear();V[2].UV.clear();
 }
 
@@ -84,24 +84,25 @@ void CBuild::Flex2OGF()
 
 		Progress( float (SV) / float(g_XSplit.size()) );
 
-		OGF*		pOGF	= new OGF ();
-		Face*		F		= (* faces->begin() );			// first face
-		b_material*	M		= &(materials()[F->dwMaterial]);	// and it's material
-		R_ASSERT	(F && M);
+		OGF* pOGF = new OGF ();
+		Face* F = *faces->begin();			// first face
+		//b_material*	M		= &(materials()[F->dwMaterial]);	// and it's material
+		//R_ASSERT	(F && M);
  
 		try 
 		{
 			// Common data
-			pOGF->Sector		= M->sector;
-			pOGF->material		= F->dwMaterial;
+			pOGF->Sector = GetMaterialSector(*F);
+			pOGF->material = F->dwMaterial;
+			pOGF->bSharedMaterial = F->flags.bSharedMaterial;
 			
 			// Collect textures
-			OGF_Texture			T;
-			TRY(T.name			= textures()[M->surfidx].name);
-			TRY(T.pBuildSurface	= &(textures()[M->surfidx]));
-			TRY(pOGF->textures.push_back(T));
+			OGF_Texture T;
+			T.name = GetTexture(*F).name;
+			T.pBuildSurface	= &GetTexture(*F);
+			pOGF->textures.push_back(T);
 			
-			try {
+			//try {
 				if (F->hasImplicitLighting())
 				{
 					// specific lmap
@@ -128,16 +129,16 @@ void CBuild::Flex2OGF()
 						pOGF->textures.push_back(T);
 					}
 				}
-			} 
-			catch (...)
-			{ 
-				Msg("* ERROR: Flex2OGF, model# %d, *textures*", SV);
-			}
+			//} 
+			//catch (...)
+			//{ 
+			//	Msg("* ERROR: Flex2OGF, model# %d, *textures*", SV);
+			//}
 			
 		
 			// Collect faces & vertices
 			F->CacheOpacity	();
- 			bool	_tc_	= !(F->flags.bOpaque);
+ 			bool _tc_ = !(F->flags.bOpaque);
 		
 			try 
 			{

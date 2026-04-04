@@ -119,7 +119,6 @@ void global_claculation_data::xrLoad(bool skipThm)
 	// Load level data
 	{
 		IReader*	fs		= FS.r_open ("$level$","build.prj");
-		IReader*	F;
 
 		// Version
 		u32 version;
@@ -130,37 +129,28 @@ void global_claculation_data::xrLoad(bool skipThm)
 		fs->r_chunk			(EB_Parameters,&g_params);
 
 		// Load level data
-		transfer("materials",	g_materials,			*fs,		EB_Materials);
-		transfer("shaders_xrlc",g_shader_compile,		*fs,		EB_Shaders_Compile);
+		transfer("materials", g_materials, *fs, EB_Materials);
+		transfer("materials_shared", g_materials_shared, *fs, EB_MaterialsShared);
+		transfer("shaders_xrlc",g_shader_compile, *fs, EB_Shaders_Compile);
 		post_process_materials( *g_shaders_xrlc, g_shader_compile, g_materials );
 		// process textures
 
 		Status("Processing textures...");
 		{
-			F = fs->open_chunk	(EB_Textures);
-
-			u32 tex_count = F->length() / sizeof(b_texture_real);
-
 			bool is_thm_missing = false;
 			bool is_tga_missing = false;
-
-			for (u32 t=0; t<tex_count; t++)
+			
+			auto TextureProcess = [&](b_BuildTexture& BT)
 			{
-				Progress(float(t)/float(tex_count));
-
-				b_texture_real	TEX;
-				F->r(&TEX, sizeof(TEX));
-
-				b_BuildTexture	BT;
-
-				// ptr should be copied separately
-				CopyMemory(&BT, &TEX, sizeof(TEX) - 4);
 				BT.pSurface.Clear();
 
 				// load thumbnail
-				LPSTR N			= BT.name;
-				if (strchr(N,'.')) *(strchr(N,'.')) = 0;
-				_strlwr			(N);
+				LPSTR N = BT.name;
+				if (strchr(N,'.'))
+				{
+					*(strchr(N,'.')) = 0;
+				}
+				_strlwr(N);
 
 				if (0==xr_strcmp(N,"level_lods"))
 				{
@@ -179,7 +169,11 @@ void global_claculation_data::xrLoad(bool skipThm)
 					{
 						clMsg("cannot find thm: %s", N);
 						is_thm_missing = true;
-						continue;
+						BT.dwWidth = 1024;
+						BT.dwHeight = 1024;
+						BT.bHasAlpha = false;
+						BT.SetHasSurface(false);
+						return;
 					}
 
 					// version
@@ -188,21 +182,24 @@ void global_claculation_data::xrLoad(bool skipThm)
 
 					// analyze thumbnail information
 					R_ASSERT(THM->find_chunk(THM_CHUNK_TEXTUREPARAM));
-					THM->r                  (&BT.THM.fmt,sizeof(STextureParams::ETFormat));
-					BT.THM.flags.assign		(THM->r_u32());
-					BT.THM.border_color		= THM->r_u32();
-					BT.THM.fade_color		= THM->r_u32();
-					BT.THM.fade_amount		= THM->r_u32();
-					BT.THM.mip_filter		= THM->r_u32();
-					BT.THM.width			= THM->r_u32();
-					BT.THM.height           = THM->r_u32();
-					bool			bLOD=false;
-					if (N[0]=='l' && N[1]=='o' && N[2]=='d' && N[3]=='\\') bLOD = true;
+					THM->r(&BT.THM.fmt,sizeof(STextureParams::ETFormat));
+					BT.THM.flags.assign(THM->r_u32());
+					BT.THM.border_color = THM->r_u32();
+					BT.THM.fade_color = THM->r_u32();
+					BT.THM.fade_amount = THM->r_u32();
+					BT.THM.mip_filter = THM->r_u32();
+					BT.THM.width = THM->r_u32();
+					BT.THM.height = THM->r_u32();
+					bool bLOD = false;
+					if (N[0]=='l' && N[1]=='o' && N[2]=='d' && N[3]=='\\')
+					{
+						bLOD = true;
+					}
 
 					// load surface if it has an alpha channel or has "implicit lighting" flag
-					BT.dwWidth				= BT.THM.width;
-					BT.dwHeight				= BT.THM.height;
-					BT.bHasAlpha			= BT.THM.HasAlphaChannel();
+					BT.dwWidth = BT.THM.width;
+					BT.dwHeight = BT.THM.height;
+					BT.bHasAlpha = BT.THM.HasAlphaChannel();
 					BT.SetHasSurface(false);
 
 					if (!bLOD) 
@@ -219,9 +216,7 @@ void global_claculation_data::xrLoad(bool skipThm)
 								is_tga_missing = true;
 
 								BT.SetHasSurface(false);
-								g_textures.push_back(BT);
-
-								continue;
+								return;
 							}
 
 							BT.pSurface.ClearMipLevels();
@@ -237,9 +232,46 @@ void global_claculation_data::xrLoad(bool skipThm)
 						}
 					}
 				}
+			};
 
-				// save all the stuff we've created
-				g_textures.push_back	(BT);
+			u32 TotalTextureCount = 0;
+			u32 SharedMaterialCount = g_materials_shared.size();
+			{
+				IReader* F = fs->open_chunk(EB_Textures);
+
+				TotalTextureCount = F->length() / sizeof(b_texture_real);
+			
+				for (u32 t=0; t<TotalTextureCount; t++)
+				{
+					Progress(float(t)/float(TotalTextureCount+SharedMaterialCount));
+
+					b_texture_real	TEX;
+					F->r(&TEX, sizeof(TEX));
+
+					b_BuildTexture	BT;
+
+					// ptr should be copied separately
+					CopyMemory(&BT, &TEX, sizeof(TEX) - 4);
+
+					TextureProcess(BT);
+				
+					// save all the stuff we've created
+					g_textures.push_back	(BT);
+				}
+			}
+
+			for (u32 i = 0; i < SharedMaterialCount; i++)
+			{
+				auto& elem = g_materials_shared[i];
+				
+				Progress(float(TotalTextureCount+i)/float(TotalTextureCount+SharedMaterialCount));
+				
+				b_BuildTexture	BT;
+				CopyMemory(BT.name, elem.Name, sizeof(elem.Name));
+
+				TextureProcess(BT);
+
+				g_textures_shared[&elem] = BT;
 			}
 
 			if (!skipThm)
@@ -249,6 +281,15 @@ void global_claculation_data::xrLoad(bool skipThm)
 			}
 		}
 	}
+}
+
+b_BuildTexture& global_claculation_data::FindTexture(u16 Index, bool Shared)
+{
+	if (Shared)
+	{
+		return g_textures_shared[&g_materials_shared[Index]];
+	}
+	return g_textures[g_materials[Index].surfidx];
 }
 
   

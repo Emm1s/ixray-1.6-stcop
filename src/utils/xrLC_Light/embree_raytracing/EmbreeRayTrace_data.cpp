@@ -8,6 +8,7 @@
 #include "EmbreeRayTrace.h"
 #include "xrMU_Model_Reference.h"
 #include "xrMU_Model.h"
+#include "../../xrLC/Build.h"
 
 #include <base_face.h>
 #include "global_calculation_data.h"
@@ -16,6 +17,8 @@ extern CBuild* pBuild;
 
 // Для Загрузки Геометрии
 #include <../xrForms/CompilersUI.h>
+
+#include "src/xrGame/ui/TeamInfo.h"
 extern CompilersMode gCompilerMode;
 
 void SetRay1(RTCRay& rayhit, const Fvector& pos, const Fvector& dir, float near_, float range)
@@ -140,7 +143,102 @@ void GetEmbreeDeviceProperty(const char* msg, RTCDevice& device, RTCDeviceProper
 {
 	Msg(" - EmbreeDevProp: %s : %llu", msg, rtcGetDeviceProperty(device, prop));
 }
+ 
+
+IC bool	FaceEqual__(Face& F1, Face& F2)
+{
+	// Test for 6 variations
+	if ((F1.v[0] == F2.v[0]) && (F1.v[1] == F2.v[1]) && (F1.v[2] == F2.v[2])) return true;
+	if ((F1.v[0] == F2.v[0]) && (F1.v[2] == F2.v[1]) && (F1.v[1] == F2.v[2])) return true;
+	if ((F1.v[2] == F2.v[0]) && (F1.v[0] == F2.v[1]) && (F1.v[1] == F2.v[2])) return true;
+	if ((F1.v[2] == F2.v[0]) && (F1.v[1] == F2.v[1]) && (F1.v[0] == F2.v[2])) return true;
+	if ((F1.v[1] == F2.v[0]) && (F1.v[0] == F2.v[1]) && (F1.v[2] == F2.v[2])) return true;
+	if ((F1.v[1] == F2.v[0]) && (F1.v[2] == F2.v[1]) && (F1.v[0] == F2.v[2])) return true;
+	return false;
+}
+
+/*void EmbreeRayTraceModel::BuildModel(xr_vector<FaceDataEmbree>& faces)
+{
+	static_geom.ClearAll();
+	static_geom_transp.ClearAll();
+
+	int IndexFace = 0, IndexFaceTransp = 0;
+	for (auto& Fe : faces)
+	{
+		Face* F = (Face*) Fe.ptr;
+
+		b_texture& T = pBuild->GetTexture(*F);
+		
+		bool isOpcue = F->flags.bOpaque || T.pSurface.Empty() || !T.bHasAlpha;
+		auto& geom_buff = isOpcue ? static_geom : static_geom_transp;
+ 		geom_buff.AddFaceRaw(F, Fe.v1, Fe.v2, Fe.v3);
+	
+		if ( isOpcue)  IndexFace++;
+		if ( !isOpcue) IndexFaceTransp++;
+	}
+
+	static_geom.RemoveDublicatesVertexs(false, false);			// Обезательно вызывать иначе не будет Vertex, Tris (Убрал жрание памяти при создании)
+	static_geom_transp.RemoveDublicatesVertexs(true, false);	// Обезательно вызывать иначе не будет Vertex, Tris (Убрал жрание памяти при создании)
+
+	static_geom.RemoveDublicatesFaces(false, false);
+	static_geom_transp.RemoveDublicatesFaces(true, false);
+}*/
   
+/*void EmbreeRayTraceModel::BuildRaytraceModel( )
+{
+	static_geom.ClearAll();
+	static_geom_transp.ClearAll();
+ 	
+	CTimer t;	t.Start();
+	Status("[RcastModel] Capturing Faces...");
+	for (auto F : lc_global_data()->g_faces())
+	{
+		const Shader_xrLC& SH = F->Shader();
+		if (!SH.flags.bLIGHT_CastShadow)
+		{
+			continue;
+		}
+ 					 
+		//b_material& M = inlc_global_data()->materials()[F->dwMaterial];
+		//b_texture& T = inlc_global_data()->textures()[M.surfidx];
+		auto& T = CBuild::GetTexture(*F);
+ 		if (F->flags.bOpaque || T.pSurface.Empty() || !T.bHasAlpha)
+ 		{
+ 			static_geom.AddFaceRaw(F, F->v[0]->P, F->v[1]->P, F->v[2]->P);
+ 		}
+ 		else
+ 		{
+ 			static_geom_transp.AddFaceRaw(F, F->v[0]->P, F->v[1]->P, F->v[2]->P);
+ 		}
+ 	}
+
+ 
+	for (auto ref : lc_global_data()->mu_refs())
+	{
+		xr_vector<FaceDataEmbree> temp_buffer;
+  		ref->export_cform_rcast_new(temp_buffer);
+		for (auto& FaceIntel : temp_buffer)
+		{
+ 			Face* F = (Face*) FaceIntel.ptr;
+			b_texture& T = pBuild->GetTexture(*F);
+			if (F->flags.bOpaque || T.pSurface.Empty() || !T.bHasAlpha)
+				static_geom.AddFaceRaw(F, FaceIntel.v1, FaceIntel.v2, FaceIntel.v3);
+			else
+				static_geom_transp.AddFaceRaw(F, FaceIntel.v1, FaceIntel.v2, FaceIntel.v3);
+		}
+			
+ 	}
+	Status("[RcastModel] Capturing Faces [%u ms]", t.GetElapsed_ms());
+
+ 	static_geom.RemoveDublicatesVertexs(false, true);			// Обезательно вызывать иначе не будет Vertex, Tris (Убрал жрание памяти при создании)
+	static_geom_transp.RemoveDublicatesVertexs(true, true);	// Обезательно вызывать иначе не будет Vertex, Tris (Убрал жрание памяти при создании)
+
+	static_geom.RemoveDublicatesFaces(false, true);
+	static_geom_transp.RemoveDublicatesFaces(true, true);
+}*/
+
+#include "global_calculation_data.h"
+#include "xrLC_GlobalData.h"
 extern global_claculation_data	gl_data;
 
 // Exports Rcast Model !
@@ -190,6 +288,7 @@ void EmbreeRayTraceModel::BuildRcast()
 		b_rc_face& cf = rc_faces[k];
 		cf.dwMaterial = F->dwMaterial;
 		cf.dwMaterialGame = F->dwMaterialGame;
+		cf.extra_data.bSharedMaterial = F->flags.bSharedMaterial;
 
 		Fvector2* cuv = F->getTC0();
 		cf.t[0].set(cuv[0]);

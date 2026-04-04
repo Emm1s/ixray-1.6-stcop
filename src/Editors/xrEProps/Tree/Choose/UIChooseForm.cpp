@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "UIChooseForm.h"
 UIChooseForm::EventsMap	UIChooseForm::m_Events;
-UIChooseForm* UIChooseForm::Form = 0;
+UIChooseForm* UIChooseForm::Form = nullptr;
 ImTextureID   UIChooseForm::NullTexture = nullptr;
 
 void UIChooseForm::UpdateSelected(UIChooseFormItem*NewSelected)
@@ -19,7 +19,7 @@ void UIChooseForm::UpdateSelected(UIChooseFormItem*NewSelected)
 		{
 			if (m_Texture)
 				m_Texture->Release();
-			m_Texture = 0;
+			m_Texture = nullptr;
 		}
 		if (!E.on_get_texture.empty())
 			E.on_get_texture(m_SelectedItem->Object->name.c_str(), m_Texture);
@@ -374,12 +374,12 @@ void UIChooseForm::SelectItem(u32 choose_ID, int sel_cnt, const char* init_name,
 	{
 		VERIFY2(item_fill.empty(), "UIChooseForm: Duplicate source.");
 		Form->m_Items = *items;
-		Form->E.Set("Select Item", 0, item_select, 0, 0, 0);
+		Form->E.Set("Select Item", nullptr, item_select, nullptr, nullptr, 0);
 	}
 	else if (!item_fill.empty()) 
 	{
 		// custom
-		Form->E.Set("Select Item", item_fill, item_select, 0, 0, 0);
+		Form->E.Set("Select Item", item_fill, item_select, nullptr, nullptr, 0);
 	}
 	else
 	{
@@ -459,9 +459,10 @@ void UIChooseForm::ClearEvents()
 
 SChooseEvents* UIChooseForm::GetEvents(u32 choose_ID)
 {
-	EventsMapIt it = m_Events.find(choose_ID);
-	if (it != m_Events.end()) {
+	auto& Events = m_Events;
+	EventsMapIt it = Events.find(choose_ID);
+	if (it != Events.end()) {
 		return &it->second;
 	}
-	else return 0;
+	else return nullptr;
 }

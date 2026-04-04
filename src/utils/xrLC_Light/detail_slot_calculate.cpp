@@ -100,19 +100,24 @@ float getLastRP_Scale(CDB::COLLIDER* DB, R_Light& L)//, Face* skip)
 	{
 		CDB::RESULT& rpinf = DB->r_begin()[I];
 		// Access to texture
-		CDB::TRI& clT = gl_data.RCAST_Model.get_tris()[rpinf.id];
 		b_rc_face& F = gl_data.g_rc_faces[rpinf.id];
 
-		b_material& M = gl_data.g_materials[F.dwMaterial];
-		b_texture& T = gl_data.g_textures[M.surfidx];
+		b_texture& T = gl_data.FindTexture(F.dwMaterial, F.extra_data.bSharedMaterial);
 
-		const Shader_xrLC& SH = shader(F.dwMaterial, *(gl_data.g_shaders_xrlc), gl_data.g_materials);
+		const Shader_xrLC& SH = [&]() -> const Shader_xrLC&
+		{
+			if (F.extra_data.bSharedMaterial)
+			{
+				return gl_data.g_shaders_xrlc->Get(gl_data.g_materials_shared[F.dwMaterial].reserved);
+			}
+			return gl_data.g_shaders_xrlc->Get(gl_data.g_materials[F.dwMaterial].reserved);
+		}();
 
 		if (!SH.flags.bLIGHT_CastShadow)
 			continue;
 
 #ifdef DEBUG
-		const b_BuildTexture& build_texture = gl_data.g_textures[M.surfidx];
+		const b_BuildTexture& build_texture = gl_data.FindTexture(F.dwMaterial, F.extra_data.bSharedMaterial);
 		VERIFY(!!(build_texture.HasSurface()) == !!(!T.pSurface.Empty()));
 #endif
 

@@ -27,6 +27,7 @@ void SaveUVM			(const char* fname, xr_vector<b_rc_face>& vm)
 	// vertices
 	for (u32 v_idx=0; v_idx<vm.size(); v_idx++){
 		b_rc_face& rcf	= vm[v_idx];
+		// TODO: WTF if this - find out and add support for shared materials
 		xr_sprintf			(tmp,"f %d %d [%3.2f,%3.2f]-[%3.2f,%3.2f]-[%3.2f,%3.2f]",rcf.dwMaterial,rcf.dwMaterialGame,
 						rcf.t[0].x,rcf.t[0].y, rcf.t[1].x,rcf.t[1].y, rcf.t[2].x,rcf.t[2].y);
 		W->w_string		(tmp);
@@ -57,7 +58,6 @@ void CBuild::BuildRapid		(bool bSaveForOtherCompilers)
 		const Shader_xrLC&	SH		= F->Shader();
 		if (!SH.flags.bLIGHT_CastShadow)					continue;
  
-		b_material& M = lc_global_data()->materials()[F->dwMaterial];
  		// Collect
 		adjacent_vec.clear();
 		for (int vit = 0; vit < 3; ++vit)
@@ -133,6 +133,7 @@ void CBuild::BuildRapid		(bool bSaveForOtherCompilers)
 			b_rc_face& cf		= rc_faces[k];
 			cf.dwMaterial		= F->dwMaterial;
 			cf.dwMaterialGame	= F->dwMaterialGame;
+			cf.extra_data.bSharedMaterial = F->flags.bSharedMaterial;
 			Fvector2*	cuv		= F->getTC0	();
 			cf.t[0].set			(cuv[0]);
 			cf.t[1].set			(cuv[1]);

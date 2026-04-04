@@ -161,34 +161,6 @@ void OGF::Optimize()
 			} catch(...) {
 				Msg	("* ERROR: optimize: x-geom : verify: failed");
 			}
-
-			// Optimize texture coordinates
-			/*
-			Fvector2 Tdelta;
-			try {
-				// 1. Calc bounds
-				Fvector2 Tmin,Tmax;
-				Tmin.set(flt_max,flt_max);
-				Tmax.set(flt_min,flt_min);
-				for (u32 j=0; j<x_vertices.size(); j++)			{
-					x_vertex& V = x_vertices[j];
-					//Tmin.min	(V.UV);
-					//Tmax.max	(V.UV);
-				}
-				Tdelta.x = floorf((Tmax.x-Tmin.x)/2+Tmin.x);
-				Tdelta.y = floorf((Tmax.y-Tmin.y)/2+Tmin.y);
-			} catch(...) {
-				Msg	("* ERROR: optimize: x-geom : bounds: failed");
-			}
-
-			// 2. Recalc UV mapping
-			try {
-				for (u32 i=0; i<x_vertices.size(); i++)
-					x_vertices[i].UV.sub	(Tdelta);
-			} catch(...) {
-				Msg	("* ERROR: optimize: x-geom : recalc : failed");
-			}
-			*/
 		}
 	} 
 	catch(...)
@@ -198,26 +170,17 @@ void OGF::Optimize()
 
 	//////////////////////////////////////////////////////////////////////////
 	// Detect relevant number of UV pairs
-	try {
-		R_ASSERT			(data.vertices.size());
-		dwRelevantUV		= data.vertices.front().UV.size();
-		const Shader_xrLC*	SH	= pBuild->shaders().Get(pBuild->materials()[material].reserved);
-		if (!SH->flags.bOptimizeUV)		return;
-	} catch(...) {
-		Msg	("* ERROR: optimize: std-geom : find relevant UV");
-	}
-
-	// Build p-rep
-	/*
-	typedef xr_vector<u32>	flist	;
-	xr_vector<flist>		prep	;	prep.resize(vertices.size());
-	for (u32 fit=0; fit<faces.size(); fit++)	{
-		OGF_Face&	F		= faces	[fit];
-		prep[F.v[0]].push_back		(fit);
-		prep[F.v[1]].push_back		(fit);
-		prep[F.v[2]].push_back		(fit);
-	}
-	*/
+	//try {
+		R_ASSERT(data.vertices.size());
+		dwRelevantUV = data.vertices.front().UV.size();
+		auto& SH = pBuild->shaders().Get(pBuild->GetMaterialReserved(material, bSharedMaterial));
+		if (!SH.flags.bOptimizeUV)
+		{
+			return;
+		}
+	//} catch(...) {
+	//	Msg	("* ERROR: optimize: std-geom : find relevant UV");
+	//}
 
 	// Optimize texture coordinates
 	xr_vector<bool>	vmarker;	vmarker.assign	(data.vertices.size(),false);
@@ -448,23 +411,25 @@ void OGF_Node::Save	(IWriter &fs)
 	OGF_Base::Save		(fs);
 
 	// Header
-	fs.open_chunk		(OGF_HEADER);
-	ogf_header H;
-	H.format_version	= xrOGF_FormatVersion;
-	H.type				= MT_HIERRARHY;
-	H.shader_id			= 0;
-	H.bb.min			= bbox.min;
-	H.bb.max			= bbox.max;
-	H.bs.c				= C;
-	H.bs.r				= R;
-	fs.w				(&H,sizeof(H));
-	fs.close_chunk		();
+	fs.make_chunk(OGF_HEADER, [this](IWriter& F)
+	{
+		ogf_header H;
+		H.format_version	= xrOGF_FormatVersion;
+		H.type				= MT_HIERRARHY;
+		H.shader_id			= 0;
+		H.bb.min			= bbox.min;
+		H.bb.max			= bbox.max;
+		H.bs.c				= C;
+		H.bs.r				= R;
+		F.w				(&H,sizeof(H));
+	});
 
 	// Children
-	fs.open_chunk		(OGF_CHILDREN_L);
-	fs.w_u32			((u32)chields.size());
-	fs.w				(&*chields.begin(),(u32)chields.size()*sizeof(u32));
-	fs.close_chunk		();
+	fs.make_chunk(OGF_CHILDREN_L, [this](IWriter& F)
+	{
+		F.w_u32(chields.size());
+		F.w(chields.data(),chields.size()*sizeof(u32));
+	});
 }
 
 extern u16	RegisterShader	(const char* T);
@@ -474,32 +439,35 @@ void OGF_LOD::Save		(IWriter &fs)
 	OGF_Base::Save		(fs);
 
 	// Header
-	ogf_header			H;
 	string1024			sid;
 	xr_strconcat(sid,
 		pBuild->shader_render[pBuild->materials()[lod_Material].shader].name,
 		"/",
 		pBuild->textures()[pBuild->materials()[lod_Material].surfidx].name
 		);
-	fs.open_chunk		(OGF_HEADER);
-	H.format_version	= xrOGF_FormatVersion;
-	H.type				= MT_LOD;
-	H.shader_id			= RegisterShader(sid);
-	H.bb.min			= bbox.min;
-	H.bb.max			= bbox.max;
-	H.bs.c				= C;
-	H.bs.r				= R;
-	fs.w				(&H,sizeof(H));
-	fs.close_chunk		();
+	fs.make_chunk(OGF_HEADER, [this, sid](IWriter& F)
+	{
+		ogf_header H;
+		H.format_version = xrOGF_FormatVersion;
+		H.type = MT_LOD;
+		H.shader_id = RegisterShader(sid);
+		H.bb.min = bbox.min;
+		H.bb.max = bbox.max;
+		H.bs.c = C;
+		H.bs.r = R;
+		F.w(&H,sizeof(H));
+	});
 
 	// Chields
-	fs.open_chunk		(OGF_CHILDREN_L);
-	fs.w_u32			((u32)chields.size());
-	fs.w				(&*chields.begin(),(u32)chields.size()*sizeof(u32));
-	fs.close_chunk		();
+	fs.make_chunk(OGF_CHILDREN_L, [this, sid](IWriter& F)
+	{
+		F.w_u32(chields.size());
+		F.w(chields.data(),chields.size()*sizeof(u32));
+	});
 
 	// Lod-def
-	fs.open_chunk		(OGF_LODDEF2);
-	fs.w				(lod_faces,sizeof(lod_faces));
-	fs.close_chunk		();
+	fs.make_chunk(OGF_LODDEF2, [this, sid](IWriter& F)
+	{
+		F.w(lod_faces,sizeof(lod_faces));
+	});
 }
