@@ -750,8 +750,8 @@ protected:
 	int						iAmmoElapsed;		// ammo in magazine, currently
 	int						iMagazineSize;		// size (in bullets) of magazine
 
-	int						iAmmoChamberElapsed;
-	int						iChamberSize;
+	int						iAmmoChamberElapsed = 0;
+	int						iChamberSize = 1;
 
 	bool					m_bAmmoInChamber;
 
