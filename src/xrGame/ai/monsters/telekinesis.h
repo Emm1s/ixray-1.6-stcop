@@ -72,7 +72,7 @@ public:
 	ICF TELEKINETIC_OBJECTS& get_tele_objects() { return telekinetic_objects; }
 	ICF STelekineticObject* get_object_by_index(u32 index)
 	{
-		VERIFY(objects.size() > index);
+		VERIFY(telekinetic_objects.size() > index);
 		return telekinetic_objects[index];
 	}
 	// обновить состон€ие на shedule_Update			
