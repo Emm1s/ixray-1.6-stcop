@@ -217,8 +217,13 @@ void CActor::g_cl_CheckControls(u32 mstate_wf, Fvector &vControlAccel, float &Ju
 		if (CanJump() && (mstate_wf & mcJump))
 		{
 			mstate_real			|=	mcJump;
-			m_bJumpKeyPressed	=	TRUE;
-			Jump				= m_fJumpSpeed;
+			m_bJumpKeyPressed	=	true;
+			const float jump_modifier = GetArtefactJumpHeightModifier();
+			Jump = m_fJumpSpeed * (1.0f + jump_modifier);
+			if (Jump < 0.0f)
+			{
+				Jump = 0.0f;
+			}
 			m_fJumpTime			= s_fJumpTime;
 
 			PlayRainStep(!!HUDview());
@@ -281,7 +286,13 @@ void CActor::g_cl_CheckControls(u32 mstate_wf, Fvector &vControlAccel, float &Ju
 			float	scale			= vControlAccel.magnitude();
 			if(scale>EPS)	
 			{	
-				scale = m_fWalkAccel / scale;
+				const float speed_modifier = GetArtefactMovementSpeedModifier();
+				float walkAccel = m_fWalkAccel * (1.0f + speed_modifier);
+				if (walkAccel < 0.0f)
+				{
+					walkAccel = 0.0f;
+				}
+				scale = walkAccel / scale;
 
 				if (bAccelerated)
 					if (mstate_real&mcBack)
