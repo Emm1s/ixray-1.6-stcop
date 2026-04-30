@@ -1,0 +1,11 @@
+function normal(shader, t_base, t_second, t_detail)
+    shader:begin("hud3d", "hud_detector_ppi")
+        :fog(false)
+        :zb(true, false)
+        :blend(true, blend.srcalpha, blend.one)
+        :dx10color_write_enable(true, true, true, false)
+    shader:dx10texture("s_base", t_base)
+    shader:dx10texture("s_noise", "ui\\ui_detector_ppi_noise")
+    shader:dx10texture("s_data", "$user$ui_detector_ppi_data")
+    shader:dx10sampler("smp_base")
+end

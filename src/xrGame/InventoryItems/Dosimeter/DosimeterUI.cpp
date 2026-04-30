@@ -47,12 +47,7 @@ void CUIDosimeter::construct(CDosimeter* p)
 	m_workIndicator->SetAutoDelete(true);
 	AttachChild(m_workIndicator);
 
-	Fvector _map_attach_p = pSettings->r_fvector3(m_parent->cNameSect(), "ui_p");
-	Fvector _map_attach_r = pSettings->r_fvector3(m_parent->cNameSect(), "ui_r");
-
-	_map_attach_r.mul(PI / 180.f);
-	m_map_attach_offset.setHPB(_map_attach_r.x, _map_attach_r.y, _map_attach_r.z);
-	m_map_attach_offset.translate_over(_map_attach_p);
+	SetupAttachOffset(m_parent->cNameSect().c_str());
 }
 
 void CUIDosimeter::update()
@@ -116,7 +111,10 @@ void CUIDosimeter::update()
 void CUIDosimeter::Draw()
 {
 	Fmatrix LM;
-	GetUILocatorMatrix(LM);
+	if (!BuildAttachMatrix(m_parent->HudItemData(), LM))
+	{
+		return;
+	}
 
 	IUIRender::ePointType bk = UI().m_currentPointType;
 
@@ -128,15 +126,4 @@ void CUIDosimeter::Draw()
 	CUIWindow::Draw();
 
 	UI().m_currentPointType = bk;
-}
-
-void CUIDosimeter::GetUILocatorMatrix(Fmatrix& _m)
-{
-	attachable_hud_item* hid = m_parent->HudItemData();
-	IKinematics* kin = hid->m_model;
-	Fmatrix trans = hid->m_item_transform;
-	u16 bid = kin->LL_BoneID("cover");
-	Fmatrix cover_bone = kin->LL_GetTransform(bid);
-	_m.mul(trans, cover_bone);
-	_m.mulB_43(m_map_attach_offset);
 }

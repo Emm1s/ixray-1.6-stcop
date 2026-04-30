@@ -6,6 +6,12 @@
 #include "../../xrUI/xrUIXmlParser.h"
 #include "../../xrUI/Widgets/UIStatic.h"
 #include "ui/ArtefactDetectorUI.h"
+#include "ui/PpiRadarRuntime.h"
+
+namespace
+{
+static const float kPpiHoldRotEps = 1e-4f;
+} // namespace
 
 CEliteDetector::CEliteDetector()
 {
@@ -50,7 +56,7 @@ void CEliteDetector::UpdateAf()
 	CAfList::ItemsMapIt it_e = m_artefacts.m_ItemInfos.end();
 	CAfList::ItemsMapIt it = it_b;
 
-	Fvector	detector_pos = Position();
+	Fvector detector_pos = Position();
 
 	for (; it_b != it_e; ++it_b)
 	{
@@ -61,7 +67,7 @@ void CEliteDetector::UpdateAf()
 			continue;
 		}
 
-		ui().RegisterItemToDraw(pAf->Position(), "af_sign");
+		ui().RegisterItemToDraw(pAf->Position(), "af_sign", pAf);
 
 		if (pAf->CanBeInvisible())
 		{
@@ -84,7 +90,7 @@ void CEliteDetector::render_item_3d_ui()
 	R_ASSERT(HudItemData());
 	inherited::render_item_3d_ui();
 	ui().Draw();
-	//	Restore cull mode
+	// Restore cull mode
 	UIRender->CacheSetCullMode(ERHI_CULLMODE::BACK);
 }
 
@@ -109,8 +115,21 @@ void fix_ws_wnd_size(CUIWindow* w, float kx)
 void CUIArtefactDetectorElite::construct(CEliteDetector* p)
 {
 	m_parent = p;
+
 	CUIXml uiXml;
 	uiXml.Load(CONFIG_PATH, UI_PATH, "ui_detector_artefact.xml");
+
+	m_ppiBlipsInShader = p->PpiBlipsInShader();
+	if (m_ppiBlipsInShader)
+	{
+		string512 texPath = {};
+		// Shader for <auto_static> is read from the nested <texture> node (CUIXmlInit::InitTexture).
+		xr_sprintf(texPath, "%s:wrk_area:auto_static:texture", p->ui_xml_tag());
+		LPCSTR shaderName = uiXml.ReadAttrib(texPath, 0, "shader", nullptr);
+		const bool shaderMatch = PpiRadarRuntime::IsDetectorPpiShaderName(shaderName);
+		if (!shaderMatch)
+			m_ppiBlipsInShader = false;
+	}
 
 	CUIXmlInit xml_init;
 	string512 buff = {};
@@ -125,6 +144,33 @@ void CUIArtefactDetectorElite::construct(CEliteDetector* p)
 	xml_init.InitWindow(uiXml, buff, 0, m_wrk_area);
 	m_wrk_area->SetAutoDelete(true);
 	AttachChild(m_wrk_area);
+
+	if (m_ppiBlipsInShader)
+	{
+		float bestArea = 0.0f;
+		m_ppiBaseStatic = nullptr;
+
+		for (CUIWindow* child : m_wrk_area->GetChildWndList())
+		{
+			if (child == nullptr)
+				continue;
+
+			CUIStatic* candidate = child->ui_cast_static();
+			if (candidate == nullptr)
+				continue;
+
+			Fvector2 sz = candidate->GetWndSize();
+			float area = sz.x * sz.y;
+			if (area > bestArea)
+			{
+				bestArea = area;
+				m_ppiBaseStatic = candidate;
+			}
+		}
+
+		if (m_ppiBaseStatic == nullptr)
+			m_ppiBlipsInShader = false;
+	}
 
 	xr_sprintf(buff, "%s", p->ui_xml_tag());
 	int num = uiXml.GetNodesNum(buff, 0, "palette");
@@ -142,24 +188,226 @@ void CUIArtefactDetectorElite::construct(CEliteDetector* p)
 	}
 	uiXml.SetLocalRoot(pStoredRoot);
 
-	Fvector _map_attach_p = pSettings->r_fvector3(m_parent->cNameSect(), "ui_p");
-	Fvector _map_attach_r = pSettings->r_fvector3(m_parent->cNameSect(), "ui_r");
+	SetupAttachOffset(m_parent->cNameSect().c_str());
+}
 
-	_map_attach_r.mul(PI / 180.f);
-	m_map_attach_offset.setHPB(_map_attach_r.x, _map_attach_r.y, _map_attach_r.z);
-	m_map_attach_offset.translate_over(_map_attach_p);
+float& CUIArtefactDetectorElite::ppiSweepLastHitTimeRef(void* key)
+{
+	R_ASSERT(key != nullptr);
+	auto it = m_ppiSweepLastHitTime.find(key);
+	if (it == m_ppiSweepLastHitTime.end())
+	{
+		it = m_ppiSweepLastHitTime.insert(std::make_pair(key, -1.0f)).first;
+	}
+	return it->second;
+}
+
+void CUIArtefactDetectorElite::erasePpiSweepEntry(void* key)
+{
+	if (key == nullptr)
+	{
+		return;
+	}
+	m_ppiSweepLastHitTime.erase(key);
+}
+
+void CUIArtefactDetectorElite::resetPpiSweepState()
+{
+	m_ppiSweepArmStartTime = -1.0f;
+	m_ppiSweepLastHitTime.clear();
+}
+
+void CUIArtefactDetectorElite::prunePpiSweepLastHitTimeMap()
+{
+	for (auto mapIt = m_ppiSweepLastHitTime.begin(); mapIt != m_ppiSweepLastHitTime.end();)
+	{
+		void* mapKey = mapIt->first;
+		bool keep = false;
+		for (const auto& item : m_items_to_draw)
+		{
+			if (item.ppiRadarTargetKey == mapKey)
+			{
+				keep = true;
+				break;
+			}
+		}
+		if (!keep)
+		{
+			mapIt = m_ppiSweepLastHitTime.erase(mapIt);
+		}
+		else
+		{
+			++mapIt;
+		}
+	}
 }
 
 void CUIArtefactDetectorElite::update()
 {
+	if (m_parent != nullptr && !m_parent->IsWorking())
+	{
+		resetPpiSweepState();
+	}
 	inherited::update();
 	CUIWindow::Update();
 }
 
+void CUIArtefactDetectorElite::UpdatePpiData()
+{
+	if (!m_ppiBlipsInShader || m_ppiBaseStatic == nullptr || Render == nullptr)
+	{
+		return;
+	}
+
+	CCustomDetector* const parentDet = m_parent;
+	R_ASSERT(parentDet != nullptr);
+	RDEVICE.detectorPpiShaderParams.sweepPhaseScale = parentDet->PpiRadarSweepPhaseScale();
+	RDEVICE.detectorPpiShaderParams.beamTouchAngleRad = parentDet->PpiRadarBeamTouchAngleRad();
+
+	if (!parentDet->IsWorking())
+	{
+		resetPpiSweepState();
+		return;
+	}
+
+	Fvector2 wrk_sz = m_wrk_area->GetWndSize();
+	Fvector2 rp;
+	m_wrk_area->GetAbsolutePos(rp);
+
+	Fmatrix M;
+	PpiRadarRuntime::BuildInvViewMapFromCameraYaw(M);
+
+	float baseX = m_ppiBaseStatic->GetWndPos().x;
+	float baseY = m_ppiBaseStatic->GetWndPos().y;
+	Fvector2 baseSize = m_ppiBaseStatic->GetWndSize();
+	float baseW = baseSize.x;
+	float baseH = baseSize.y;
+
+	float detectRadius = m_parent->AfDetectRadius();
+	if (fis_zero(detectRadius))
+	{
+		return;
+	}
+
+	prunePpiSweepLastHitTimeMap();
+
+	const float gameTime = Device.fTimeGlobal;
+	const float sweepPhaseScale = parentDet->PpiRadarSweepPhaseScale();
+	const float armDurationSec = parentDet->PpiRadarSweepArmDurationSec();
+	if (m_ppiSweepArmStartTime < 0.0f)
+	{
+		m_ppiSweepArmStartTime = gameTime;
+		// New PPI session: drop latched hits so markers wait for sweep again (stale map caused instant blips).
+		m_ppiSweepLastHitTime.clear();
+	}
+	const bool armUseRot = !fis_zero(sweepPhaseScale);
+	const float armHoldRot = armUseRot ? (armDurationSec * sweepPhaseScale) : 0.0f;
+	const float armRotSince = armUseRot ? ((gameTime - m_ppiSweepArmStartTime) * sweepPhaseScale) : 0.0f;
+	const bool hasPpiSweepArmed = armUseRot ? (armRotSince + kPpiHoldRotEps >= armHoldRot)
+											: ((gameTime - m_ppiSweepArmStartTime) >= armDurationSec);
+
+	const float beamTouchAngleRad = parentDet->PpiRadarBeamTouchAngleRad();
+	const float markerFlashSec = parentDet->PpiRadarMarkerAppearSec();
+	const float peakSec = parentDet->PpiRadarMarkerPeakSec();
+	const float fadeSec = parentDet->PpiRadarMarkerFadeSec();
+	const float lingerAlpha = parentDet->PpiRadarMarkerLingerAlpha();
+	const float sectorSoftRad = parentDet->PpiRadarMarkerSectorSoftRad();
+	const float waveFreq = parentDet->PpiRadarMarkerWaveFreq();
+	const float waveAmp = parentDet->PpiRadarMarkerWaveAmp();
+	const float waveDecay = parentDet->PpiRadarMarkerWaveDecay();
+	const float touchThreshold = parentDet->PpiRadarTouchThreshold();
+	const float touchBlend = parentDet->PpiRadarTouchBlend();
+	SPpiRadarMarkerParams markerParams = {};
+	markerParams.sweepPhaseScale = sweepPhaseScale;
+	markerParams.beamTouchAngleRad = beamTouchAngleRad;
+	markerParams.markerFlashSec = markerFlashSec;
+	markerParams.peakSec = peakSec;
+	markerParams.fadeSec = fadeSec;
+	markerParams.lingerAlpha = lingerAlpha;
+	markerParams.sectorSoftRad = sectorSoftRad;
+	markerParams.waveFreq = waveFreq;
+	markerParams.waveAmp = waveAmp;
+	markerParams.waveDecay = waveDecay;
+	markerParams.touchThreshold = touchThreshold;
+	markerParams.touchBlend = touchBlend;
+
+	float kz = wrk_sz.y / detectRadius;
+
+	u8 data[kPpiMaxPoints * 4] = {};
+	u32 slot = 0;
+
+	for (auto& item : m_items_to_draw)
+	{
+		if (slot >= kPpiMaxPoints)
+		{
+			break;
+		}
+
+		Fvector p_ = item.pos;
+		Fvector pt3d;
+		M.transform_tiny(pt3d, p_);
+		pt3d.x *= kz;
+		pt3d.z *= kz;
+		pt3d.x += wrk_sz.x / 2.0f;
+		pt3d.z -= wrk_sz.y;
+
+		Fvector2 pos;
+		pos.set(pt3d.x, -pt3d.z);
+		pos.sub(rp);
+
+		float nx = (pos.x - baseX) / baseW;
+		float ny = (pos.y - baseY) / baseH;
+		if (nx < 0.0f || nx > 1.0f || ny < 0.0f || ny > 1.0f)
+		{
+			if (item.ppiRadarTargetKey != nullptr)
+			{
+				erasePpiSweepEntry(item.ppiRadarTargetKey);
+			}
+			continue;
+		}
+
+		float cx = nx * 2.0f - 1.0f;
+		float cy = ny * 2.0f - 1.0f;
+		if ((cx * cx + cy * cy) > 1.0f)
+		{
+			if (item.ppiRadarTargetKey != nullptr)
+			{
+				erasePpiSweepEntry(item.ppiRadarTargetKey);
+			}
+			continue;
+		}
+
+		if (item.ppiRadarTargetKey == nullptr)
+		{
+			continue;
+		}
+
+		const float targetAngleRad = atan2f(cy, cx);
+		float markerVis = 0.0f;
+		if (hasPpiSweepArmed)
+		{
+			float& lastHitRef = ppiSweepLastHitTimeRef(item.ppiRadarTargetKey);
+			markerVis = PpiRadarRuntime::ComputeMarkerVisibility(gameTime, targetAngleRad, lastHitRef, markerParams);
+		}
+
+		data[slot * 4 + 0] = u8(clampr(nx, 0.0f, 1.0f) * 255.0f);
+		data[slot * 4 + 1] = u8(clampr(ny, 0.0f, 1.0f) * 255.0f);
+		data[slot * 4 + 2] = item.ppiType ? 255 : 0;
+		data[slot * 4 + 3] = u8(clampr(markerVis, 0.0f, 1.0f) * 255.0f);
+
+		++slot;
+	}
+
+	Render->UpdateDetectorPpiData(data, kPpiMaxPoints, 1);
+}
+
 void CUIArtefactDetectorElite::Draw()
 {
-	Fmatrix	LM;
-	GetUILocatorMatrix(LM);
+	Fmatrix LM;
+	if (!BuildAttachMatrix(m_parent->HudItemData(), LM))
+	{
+		return;
+	}
 
 	IUIRender::ePointType bk = UI().m_currentPointType;
 
@@ -168,55 +416,52 @@ void CUIArtefactDetectorElite::Draw()
 	UIRender->CacheSetXformWorld(LM);
 	UIRender->CacheSetCullMode(ERHI_CULLMODE::NONE);
 
+	if (m_ppiBlipsInShader)
+	{
+		UpdatePpiData();
+	}
+
 	CUIWindow::Draw();
 
 	Fvector2 wrk_sz = m_wrk_area->GetWndSize();
 	Fvector2 rp;
 	m_wrk_area->GetAbsolutePos(rp);
 
-	Fmatrix	M, Mc;
-	float h = 0.0f, p = 0.0f;
-
-	Device.vCameraDirection.getHP(h, p);
-	Mc.setHPB(h, 0.0f, 0.0f);
-	Mc.c.set(Device.vCameraPosition);
-	M.invert(Mc);
+	Fmatrix M;
+	PpiRadarRuntime::BuildInvViewMapFromCameraYaw(M);
 
 	UI().ScreenFrustumLIT().CreateFromRect(Frect().set(rp.x, rp.y, wrk_sz.x, wrk_sz.y));
 
-	for (const auto& item : m_items_to_draw)
+	// Palette uses SetCustomDraw(true); parent Draw skips it. Legacy (no PPI): draw XML palette markers.
+	// With PPI + hud\detector_ppi (addon), markers are drawn in the radar PS from s_data — skip palette here.
+	if (!m_ppiBlipsInShader)
 	{
-		Fvector	p_ = item.pos;
-		Fvector	pt3d;
-		M.transform_tiny(pt3d, p_);
-		float kz = wrk_sz.y / m_parent->AfDetectRadius();
-		pt3d.x *= kz;
-		pt3d.z *= kz;
+		const float detectRadius = m_parent->AfDetectRadius();
+		if (!fis_zero(detectRadius))
+		{
+			const float kz = wrk_sz.y / detectRadius;
+			for (const auto& item : m_items_to_draw)
+			{
+				Fvector p_ = item.pos;
+				Fvector pt3d;
+				M.transform_tiny(pt3d, p_);
+				pt3d.x *= kz;
+				pt3d.z *= kz;
 
-		pt3d.x += wrk_sz.x / 2.0f;
-		pt3d.z -= wrk_sz.y;
+				pt3d.x += wrk_sz.x / 2.0f;
+				pt3d.z -= wrk_sz.y;
 
-		Fvector2 pos;
-		pos.set(pt3d.x, -pt3d.z);
-		pos.sub(rp);
+				Fvector2 pos;
+				pos.set(pt3d.x, -pt3d.z);
+				pos.sub(rp);
 
-		item.pStatic->SetWndPos(pos);
-		item.pStatic->Draw();
+				item.pStatic->SetWndPos(pos);
+				item.pStatic->Draw();
+			}
+		}
 	}
 
 	UI().m_currentPointType = bk;
-}
-
-void CUIArtefactDetectorElite::GetUILocatorMatrix(Fmatrix& _m)
-{
-	attachable_hud_item* hid = m_parent->HudItemData();
-	IKinematics* kin = hid->m_model;
-
-	Fmatrix	trans = hid->m_item_transform;
-	u16 bid = kin->LL_BoneID("cover");
-	Fmatrix cover_bone = kin->LL_GetTransform(bid);
-	_m.mul(trans, cover_bone);
-	_m.mulB_43(m_map_attach_offset);
 }
 
 void CUIArtefactDetectorElite::Clear()
@@ -224,7 +469,7 @@ void CUIArtefactDetectorElite::Clear()
 	m_items_to_draw.clear();
 }
 
-void CUIArtefactDetectorElite::RegisterItemToDraw(const Fvector& p, const shared_str& palette_idx)
+void CUIArtefactDetectorElite::RegisterItemToDraw(const Fvector& p, const shared_str& palette_idx, void* ppiRadarTargetKey)
 {
 	xr_map<shared_str, CUIStatic*>::iterator it = m_palette.find(palette_idx);
 	if (it == m_palette.end())
@@ -234,7 +479,10 @@ void CUIArtefactDetectorElite::RegisterItemToDraw(const Fvector& p, const shared
 	}
 
 	CUIStatic* S = m_palette[palette_idx];
-	SDrawOneItem itm(S, p);
+	const char* id = palette_idx.c_str();
+	const bool isZone = id != nullptr && 0 == xr_strncmp(id, "zone_", 5);
+	const u8 typeId = isZone ? u8(1) : u8(0);
+	SDrawOneItem itm(S, p, typeId, ppiRadarTargetKey);
 	m_items_to_draw.push_back(itm);
 }
 
@@ -249,7 +497,7 @@ CScientificDetector::~CScientificDetector()
 	m_zones.destroy();
 }
 
-void  CScientificDetector::Load(LPCSTR section)
+void CScientificDetector::Load(LPCSTR section)
 {
 	inherited::Load(section);
 	m_zones.load(section, "zone");
@@ -267,7 +515,7 @@ void CScientificDetector::UpdateWork()
 	CAfList::ItemsMapIt ait_b = m_artefacts.m_ItemInfos.begin();
 	CAfList::ItemsMapIt ait_e = m_artefacts.m_ItemInfos.end();
 	CAfList::ItemsMapIt ait = ait_b;
-	Fvector	detector_pos = Position();
+	Fvector detector_pos = Position();
 
 	for (; ait_b != ait_e; ++ait_b)
 	{
@@ -278,7 +526,7 @@ void CScientificDetector::UpdateWork()
 			continue;
 		}
 
-		ui().RegisterItemToDraw(pAf->Position(), pAf->cNameSect());
+		ui().RegisterItemToDraw(pAf->Position(), pAf->cNameSect(), pAf);
 
 		if (pAf->CanBeInvisible())
 		{
@@ -297,7 +545,7 @@ void CScientificDetector::UpdateWork()
 	for (; zit_b != zit_e; ++zit_b)
 	{
 		CAnomalyZone* pZone = zit_b->first;
-		ui().RegisterItemToDraw(pZone->Position(), pZone->cNameSect());
+		ui().RegisterItemToDraw(pZone->Position(), pZone->cNameSect(), pZone);
 	}
 
 	m_ui->update();
@@ -312,7 +560,6 @@ void CScientificDetector::shedule_Update(u32 dt)
 		return;
 	}
 
-
 	Fvector P;
 	P.set(H_Parent()->Position());
 	m_zones.feel_touch_update(P, AfDetectRadius());
@@ -324,5 +571,3 @@ void CScientificDetector::OnH_B_Independent(bool just_before_destroy)
 
 	m_zones.clear();
 }
-
-

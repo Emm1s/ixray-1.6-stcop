@@ -322,6 +322,11 @@ public:
 	virtual IRHISurface* load_texture(LPCSTR fname, u32& msize, bool bStaging=false)=0;
 	virtual bool get_texture_metadata(LPCSTR fname, RHITextureMetadata* p_data) = 0;
 
+	// UI detector PPI (Svargog) data texture update.
+	// Data format: tightly packed RGBA8 buffer of size (width * height * 4).
+	// Renderer may ignore this call if not supported.
+	virtual void UpdateDetectorPpiData(const void* rgba, u32 width, u32 height) {}
+
 	virtual void renderImGuiDebugWindow_SVGStorage() {}
 		
 	// Constructor/destructor

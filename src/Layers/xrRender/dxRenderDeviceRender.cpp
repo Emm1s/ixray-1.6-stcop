@@ -63,6 +63,12 @@ void dxRenderDeviceRender::OnDeviceDestroy( BOOL bKeepTextures)
 	m_WireShader.destroy();
 	m_SelectionShader.destroy();
 
+	if (::Render != nullptr)
+	{
+		// Release user PPI texture while resource manager is still alive.
+		::Render->UpdateDetectorPpiData(nullptr, 0, 0);
+	}
+
 	Resources->OnDeviceDestroy( bKeepTextures);
 	RCache.OnDeviceDestroy();
 #endif

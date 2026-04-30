@@ -1,11 +1,12 @@
 #pragma once
 
 #include "../ui/ArtefactDetectorUI.h"
+#include "../../ui/UIAttachedPlaneWnd.h"
 #include "Dosimeter.h"
 
 class CUIDosimeter final : 
 	public CUIArtefactDetectorBase,
-	public CUIWindow
+	public CUIAttachedPlaneWnd
 {
 public:
 	void update() override;
@@ -20,9 +21,6 @@ private:
 	CUIStatic* m_seg3 = nullptr;
 	CUIStatic* m_seg4 = nullptr;
 	CDosimeter* m_parent = nullptr;
-	Fmatrix m_map_attach_offset;
-
-	void GetUILocatorMatrix(Fmatrix& _m);
 
 	// Признак работы прибора: мигающая точка в правом нижнем углу
 	CUIStatic* m_workIndicator = nullptr;

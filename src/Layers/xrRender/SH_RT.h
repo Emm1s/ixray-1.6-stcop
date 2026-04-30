@@ -1,5 +1,7 @@
 #pragma once
 
+#include "SH_Texture.h"
+
 //////////////////////////////////////////////////////////////////////////
 class ECORE_API CRT :
 	public xr_resource_named

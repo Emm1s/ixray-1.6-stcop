@@ -81,6 +81,14 @@ public:
 		float ActorWeaponLoading = 1.0f;
 	} hudViewportData;
 
+	// HUD PPI radar shader (optional): elite UI sets this when ppi_blips_in_shader; else defaults apply.
+	struct {
+		float sweepPhaseScale = 0.6f;
+		float beamTouchAngleRad = 0.10f;
+		float reserved0 = 0.0f;
+		float reserved1 = 0.0f;
+	} detectorPpiShaderParams;
+
 	// Engine flow-control
 	u32										dwFrame;
 

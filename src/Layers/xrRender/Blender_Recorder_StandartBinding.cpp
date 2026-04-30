@@ -542,6 +542,18 @@ static class cl_m_hud_params : public RHIShaderConstant::Setup
 	}
 }    binder_m_hud_params;
 
+static class cl_ppi_radar_params : public RHIShaderConstant::Setup
+{
+	virtual void setup(RHIShaderConstant* C)
+	{
+		const float sweep = RDEVICE.detectorPpiShaderParams.sweepPhaseScale;
+		const float sweepSafe = (sweep > 1e-5f) ? sweep : 0.6f;
+		const float beamTouch = RDEVICE.detectorPpiShaderParams.beamTouchAngleRad;
+		RCache.set_c(C, sweepSafe, beamTouch, RDEVICE.detectorPpiShaderParams.reserved0,
+			RDEVICE.detectorPpiShaderParams.reserved1);
+	}
+} binder_ppi_radar_params;
+
 static class cl_m_zoom_deviation : public RHIShaderConstant::Setup
 {
 	virtual void setup(RHIShaderConstant* C) {
@@ -710,6 +722,7 @@ void	CBlender_Compile::SetMapping()
 
 	//LVutner: Gunslinger...
 	r_Constant("m_hud_params", &binder_m_hud_params);
+	r_Constant("ppi_radar_params", &binder_ppi_radar_params);
 	r_Constant("m_zoom_deviation", &binder_m_zoom_deviation);
 	r_Constant("m_affects", &binder_affects);
 	r_Constant("m_actor_params", &binder_actor_states);

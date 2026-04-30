@@ -12,6 +12,8 @@
 #include "SkeletonCustom.h"
 #include "SVGStorage.h"
 
+#include <cstring>
+
 using namespace		R_dsgraph;
 
 extern float		r_ssaDISCARD;
@@ -22,6 +24,83 @@ extern float		r_ssaGLOD_start,	r_ssaGLOD_end;
 ICF float calcLOD	(float ssa/*fDistSq*/, float R)
 {
 	return _sqrt(clampr((ssa - r_ssaGLOD_end)/(r_ssaGLOD_start-r_ssaGLOD_end),0.f,1.f));
+}
+
+void R_dsgraph_structure::ReleaseDetectorPpiDataTexture()
+{
+	m_detectorPpiDataTexture = nullptr;
+	m_detectorPpiDataW = 0;
+	m_detectorPpiDataH = 0;
+}
+
+void R_dsgraph_structure::UpdateDetectorPpiData(const void* rgba, u32 width, u32 height)
+{
+	if (width == 0 || height == 0)
+	{
+		ReleaseDetectorPpiDataTexture();
+		return;
+	}
+
+	if (!m_detectorPpiDataTexture || m_detectorPpiDataW != width || m_detectorPpiDataH != height)
+	{
+		m_detectorPpiDataTexture.create("$user$ui_detector_ppi_data");
+
+		RHITextureDesc desc = {};
+		desc.Width = width;
+		desc.Height = height;
+		desc.MipLevels = 1;
+		desc.Format = ERHI_FORMAT::R8G8B8A8_UNORM;
+		desc.Usage = ERHI_USAGE::USAGE_DYNAMIC;
+		desc.BindFlags = ERHI_BIND_FLAG::SHADER_RESOURCE;
+		desc.CPUAccessFlags = ERHI_CPU_ACCESS_FLAG::ERHI_CPU_ACCESS_FLAG_WRITE;
+
+		RHISubResource subres = {};
+		IRHISurface* surf = GRHI->CreateTexture2D(desc, subres);
+		if (surf != nullptr)
+		{
+			m_detectorPpiDataTexture->surface_set(surf);
+			surf->Release();
+		}
+
+		m_detectorPpiDataW = width;
+		m_detectorPpiDataH = height;
+	}
+
+	if (!m_detectorPpiDataTexture)
+		return;
+
+	IRHISurface* pSurf = m_detectorPpiDataTexture->surface_get();
+	if (pSurf == nullptr)
+		return;
+
+	u32 pitch = 0;
+	u8* dst = static_cast<u8*>(pSurf->Lock(0, &pitch));
+	if (dst == nullptr)
+	{
+		pSurf->Unlock();
+		return;
+	}
+
+	const u32 rowBytes = width * 4;
+	const u32 rows = height;
+	const u8* src = static_cast<const u8*>(rgba);
+
+	if (src == nullptr)
+	{
+		for (u32 y = 0; y < rows; ++y)
+		{
+			std::memset(dst + y * pitch, 0, rowBytes);
+		}
+	}
+	else
+	{
+		for (u32 y = 0; y < rows; ++y)
+		{
+			std::memcpy(dst + y * pitch, src + y * rowBytes, rowBytes);
+		}
+	}
+
+	pSurf->Unlock();
 }
 
 void R_dsgraph_structure::r_dsgraph_render_graph(u32 _priority, bool _clear)

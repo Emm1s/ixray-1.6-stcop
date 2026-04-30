@@ -4,6 +4,7 @@
 #include "../../xrCore/Collision/ISpatial.h"
 #include "r__dsgraph_types.h"
 #include "r__sector.h"
+#include "SH_Texture.h"
 
 //////////////////////////////////////////////////////////////////////////
 // feedback	for receiving visuals										//
@@ -69,6 +70,16 @@ public:
 	u32															counter_S	;
 	u32															counter_D	;
 	BOOL														b_loaded	;
+
+public:
+	// IRender_interface
+	void UpdateDetectorPpiData(const void* rgba, u32 width, u32 height) override;
+
+private:
+	ref_texture m_detectorPpiDataTexture = nullptr;
+	u32 m_detectorPpiDataW = 0;
+	u32 m_detectorPpiDataH = 0;
+	void ReleaseDetectorPpiDataTexture();
 public:
 	virtual		void					set_Transform			(Fmatrix*	M	)				{ VERIFY(M);	val_pTransform = M;	}
 	virtual		void					set_LocalTransform		(Fmatrix*	M	)				{ VERIFY(M);	val_pLocalTransform = M;	}
