@@ -57,6 +57,9 @@ private:
 	CUIStatic*			m_favorite_weapon_bckgrnd = nullptr;
 	CUIStatic*			m_favorite_weapon_icon = nullptr;
 
+	CUIStatic*			m_valuable_artifact_icon = nullptr;
+	CUICharacterInfo*	m_ranking_actor_identity = nullptr;
+
 	//Alundaio: CoC Rankings
 	CUIScrollView*		m_coc_ranking = nullptr;
 	CUIScrollView*		m_coc_ranking_actor_view = nullptr;
@@ -76,9 +79,14 @@ private:
 	CUIRankingsCoC* m_coc_ranking_actor = nullptr;
 	//-Alundaio
 
-	enum { max_stat_info = 32 };
-	CUIStatic*			m_stat_caption[max_stat_info];
-	CUIStatic*			m_stat_info[max_stat_info];
+	struct StatItem final
+	{
+		shared_str statId;
+		CUIStatic* caption = nullptr;
+		CUIStatic* value = nullptr;
+	};
+
+	xr_vector<StatItem> m_stat_items;
 
 	u32					m_delay;
 	u32					m_previous_time;
@@ -86,10 +94,13 @@ private:
 	const char*				m_last_monster_icon_back;
 	const char*				m_last_monster_icon;
 	const char*				m_last_weapon_icon;
+	shared_str				m_last_valuable_artifact_icon;
 	CUIGamepadLegend*	m_gamepad_legend = nullptr;
 
 	bool m_isGetRankingsArraySize = false;
 	const char* m_onGetRankingsArraySize = {};
+	bool m_isGetPdaStatById = false;
+	const char* m_onGetPdaStatById = {};
 
 public:
 						CUIRankingWnd			();
@@ -118,5 +129,7 @@ protected:
 			void		get_statistic			();
 			void		get_best_monster		();
 			void		get_favorite_weapon		();
+			void		get_valuable_artifact_icon();
+			const char* GetStatValue		(const StatItem& item, const u32 index) const;
 
 }; // class CUIRankingWnd

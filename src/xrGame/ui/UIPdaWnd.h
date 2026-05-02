@@ -45,7 +45,7 @@ protected:
 	CUIAnimatedStatic*		m_anim_static;
 	CUIStatic*				m_clock;
 
-	// Текущий активный диалог
+	// Currently visible PDA page (native subdialog or script-provided window).
 	CUIWindow*				m_pActiveDialog;
 	shared_str				m_sActiveSection;
 	xr_vector<Fvector2>		m_sign_places_main;
@@ -88,7 +88,7 @@ public:
 
 	virtual void 			Init				();
 
-	virtual void 			SendMessage			(CUIWindow* pWnd, s16 msg, void* pData = NULL);
+	virtual void 			SendMessage			(CUIWindow* pWnd, s16 msg, void* pData = nullptr);
 
 	virtual void 			Draw				();
 	virtual void 			Update				();

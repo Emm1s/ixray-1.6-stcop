@@ -14,7 +14,9 @@ class CUINewsItemWnd final :public CUIWindow
 	CUIStatic*				m_UICaption;
 	CUIStatic*				m_UIText;
 	CUIStatic*				m_UIImage;
+	CUIStatic*				m_dialogReplicaLine = nullptr;
 	bool					m_legacyMode;
+	bool					m_hasDialogReplicaLayout = false;
 
 public:
 					CUINewsItemWnd		();

@@ -54,6 +54,9 @@ CUIMapWnd::CUIMapWnd()
 	m_text_hint				= nullptr;
 	g_map_wnd				= this;
 
+	for (u8 i = 0; i < max_btn_nav; ++i)
+		m_btn_nav[i] = nullptr;
+
 	ActionRepeaters()->Register(this, kPDA_TASKS_MAP_ZOOM_IN, 1, 1);
 	ActionRepeaters()->Register(this, kPDA_TASKS_MAP_ZOOM_OUT, 1, 1);
 }
@@ -274,6 +277,10 @@ void CUIMapWnd::Init(const char* xml_name, const char* start_from)
 void CUIMapWnd::Show(bool status)
 {
 	inherited::Show(status);
+	if (!status)
+	{
+		SetPersonalSpotPlacement(false);
+	}
 	Activated();
 	if ( GlobalMap() )
 	{
@@ -529,8 +536,18 @@ bool CUIMapWnd::OnKeyboardHold(int dik)
 	return inherited::OnKeyboardHold(dik);
 }
 
+void CUIMapWnd::SetPersonalSpotPlacement(bool isActive)
+{
+	m_personalSpotPlacement = isActive;
+}
+
 bool CUIMapWnd::OnKeyboardAction				(int dik, EUIMessages keyboard_action)
 {
+	if (keyboard_action == WINDOW_KEY_PRESSED && dik == SDL_SCANCODE_ESCAPE && m_personalSpotPlacement)
+	{
+		SetPersonalSpotPlacement(false);
+		return true;
+	}
 	switch(dik){
 		case SDL_SCANCODE_KP_MINUS:
 			{

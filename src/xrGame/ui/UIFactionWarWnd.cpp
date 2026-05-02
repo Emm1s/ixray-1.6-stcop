@@ -21,8 +21,8 @@
 #include "../Actor.h"
 #include "../ai_space.h"
 #include "../../xrScripts/script_engine.h"
-
-#define PDA_FACTION_WAR_XML		"pda_fraction_war.xml"
+#include "PdaConstants.h"
+#include "PdaScriptBridge.h"
 
 CUIFactionWarWnd::CUIFactionWarWnd()
 {
@@ -55,7 +55,7 @@ void CUIFactionWarWnd::Reset()
 void CUIFactionWarWnd::Init()
 {
 	CUIXml xml;
-	xml.Load( CONFIG_PATH, UI_PATH, PDA_FACTION_WAR_XML );
+	xml.Load( CONFIG_PATH, UI_PATH, PdaXml::FactionWar );
 
 	CUIXmlInit::InitWindow( xml, "main_wnd", 0, this );
 
@@ -399,22 +399,22 @@ void CUIFactionWarWnd::set_amount_enemy_bonus( int value )
 // -------------------------------------------------------------------------------------------------
 int CUIFactionWarWnd::get_max_member_count()
 {
-	luabind::functor<int>	funct;
-	R_ASSERT( ai().script_engine().functor( "pda.get_max_member_count", funct ) );
-	return funct();
+	int value = 100;
+	PdaScriptBridge::TryCall(PdaScript::GetMaxMemberCount, value);
+	return value;
 }
 
 float CUIFactionWarWnd::get_max_resource()
 {
-	luabind::functor<float>	funct;
-	R_ASSERT( ai().script_engine().functor( "pda.get_max_resource", funct ) );
-	return funct();
+	float value = 100.0f;
+	PdaScriptBridge::TryCall(PdaScript::GetMaxResource, value);
+	return value;
 }
 
 float CUIFactionWarWnd::get_max_power()
 {
-	luabind::functor<float>	funct;
-	R_ASSERT( ai().script_engine().functor( "pda.get_max_power", funct ) );
-	return funct();
+	float value = 100.0f;
+	PdaScriptBridge::TryCall(PdaScript::GetMaxPower, value);
+	return value;
 }
 

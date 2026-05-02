@@ -81,7 +81,10 @@ private:
 	Fvector2					m_controller_cursor_pos = { 0, 0 };
 	Fvector2					m_controller_cursor_pos_initial = { 0, 0 };
 
+	bool						m_personalSpotPlacement = false;
+
 	void						UpdateNav				();
+	void						RegisterNavButtonByName	(CUI3tButton* btn);
 
 	void 				OnBtnLegend_Push		(CUIWindow*, void*);
 	void 				OnBtnUp_Push			(CUIWindow*, void*);
@@ -94,6 +97,7 @@ private:
 	void 				OnBtnZoomLess_Push		(CUIWindow*, void*);
 	void 				OnBtnDown_Push			(CUIWindow*, void*);
 	void 				OnBtnZoomReset_Push		(CUIWindow*, void*);
+	void 				OnBtnPersonalSpot_Push	(CUIWindow*, void*);
 
 private:
 	void 				OnScrollV				(CUIWindow*, void*);
@@ -156,6 +160,8 @@ public:
 			void				SetZoom					(float value);
 			bool				UpdateZoom				(bool b_zoom_in, bool b_use_dt = false);
 
+			void				SetPersonalSpotPlacement	(bool isActive);
+			bool				IsPersonalSpotPlacement	() const { return m_personalSpotPlacement; }
 
 			void				ShowHintStr				(CUIWindow* parent, const char* text);
 			void				ShowHintSpot			(CMapSpot* spot);

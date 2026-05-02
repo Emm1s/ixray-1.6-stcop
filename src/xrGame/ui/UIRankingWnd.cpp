@@ -28,8 +28,8 @@
 #include "../../xrEngine/string_table.h"
 #include "UICharacterInfo.h"
 #include "../../xrUI/ui_base.h"
-
-#define  PDA_RANKING_XML		"pda_ranking.xml"
+#include "PdaConstants.h"
+#include "PdaScriptBridge.h"
 
 using namespace luabind;
 
@@ -41,8 +41,8 @@ CUIRankingWnd::CUIRankingWnd()
 	m_last_monster_icon_back	= "";
 	m_last_monster_icon			= "";
 	m_last_weapon_icon			= "";
-
-	LoadCallbackGlobals(m_isGetRankingsArraySize, m_onGetRankingsArraySize, "OnGetRankingsArraySize");
+	LoadCallbackGlobals(m_isGetRankingsArraySize, m_onGetRankingsArraySize, PdaScript::OnGetRankingsArraySize);
+	LoadCallbackGlobals(m_isGetPdaStatById, m_onGetPdaStatById, "OnGetPdaStatById");
 }
 
 CUIRankingWnd::~CUIRankingWnd()
@@ -73,6 +73,10 @@ void CUIRankingWnd::Show( bool status )
 		{
 			m_actor_ch_info->InitCharacter(Actor());
 		}
+		if (m_ranking_actor_identity)
+		{
+			m_ranking_actor_identity->InitCharacter(Actor());
+		}
 
 		if (m_money_value)
 		{
@@ -101,7 +105,7 @@ void CUIRankingWnd::Init()
 {
 	Fvector2 pos;
 	CUIXml xml;
-	xml.Load( CONFIG_PATH, UI_PATH, PDA_RANKING_XML );
+	xml.Load( CONFIG_PATH, UI_PATH, PdaXml::Ranking );
 
 	CUIXmlInit::InitWindow( xml, "main_wnd", 0, this );
 	m_delay				= (u32)xml.ReadAttribInt( "main_wnd", 0, "delay",	3000 );
@@ -158,29 +162,46 @@ void CUIRankingWnd::Init()
 
 	m_stat_count = (u32)xml.GetNodesNum( node, "stat" );
 	u32 value_color = CUIXmlInit::GetColor( xml, "value", 0, 0xFFffffff );
+	m_stat_items.clear();
+	m_stat_items.reserve(m_stat_count);
 
 	for ( u8 i = 0; i < m_stat_count; ++i )
 	{
-		m_stat_caption[i]		= new CUIStatic();
-		AttachChild				( m_stat_caption[i] );
-		m_stat_caption[i]->SetAutoDelete( true );
+		StatItem item = {};
+		item.caption = new CUIStatic();
+		AttachChild(item.caption);
+		item.caption->SetAutoDelete(true);
 
-		if (CUIXmlInit::InitStatic(xml, "stat", i, m_stat_caption[i]))
+		if (CUIXmlInit::InitStatic(xml, "stat", i, item.caption))
 		{
-			m_stat_caption[i]->AdjustWidthToText();
+			item.caption->AdjustWidthToText();
 
-			m_stat_info[i] = new CUIStatic();
-			AttachChild(m_stat_info[i]);
-			m_stat_info[i]->SetAutoDelete(true);
-			CUIXmlInit::InitStatic(xml, "stat", i, m_stat_info[i]);
+			item.value = new CUIStatic();
+			AttachChild(item.value);
+			item.value->SetAutoDelete(true);
+			CUIXmlInit::InitStatic(xml, "stat", i, item.value);
 
-			m_stat_info[i]->SetTextColor(value_color);
+			item.value->SetTextColor(value_color);
 
-			pos.y = m_stat_caption[i]->GetWndPos().y;
-			pos.x = m_stat_caption[i]->GetWndPos().x + m_stat_caption[i]->GetWndSize().x + 5.0f;
-			m_stat_info[i]->SetWndPos(pos);
+			pos.y = item.caption->GetWndPos().y;
+			pos.x = item.caption->GetWndPos().x + item.caption->GetWndSize().x + 5.0f;
+			item.value->SetWndPos(pos);
+
+			XML_NODE* statNode = xml.NavigateToNode(node, "stat", i);
+			if (statNode)
+			{
+				item.statId = xml.ReadAttrib(statNode, "id", "");
+			}
+
+			m_stat_items.push_back(item);
+		}
+		else
+		{
+			xr_delete(item.caption);
+			xr_delete(item.value);
 		}
 	}
+	m_stat_count = (u32)m_stat_items.size();
 	xml.SetLocalRoot( stored_root );
 
 	if (m_center_caption)
@@ -235,6 +256,15 @@ void CUIRankingWnd::Init()
 	if (xml.NavigateToNode("favorite_weapon_over"))
 		m_favorite_weapon_over		= UIHelper::CreateFrameWindow(xml, "favorite_weapon_over", this);
 
+	if (xml.NavigateToNode("valuable_artifact_icon", 0))
+		m_valuable_artifact_icon = UIHelper::CreateStatic(xml, "valuable_artifact_icon", this);
+	if (xml.NavigateToNode("ranking_actor_identity", 0))
+	{
+		m_ranking_actor_identity = new CUICharacterInfo();
+		m_ranking_actor_identity->SetAutoDelete(true);
+		AttachChild(m_ranking_actor_identity);
+		m_ranking_actor_identity->InitCharacterInfo(&xml, "ranking_actor_identity");
+	}
 
 	m_achievements_background	= UIHelper::CreateFrameWindow(xml, "achievements_background", this, false);
 	if (xml.NavigateToNode("achievements_wnd"))
@@ -274,10 +304,7 @@ void CUIRankingWnd::Init()
 	if (m_isGetRankingsArraySize)
 	{
 		u8 topRankCount = 50;
-		luabind::functor<u8> getRankingArraySize;
-
-		R_ASSERT2(ai().script_engine().functor(m_onGetRankingsArraySize, getRankingArraySize), "failed to get OnGetRankingsArraySize functor");
-		topRankCount = getRankingArraySize();
+		PdaScriptBridge::TryCall(m_onGetRankingsArraySize, topRankCount);
 
 		if (m_coc_ranking != nullptr)
 		{
@@ -353,6 +380,7 @@ void CUIRankingWnd::update_info()
 	get_statistic();
 	get_best_monster();
 	get_favorite_weapon();
+	get_valuable_artifact_icon();
 	
     if (!m_factions_list)
         return;
@@ -419,15 +447,14 @@ void CUIRankingWnd::get_statistic()
 	m_stat_info[0]->SetText(buf);
 	*/
 
-	for(u8 i = 0; i < m_stat_count; ++i)
+	for (u32 i = 0; i < m_stat_count; ++i)
 	{
-		luabind::functor<const char*> funct;
-		if (ai().script_engine().functor("pda.get_stat", funct))
+		StatItem& item = m_stat_items[i];
+		if (item.value)
 		{
-			const char* str = funct(i);
-			//m_stat_info[i]->SetTextColor(color_rgba(170, 170, 170, 255));
-			m_stat_info[i]->TextItemControl()->SetColoringMode(true);
-			m_stat_info[i]->SetTextST(str);
+			const char* statValue = GetStatValue(item, i);
+			item.value->TextItemControl()->SetColoringMode(true);
+			item.value->SetTextST(statValue);
 		}
 	}
 
@@ -508,6 +535,35 @@ void CUIRankingWnd::get_favorite_weapon()
 	}
 }
 
+void CUIRankingWnd::get_valuable_artifact_icon()
+{
+	if (!m_valuable_artifact_icon)
+	{
+		return;
+	}
+
+	luabind::functor<const char*> functor;
+	if (!ai().script_engine().functor(PdaScript::GetValuableArtifactIcon, functor))
+	{
+		return;
+	}
+
+	const char* str = functor();
+	if (!str || !xr_strcmp(str, ""))
+	{
+		m_valuable_artifact_icon->TextureOff();
+		m_last_valuable_artifact_icon = shared_str();
+		return;
+	}
+
+	if (m_last_valuable_artifact_icon != str)
+	{
+		m_valuable_artifact_icon->TextureOn();
+		m_valuable_artifact_icon->InitTexture(str);
+		m_last_valuable_artifact_icon = str;
+	}
+}
+
 bool CUIRankingWnd::SortingLessFunction(CUIWindow* left, CUIWindow* right)
 {
 	CUIRankFaction* lpi = smart_cast<CUIRankFaction*>(left);
@@ -520,17 +576,57 @@ void CUIRankingWnd::get_value_from_script()
 {
 	string128 buf;
 	InventoryUtilities::GetTimePeriodAsString(buf, sizeof(buf), Level().GetStartGameTime(), Level().GetGameTime());
-	m_stat_info[0]->SetText(buf);
-
-	for (u8 i = 1; i < m_stat_count; ++i)
+	if (!m_stat_items.empty() && m_stat_items[0].value)
 	{
-		luabind::functor<const char*> functor;
-		if (ai().script_engine().functor("pda.get_stat", functor))
+		m_stat_items[0].value->SetText(buf);
+	}
+
+	for (u32 i = 1; i < m_stat_count; ++i)
+	{
+		StatItem& item = m_stat_items[i];
+		if (item.value)
 		{
-			const char* str = functor(i);
-			m_stat_info[i]->SetTextST(str);
+			const char* statValue = GetStatValue(item, i);
+			item.value->SetTextST(statValue);
 		}
 	}
+}
+
+const char* CUIRankingWnd::GetStatValue(const StatItem& item, const u32 index) const
+{
+	if (item.statId.size() != 0)
+	{
+		if (m_isGetPdaStatById)
+		{
+			luabind::functor<const char*> functor;
+			if (ai().script_engine().functor(m_onGetPdaStatById, functor))
+			{
+				const char* value = functor(item.statId.c_str());
+				if (value && value[0])
+				{
+					return value;
+				}
+			}
+		}
+
+		luabind::functor<const char*> byIdFunctor;
+		if (ai().script_engine().functor("pda.get_stat_by_id", byIdFunctor))
+		{
+			const char* value = byIdFunctor(item.statId.c_str());
+			if (value && value[0])
+			{
+				return value;
+			}
+		}
+	}
+
+	luabind::functor<const char*> indexFunctor;
+	if (ai().script_engine().functor("pda.get_stat", indexFunctor))
+	{
+		return indexFunctor(index);
+	}
+
+	return "";
 }
 
 void CUIRankingWnd::ResetAll()
@@ -538,6 +634,9 @@ void CUIRankingWnd::ResetAll()
 	m_last_monster_icon_back	= "";
 	m_last_monster_icon			= "";
 	m_last_weapon_icon			= "";
+	m_last_valuable_artifact_icon = shared_str();
+	if (m_valuable_artifact_icon)
+		m_valuable_artifact_icon->TextureOff();
 	if (m_monster_icon_back)
 		m_monster_icon_back->TextureOff();
 	if (m_monster_icon)

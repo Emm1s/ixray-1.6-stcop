@@ -3,11 +3,11 @@
 #include "../../xrUI/Widgets/UIWndCallback.h"
 #include "../../xrCore/associative_vector.h"
 #include "../GameTaskDefs.h"
+#include "../GameTask.h"
 #include "../../xrUI/Widgets/UICheckButton.h"
 
 class CUIMapWnd;
 class CUIStatic;
-class CGameTask;
 class CUIXml;
 class CUITaskItem;
 class CUI3tButton;
@@ -51,8 +51,16 @@ private:
 		MAP_MARKS_FILTER_PRIMARY_OBJECTS,
 		MAP_MARKS_FILTER_SECONDARY_TASKS,
 		MAP_MARKS_FILTER_NPCS,
+		MAP_MARKS_FILTER_PERSONAL_SPOTS,
 
 		MAP_MARKS_FILTER_MAX
+	};
+
+	enum class ETaskScopeMode : u8
+	{
+		Story = 0,
+		Side,
+		Failed
 	};
 	
 	CUICheckButton*			m_cbFilters[MAP_MARKS_FILTER_MAX];
@@ -61,6 +69,12 @@ private:
 	bool					m_bQuestNpcsEnabled;
 	bool					m_bSecondaryTasksEnabled;
 	bool					m_bPrimaryObjectsEnabled;
+	bool					m_bPersonalSpotsEnabled;
+
+	ETaskScopeMode			m_taskScopeMode = ETaskScopeMode::Story;
+	CUI3tButton*			m_btnScopeStory = nullptr;
+	CUI3tButton*			m_btnScopeSide = nullptr;
+	CUI3tButton*			m_btnScopeFailed = nullptr;
 
 	UITaskListWnd*			m_task_wnd;
 	bool					m_task_wnd_show;
@@ -139,6 +153,13 @@ private:
 	void 				OnShowPrimaryObjects	(CUIWindow*, void*);
 	void 				OnShowSecondaryTasks	(CUIWindow*, void*);
 	void 				OnShowQuestNpcs			(CUIWindow*, void*);
+	void 				OnShowPersonalSpots		(CUIWindow*, void*);
+
+	void				OnTaskScopeStory		(CUIWindow*, void*);
+	void				OnTaskScopeSide			(CUIWindow*, void*);
+	void				OnTaskScopeFailed		(CUIWindow*, void*);
+
+	void				ResolveTaskRows			(CGameTask*& outPrimary, CGameTask*& outSecondary) const;
 };
 
 class CUITaskItem final : public CUIWindow

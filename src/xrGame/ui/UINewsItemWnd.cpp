@@ -35,11 +35,68 @@ void CUINewsItemWnd::Init(CUIXml& uiXml, const char* start_from)
 	m_UIText					= UIHelper::CreateStatic( uiXml, uiXml.NavigateToNode("text_static") ? "text_static" : "text_cont", this);
 	m_UIDate					= UIHelper::CreateStatic( uiXml, uiXml.NavigateToNode("date_static") ? "date_static" : "date_text_cont", this);
 
+	if (uiXml.NavigateToNode("dialog_replica_line"))
+	{
+		m_dialogReplicaLine = UIHelper::CreateStatic(uiXml, "dialog_replica_line", this);
+		m_hasDialogReplicaLayout = true;
+	}
+
 	uiXml.SetLocalRoot( stored_root );
 }
 
 void CUINewsItemWnd::Setup			(GAME_NEWS_DATA& news_data)
 {
+	if (m_hasDialogReplicaLayout && news_data.m_type == GAME_NEWS_DATA::eTalk)
+	{
+		const shared_str timeOnly = InventoryUtilities::GetTimeAsString(news_data.receive_time, etpTimeToMinutes);
+		m_UIDate->SetText(timeOnly.c_str());
+		m_UIDate->AdjustWidthToText();
+
+		if (m_UICaption)
+		{
+			if (strstr(news_data.news_caption.c_str(), ":lname_"))
+				m_UICaption->SetText(TranslateName(news_data.news_caption.c_str()).c_str());
+			else
+				m_UICaption->SetText(g_pStringTable->ParseStringFromScript(news_data.news_caption).c_str());
+
+			Fvector2 pos = m_UICaption->GetWndPos();
+			pos.x = m_UIDate->GetWndPos().x + m_UIDate->GetWndSize().x + 5.0f;
+			m_UICaption->SetWndPos(pos);
+			m_UICaption->SetWidth(std::min(m_UIText->GetWidth() - m_UIDate->GetWndSize().x - 5.0f, m_UICaption->GetWidth()));
+		}
+
+		m_UIText->Show(false);
+		if (m_dialogReplicaLine)
+		{
+			m_dialogReplicaLine->Show(true);
+			m_dialogReplicaLine->SetText(g_pStringTable->ParseStringFromScript(news_data.news_text).c_str());
+			m_dialogReplicaLine->AdjustHeightToText();
+		}
+
+		m_UIImage->InitTexture(news_data.texture_name.c_str());
+
+		Frect emptyRect = Frect().set(0.f, 0.f, 0.f, 0.f);
+		if (!news_data.tex_rect.cmp(emptyRect))
+		{
+			Frect texture_rect;
+			texture_rect.lt.set(news_data.tex_rect.x1, news_data.tex_rect.y1);
+			texture_rect.rb.set(news_data.tex_rect.x2, news_data.tex_rect.y2);
+			texture_rect.rb.add(texture_rect.lt);
+			m_UIImage->SetTextureRect(texture_rect);
+		}
+
+		float hTop = m_UIDate->GetWndPos().y + std::max(m_UIDate->GetHeight(), m_UICaption ? m_UICaption->GetHeight() : m_UIDate->GetHeight());
+		float hReplica = m_dialogReplicaLine ? (m_dialogReplicaLine->GetWndPos().y + m_dialogReplicaLine->GetHeight()) : hTop;
+		float hImg = m_UIImage->GetWndPos().y + m_UIImage->GetHeight();
+		float h = std::max(hReplica, hImg);
+		SetHeight(h + 6.0f);
+		return;
+	}
+
+	m_UIText->Show(true);
+	if (m_dialogReplicaLine)
+		m_dialogReplicaLine->Show(false);
+
 	shared_str time_str				= InventoryUtilities::GetTimeAndDateAsString( news_data.receive_time, m_legacyMode );
 	u32    sz  = (time_str.size() + 5) * sizeof(char);
 	xr_string   str = time_str.c_str();

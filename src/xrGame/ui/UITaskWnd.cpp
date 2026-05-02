@@ -19,9 +19,11 @@
 #include "../Level.h"
 #include "../GametaskManager.h"
 #include "../Actor.h"
+#include "../GametaskManager.h"
 #include "../../xrUI/Widgets/UICheckButton.h"
 #include "../../xrEngine/string_table.h"
 #include "../../xrUI/Widgets/UIGamepadLegend.h"
+#include "PdaConstants.h"
 
 CUITaskWnd::CUITaskWnd()
 	: m_background(nullptr), m_background2(nullptr),
@@ -33,6 +35,7 @@ CUITaskWnd::CUITaskWnd()
 	m_btn_focus(nullptr), m_btn_focus2(nullptr),
 	m_bTreasuresEnabled(false), m_bQuestNpcsEnabled(false),
 	m_bSecondaryTasksEnabled(false), m_bPrimaryObjectsEnabled(false),
+	m_bPersonalSpotsEnabled(true),
 	m_task_wnd(nullptr), m_task_wnd_show(false),
 	m_map_legend_wnd(nullptr), hint_wnd(nullptr)
 {
@@ -99,11 +102,34 @@ void CUITaskWnd::Init()
 		AddCallback(m_cbFilters[MAP_MARKS_FILTER_NPCS], BUTTON_CLICKED, CUIWndCallback::void_function(this, &CUITaskWnd::OnShowQuestNpcs));
 	}
 	m_bQuestNpcsEnabled				= true;
+
+	if (xml.NavigateToNode("filter_personal_spots"))
+	{
+		m_cbFilters[MAP_MARKS_FILTER_PERSONAL_SPOTS] = UIHelper::CreateCheck(xml, "filter_personal_spots", this);
+		m_cbFilters[MAP_MARKS_FILTER_PERSONAL_SPOTS]->SetCheck(true);
+		AddCallback(m_cbFilters[MAP_MARKS_FILTER_PERSONAL_SPOTS], BUTTON_CLICKED, CUIWndCallback::void_function(this, &CUITaskWnd::OnShowPersonalSpots));
+	}
+
+	if (xml.NavigateToNode("task_scope_story"))
+	{
+		m_btnScopeStory = UIHelper::Create3tButton(xml, "task_scope_story", this);
+		AddCallback(m_btnScopeStory, BUTTON_CLICKED, CUIWndCallback::void_function(this, &CUITaskWnd::OnTaskScopeStory));
+	}
+	if (xml.NavigateToNode("task_scope_side"))
+	{
+		m_btnScopeSide = UIHelper::Create3tButton(xml, "task_scope_side", this);
+		AddCallback(m_btnScopeSide, BUTTON_CLICKED, CUIWndCallback::void_function(this, &CUITaskWnd::OnTaskScopeSide));
+	}
+	if (xml.NavigateToNode("task_scope_failed"))
+	{
+		m_btnScopeFailed = UIHelper::Create3tButton(xml, "task_scope_failed", this);
+		AddCallback(m_btnScopeFailed, BUTTON_CLICKED, CUIWndCallback::void_function(this, &CUITaskWnd::OnTaskScopeFailed));
+	}
 	
 	m_pMapWnd						= new CUIMapWnd(); 
 	m_pMapWnd->SetAutoDelete		(false);
 	m_pMapWnd->hint_wnd				= hint_wnd;
-	m_pMapWnd->Init					(PDA_TASK_XML,"map_wnd");
+	m_pMapWnd->Init					(PDA_TASK_XML, PdaConfig::MapSubdialogWindowName);
 	AttachChild						(m_pMapWnd);
 
 	m_center_background				= UIHelper::CreateStatic( xml, "center_background", this );
@@ -240,49 +266,56 @@ void CUITaskWnd::SendMessage(CUIWindow* pWnd, s16 msg, void* pData)
 
 void CUITaskWnd::ReloadTaskInfo()
 {
-    CGameTask* storyTask = Level().GameTaskManager()->ActiveTask(eTaskTypeStoryline);
-    m_pStoryLineTaskItem->InitTask(storyTask);
+	CGameTask* primaryTask = nullptr;
+	CGameTask* secondaryTask = nullptr;
+	ResolveTaskRows(primaryTask, secondaryTask);
 
-    CGameTask* additionalTask = nullptr;
-    if (m_pSecondaryTaskItem)
-    {
-        additionalTask = Level().GameTaskManager()->ActiveTask(eTaskTypeAdditional);
-        m_pSecondaryTaskItem->InitTask(additionalTask);
-    }
+	m_pStoryLineTaskItem->InitTask(primaryTask);
+	if (m_pSecondaryTaskItem)
+	{
+		m_pSecondaryTaskItem->InitTask(secondaryTask);
+	}
 
-    if (!storyTask || (storyTask->m_map_object_id == u16(-1) || storyTask->m_map_location.size() == 0))
+	if (!primaryTask || (primaryTask->m_map_object_id == u16(-1) || primaryTask->m_map_location.size() == 0))
 		m_btn_focus->Show(false);
 	else
 		m_btn_focus->Show(true);
 
 	if (m_btn_focus2)
 	{
-		if (!additionalTask || (additionalTask->m_map_object_id == u16(-1) || additionalTask->m_map_location.size() == 0))
+		if (!secondaryTask || (secondaryTask->m_map_object_id == u16(-1) || secondaryTask->m_map_location.size() == 0))
 			m_btn_focus2->Show(false);
 		else
 			m_btn_focus2->Show(true);
 	}
 
 	Locations map_locs			= Level().MapManager().Locations();
-	Locations_it b				= map_locs.begin(), 
+	Locations_it b				= map_locs.begin(),
 				 e				= map_locs.end();
-	for(;b!=e;b++)
+	for (; b != e; b++)
 	{
+		if (b->location && b->location->IsUserDefined())
+		{
+			const bool showPersonal = !m_cbFilters[MAP_MARKS_FILTER_PERSONAL_SPOTS] || m_bPersonalSpotsEnabled;
+			showPersonal ? b->location->EnableSpot() : b->location->DisableSpot();
+			continue;
+		}
+
 		shared_str spot = b->spot_type;
-		if(spot=="treasure")
-			m_bTreasuresEnabled?b->location->EnableSpot():b->location->DisableSpot();
-		else if(spot=="primary_object")
-			m_bPrimaryObjectsEnabled?b->location->EnableSpot():b->location->DisableSpot();
-		else if(spot=="secondary_task_location" || spot=="secondary_task_location_complex_timer")
-			(/*b->location->SpotEnabled() && */m_bSecondaryTasksEnabled)?b->location->EnableSpot():b->location->DisableSpot();
-		else if(spot=="ui_pda2_trader_location" || spot=="ui_pda2_mechanic_location" ||
-		   spot=="ui_pda2_scout_location" || spot=="ui_pda2_quest_npc_location" || 
-		   spot=="ui_pda2_medic_location" || spot=="ui_pda2_actor_box_location" ||
-		   spot=="ui_pda2_actor_sleep_location")
-			m_bQuestNpcsEnabled?b->location->EnableSpot():b->location->DisableSpot();
+		if (spot == PdaMapSpot::Treasure)
+			m_bTreasuresEnabled ? b->location->EnableSpot() : b->location->DisableSpot();
+		else if (spot == PdaMapSpot::PrimaryObject)
+			m_bPrimaryObjectsEnabled ? b->location->EnableSpot() : b->location->DisableSpot();
+		else if (spot == PdaMapSpot::SecondaryTask || spot == PdaMapSpot::SecondaryTaskComplexTimer)
+			m_bSecondaryTasksEnabled ? b->location->EnableSpot() : b->location->DisableSpot();
+		else if (spot == PdaMapSpot::Trader || spot == PdaMapSpot::Mechanic ||
+				 spot == PdaMapSpot::Scout || spot == PdaMapSpot::QuestNpc ||
+				 spot == PdaMapSpot::Medic || spot == PdaMapSpot::ActorBox ||
+				 spot == PdaMapSpot::ActorSleep)
+			m_bQuestNpcsEnabled ? b->location->EnableSpot() : b->location->DisableSpot();
 	}
 
-	if (storyTask || additionalTask)
+	if (primaryTask || secondaryTask)
 	{
 		m_actual_frame = Level().GameTaskManager()->ActualFrame();
 		if (m_task_wnd->IsShown())
@@ -292,12 +325,20 @@ void CUITaskWnd::ReloadTaskInfo()
 	if (!m_second_task_index)
 		return;
 
-	if (storyTask && !additionalTask)
+	const bool legacyTaskCounter = (!m_btnScopeStory || m_taskScopeMode == ETaskScopeMode::Story);
+	if (!legacyTaskCounter)
+	{
+		m_second_task_index->SetVisible(false);
+		m_second_task_index->TextItemControl()->SetText("");
+		return;
+	}
+
+	if (primaryTask && !secondaryTask)
 	{
 		const auto task_count = Level().GameTaskManager()->GetTaskCount(eTaskStateInProgress, eTaskTypeStoryline);
 		if (task_count)
 		{
-			const auto task_index = Level().GameTaskManager()->GetTaskIndex(storyTask, eTaskStateInProgress, eTaskTypeStoryline);
+			const auto task_index = Level().GameTaskManager()->GetTaskIndex(primaryTask, eTaskStateInProgress, eTaskTypeStoryline);
 			string32 buf;
 			xr_sprintf(buf, sizeof(buf), "%d / %d", task_index, task_count);
 
@@ -311,13 +352,13 @@ void CUITaskWnd::ReloadTaskInfo()
 		}
 	}
 
-	if (additionalTask)
+	if (secondaryTask)
 	{
 		const auto task2_count = Level().GameTaskManager()->GetTaskCount(eTaskStateInProgress, eTaskTypeAdditional);
 
 		if (task2_count)
 		{
-			const auto task2_index = Level().GameTaskManager()->GetTaskIndex(additionalTask, eTaskStateInProgress, eTaskTypeAdditional);
+			const auto task2_index = Level().GameTaskManager()->GetTaskIndex(secondaryTask, eTaskStateInProgress, eTaskTypeAdditional);
 			string32 buf;
 			xr_sprintf(buf, sizeof(buf), "%d / %d", task2_index, task2_count);
 
@@ -415,14 +456,18 @@ void CUITaskWnd::TaskShowMapSpot( CGameTask* task, bool show )
 
 void CUITaskWnd::OnTask1DbClicked(CUIWindow*, void*)
 {
-    CGameTask* task = Level().GameTaskManager()->ActiveTask(eTaskTypeStoryline);
-    TaskSetTargetMap(task);
+	CGameTask* primary = nullptr;
+	CGameTask* secondary = nullptr;
+	ResolveTaskRows(primary, secondary);
+	TaskSetTargetMap(primary);
 }
 
 void CUITaskWnd::OnTask2DbClicked(CUIWindow*, void*)
 {
-    CGameTask* task = Level().GameTaskManager()->ActiveTask(eTaskTypeAdditional);
-    TaskSetTargetMap(task);
+	CGameTask* primary = nullptr;
+	CGameTask* secondary = nullptr;
+	ResolveTaskRows(primary, secondary);
+	TaskSetTargetMap(secondary);
 }
 
 void CUITaskWnd::ShowMapLegend( bool status )
@@ -454,6 +499,65 @@ void CUITaskWnd::OnShowQuestNpcs(CUIWindow* ui, void* d)
 {
 	m_bQuestNpcsEnabled = !m_bQuestNpcsEnabled;
 	ReloadTaskInfo();
+}
+
+void CUITaskWnd::OnShowPersonalSpots(CUIWindow*, void*)
+{
+	m_bPersonalSpotsEnabled = !m_bPersonalSpotsEnabled;
+	ReloadTaskInfo();
+}
+
+void CUITaskWnd::OnTaskScopeStory(CUIWindow*, void*)
+{
+	m_taskScopeMode = ETaskScopeMode::Story;
+	ReloadTaskInfo();
+}
+
+void CUITaskWnd::OnTaskScopeSide(CUIWindow*, void*)
+{
+	m_taskScopeMode = ETaskScopeMode::Side;
+	ReloadTaskInfo();
+}
+
+void CUITaskWnd::OnTaskScopeFailed(CUIWindow*, void*)
+{
+	m_taskScopeMode = ETaskScopeMode::Failed;
+	ReloadTaskInfo();
+}
+
+void CUITaskWnd::ResolveTaskRows(CGameTask*& outPrimary, CGameTask*& outSecondary) const
+{
+	outPrimary = nullptr;
+	outSecondary = nullptr;
+
+	CGameTaskManager* tm = Level().GameTaskManager();
+	if (!m_btnScopeStory)
+	{
+		outPrimary = tm->ActiveTask(eTaskTypeStoryline);
+		if (m_pSecondaryTaskItem)
+			outSecondary = tm->ActiveTask(eTaskTypeAdditional);
+		return;
+	}
+
+	switch (m_taskScopeMode)
+	{
+	case ETaskScopeMode::Story:
+		outPrimary = tm->ActiveTask(eTaskTypeStoryline);
+		if (m_pSecondaryTaskItem)
+			outSecondary = tm->ActiveTask(eTaskTypeAdditional);
+		break;
+	case ETaskScopeMode::Side:
+		outPrimary = tm->ActiveTask(eTaskTypeAdditional);
+		outSecondary = nullptr;
+		break;
+	case ETaskScopeMode::Failed:
+		outPrimary = tm->IterateGet(nullptr, eTaskStateFail, eTaskTypeStoryline, true);
+		if (m_pSecondaryTaskItem)
+			outSecondary = tm->IterateGet(nullptr, eTaskStateFail, eTaskTypeAdditional, true);
+		break;
+	default:
+		break;
+	}
 }
 
 bool CUITaskWnd::OnGamepadKeyAction(int id, EUIMessages gamepad_action)
@@ -545,30 +649,40 @@ bool CUITaskWnd::OnGamepadKeyHold(int id)
 
 bool CUITaskWnd::SwitchToNextFilter(bool bLoop)
 {
-	int newFilterIndex = m_currentFilterIndex + 1;
-	if (newFilterIndex >= MAP_MARKS_FILTER_MAX)
+	for (u32 step = 0; step < MAP_MARKS_FILTER_MAX; ++step)
 	{
-		if (bLoop)
-			newFilterIndex = 0;
-		else
-			return false;
+		int newFilterIndex = m_currentFilterIndex + 1;
+		if (newFilterIndex >= MAP_MARKS_FILTER_MAX)
+		{
+			if (bLoop)
+				newFilterIndex = 0;
+			else
+				return false;
+		}
+		m_currentFilterIndex = newFilterIndex;
+		if (m_cbFilters[m_currentFilterIndex])
+			return true;
 	}
-	m_currentFilterIndex = newFilterIndex;
-	return true;
+	return false;
 }
 
 bool CUITaskWnd::SwitchToPrevFilter(bool bLoop)
 {
-	int newFilterIndex = m_currentFilterIndex - 1;
-	if (newFilterIndex < 0)
+	for (u32 step = 0; step < MAP_MARKS_FILTER_MAX; ++step)
 	{
-		if (bLoop)
-			newFilterIndex = MAP_MARKS_FILTER_MAX - 1;
-		else
-			return false;
+		int newFilterIndex = m_currentFilterIndex - 1;
+		if (newFilterIndex < 0)
+		{
+			if (bLoop)
+				newFilterIndex = MAP_MARKS_FILTER_MAX - 1;
+			else
+				return false;
+		}
+		m_currentFilterIndex = newFilterIndex;
+		if (m_cbFilters[m_currentFilterIndex])
+			return true;
 	}
-	m_currentFilterIndex = newFilterIndex;
-	return true;
+	return false;
 }
 
 void CUITaskWnd::UpdateFilterHighlight()
@@ -595,7 +709,18 @@ void CUITaskWnd::UpdateGamepadLegend()
 	{
 		if (CUIStatic* actionAcceptS = actionAccept->ui_cast_static())
 		{
-			actionAcceptS->SetTextST(m_task_wnd->IsShown() ? "ui_tasks_show_on_map" : m_cbFilters[MAP_MARKS_FILTER_TREASURES] ? "ui_tasks_filter_toggle" : "ui_tasks_show_on_map_main");
+			{
+				bool hasAnyFilter = false;
+				for (int fi = 0; fi < MAP_MARKS_FILTER_MAX; ++fi)
+				{
+					if (m_cbFilters[fi])
+					{
+						hasAnyFilter = true;
+						break;
+					}
+				}
+				actionAcceptS->SetTextST(m_task_wnd->IsShown() ? "ui_tasks_show_on_map" : hasAnyFilter ? "ui_tasks_filter_toggle" : "ui_tasks_show_on_map_main");
+			}
 		}
 	}
 
@@ -611,7 +736,18 @@ void CUITaskWnd::UpdateGamepadLegend()
 	CUIWindow* filterNext = m_gamepad_legend->FindChild("filter_next");
 	if (filterNext)
 	{
-		filterNext->Show(m_cbFilters[MAP_MARKS_FILTER_TREASURES] != nullptr);
+		{
+			bool hasAnyFilter = false;
+			for (int fi = 0; fi < MAP_MARKS_FILTER_MAX; ++fi)
+			{
+				if (m_cbFilters[fi])
+				{
+					hasAnyFilter = true;
+					break;
+				}
+			}
+			filterNext->Show(hasAnyFilter);
+		}
 	}
 
 }
