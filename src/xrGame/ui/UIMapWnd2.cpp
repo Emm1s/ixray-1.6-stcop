@@ -14,6 +14,10 @@ bool WindowNameEquals(const char* windowName, const char* candidate)
 {
 	return windowName && candidate && xr_strcmp(windowName, candidate) == 0;
 }
+
+constexpr u8 kNavExtraIndexStart = 9;
+constexpr u8 kNavExtraIndexMaxExclusive = 32;
+constexpr const char* kNavButtonPathFormat = "btn_nav_parent:btn_nav_%d";
 } // namespace
 
 void CUIMapWnd::RegisterNavButtonByName(CUI3tButton* btn)
@@ -80,20 +84,33 @@ void CUIMapWnd::init_xml_nav(CUIXml& xml, const char* start_from)
 
 		VERIFY(hint_wnd);
 
+		auto registerNavButtonByPathLambda = [this, &xml](const char* buttonPath) -> CUI3tButton*
+		{
+			if (!xml.NavigateToNode(buttonPath))
+			{
+				return nullptr;
+			}
+
+			CUI3tButton* navButton = UIHelper::Create3tButton(xml, buttonPath, m_btn_nav_parent);
+			Register(navButton);
+			RegisterNavButtonByName(navButton);
+			return navButton;
+		};
+
 		string64 buf;
 		for (u8 i = 0; i < max_btn_nav; ++i)
 		{
-			xr_sprintf(buf, "btn_nav_parent:btn_nav_%d", i);
+			xr_sprintf(buf, kNavButtonPathFormat, i);
+			m_btn_nav[i] = registerNavButtonByPathLambda(buf);
+		}
 
-			if (!xml.NavigateToNode(buf))
+		for (u8 i = kNavExtraIndexStart; i < kNavExtraIndexMaxExclusive; ++i)
+		{
+			xr_sprintf(buf, kNavButtonPathFormat, i);
+			if (!registerNavButtonByPathLambda(buf))
 			{
-				m_btn_nav[i] = nullptr;
-				continue;
+				break;
 			}
-
-			m_btn_nav[i] = UIHelper::Create3tButton(xml, buf, m_btn_nav_parent);
-			Register(m_btn_nav[i]);
-			RegisterNavButtonByName(m_btn_nav[i]);
 		}
 	}
 	else
@@ -102,19 +119,17 @@ void CUIMapWnd::init_xml_nav(CUIXml& xml, const char* start_from)
 		xr_strconcat(pth, start_from, ":main_wnd:map_header_frame_line:tool_bar");
 
 		string512 temp;
-		m_btn_nav[btn_zoom_reset] = UIHelper::Create3tButton(xml, xr_strconcat(temp, pth, ":global_map_btn"), UIMainMapHeader);
-		Register(m_btn_nav[btn_zoom_reset]);
-		m_btn_nav[btn_actor] = UIHelper::Create3tButton(xml, xr_strconcat(temp, pth, ":actor_btn"), UIMainMapHeader);
-		Register(m_btn_nav[btn_actor]);
-		m_btn_nav[btn_zoom_more] = UIHelper::Create3tButton(xml, xr_strconcat(temp, pth, ":zoom_in_btn"), UIMainMapHeader);
-		Register(m_btn_nav[btn_zoom_more]);
-		m_btn_nav[btn_zoom_less] = UIHelper::Create3tButton(xml, xr_strconcat(temp, pth, ":zoom_out_btn"), UIMainMapHeader);
-		Register(m_btn_nav[btn_zoom_less]);
+		auto registerToolbarButtonLambda = [this, &xml, &pth, &temp](u8 navIndex, const char* buttonName)
+		{
+			m_btn_nav[navIndex] = UIHelper::Create3tButton(xml, xr_strconcat(temp, pth, buttonName), UIMainMapHeader);
+			Register(m_btn_nav[navIndex]);
+			RegisterNavButtonByName(m_btn_nav[navIndex]);
+		};
 
-		RegisterNavButtonByName(m_btn_nav[btn_zoom_reset]);
-		RegisterNavButtonByName(m_btn_nav[btn_actor]);
-		RegisterNavButtonByName(m_btn_nav[btn_zoom_more]);
-		RegisterNavButtonByName(m_btn_nav[btn_zoom_less]);
+		registerToolbarButtonLambda(btn_zoom_reset, ":global_map_btn");
+		registerToolbarButtonLambda(btn_actor, ":actor_btn");
+		registerToolbarButtonLambda(btn_zoom_more, ":zoom_in_btn");
+		registerToolbarButtonLambda(btn_zoom_less, ":zoom_out_btn");
 	}
 }
 
@@ -181,3 +196,4 @@ void CUIMapWnd::OnBtnPersonalSpot_Push(CUIWindow*, void*)
 {
 	SetPersonalSpotPlacement(!m_personalSpotPlacement);
 }
+

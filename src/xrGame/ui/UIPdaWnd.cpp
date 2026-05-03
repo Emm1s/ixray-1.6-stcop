@@ -147,11 +147,12 @@ bool TryGetPdaUpdateSection(const shared_str& sectionId, pda_section::part& upda
 // Same time + legacy date format as PDA timer_frame_line (InventoryUtilities).
 shared_str BuildPdaGameDateTimeString()
 {
-    xr_string strTime = *InventoryUtilities::GetGameTimeAsString(InventoryUtilities::etpTimeToMinutes);
-    strTime += " ";
-    strTime += *InventoryUtilities::GetDateAsStringLegacy(Level().GetGameTime(), InventoryUtilities::edpDateToDay);
-    return shared_str(strTime.c_str());
+    xr_string gameDateTime = *InventoryUtilities::GetGameTimeAsString(InventoryUtilities::etpTimeToMinutes);
+    gameDateTime += " ";
+    gameDateTime += *InventoryUtilities::GetDateAsStringLegacy(Level().GetGameTime(), InventoryUtilities::edpDateToDay);
+    return shared_str(gameDateTime.c_str());
 }
+
 } // namespace
 
 void RearrangeTabButtons(CUITabControl* pTab);
@@ -448,19 +449,28 @@ void CUIPdaWnd::Show(bool status)
 
 void CUIPdaWnd::UpdateDateTime()
 {
-	if (!UITimerBackground && !(m_caption && m_captionGameDateTime))
-		return;
-
-	static shared_str prevStrTime = " ";
-	const shared_str strTime = BuildPdaGameDateTimeString();
-
-	if (xr_strcmp(strTime.c_str(), prevStrTime))
+	const bool hasTimerTarget = UITimerBackground != nullptr;
+	const bool hasCaptionTarget = m_caption && m_captionGameDateTime;
+	if (!hasTimerTarget && !hasCaptionTarget)
 	{
-		prevStrTime = strTime;
-		if (UITimerBackground)
-			UITimerBackground->UITitleText.SetText(strTime.c_str());
-		if (m_caption && m_captionGameDateTime)
-			SetCaption(strTime.c_str());
+		return;
+	}
+
+	static shared_str prevDateTimeValue;
+	const shared_str gameDateTime = BuildPdaGameDateTimeString();
+	if (prevDateTimeValue.equal(gameDateTime))
+	{
+		return;
+	}
+
+	prevDateTimeValue = gameDateTime;
+	if (hasTimerTarget)
+	{
+		UITimerBackground->UITitleText.SetText(gameDateTime.c_str());
+	}
+	if (hasCaptionTarget)
+	{
+		SetCaption(gameDateTime.c_str());
 	}
 }
 
@@ -560,6 +570,7 @@ void CUIPdaWnd::SetActiveSubdialog(const shared_str& section)
 	{
 		PdaState::Clear(updateSection);
 	}
+
 	if (m_isSetActiveSubdialog)
 	{
 		CUIDialogWndEx* ret = nullptr;
@@ -603,6 +614,7 @@ void CUIPdaWnd::SetActiveSubdialog(const shared_str& section)
 		m_sActiveSection = resolvedSection;
 		SetActiveCaption();
 	}
+
 }
 
 void CUIPdaWnd::SetActiveCaption()
