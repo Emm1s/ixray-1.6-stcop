@@ -143,7 +143,16 @@ bool TryGetPdaUpdateSection(const shared_str& sectionId, pda_section::part& upda
     }
     return false;
 }
+
+// Same time + legacy date format as PDA timer_frame_line (InventoryUtilities).
+shared_str BuildPdaGameDateTimeString()
+{
+    xr_string strTime = *InventoryUtilities::GetGameTimeAsString(InventoryUtilities::etpTimeToMinutes);
+    strTime += " ";
+    strTime += *InventoryUtilities::GetDateAsStringLegacy(Level().GetGameTime(), InventoryUtilities::edpDateToDay);
+    return shared_str(strTime.c_str());
 }
+} // namespace
 
 void RearrangeTabButtons(CUITabControl* pTab);
 void RearrangeTabButtonsLegacy(CUITabControl* pTab, xr_vector<Fvector2>& vec_sign_places);
@@ -221,6 +230,8 @@ void CUIPdaWnd::Init()
 	{
 		m_caption				= UIHelper::CreateStatic	( uiXml, "caption_static", this );
 		m_caption_const			= ( m_caption->TextItemControl()->GetText() );
+		// game_datetime: 1 = show game time + legacy date in caption; 0 = default (prefix + active tab, vanilla PDA).
+		m_captionGameDateTime	= uiXml.ReadAttribInt("caption_static", 0, "game_datetime", 0) != 0;
 	}
 
 	if (uiXml.NavigateToNode("clock_wnd"))
@@ -437,18 +448,19 @@ void CUIPdaWnd::Show(bool status)
 
 void CUIPdaWnd::UpdateDateTime()
 {
-	if (!UITimerBackground)
+	if (!UITimerBackground && !(m_caption && m_captionGameDateTime))
 		return;
 
 	static shared_str prevStrTime = " ";
-	xr_string strTime = *InventoryUtilities::GetGameTimeAsString(InventoryUtilities::etpTimeToMinutes);
-				strTime += " ";
-				strTime += *InventoryUtilities::GetDateAsStringLegacy(Level().GetGameTime(), InventoryUtilities::edpDateToDay);
+	const shared_str strTime = BuildPdaGameDateTimeString();
 
 	if (xr_strcmp(strTime.c_str(), prevStrTime))
 	{
-		UITimerBackground->UITitleText.SetText(strTime.c_str());
-		prevStrTime = strTime.c_str();
+		prevStrTime = strTime;
+		if (UITimerBackground)
+			UITimerBackground->UITitleText.SetText(strTime.c_str());
+		if (m_caption && m_captionGameDateTime)
+			SetCaption(strTime.c_str());
 	}
 }
 
@@ -595,6 +607,9 @@ void CUIPdaWnd::SetActiveSubdialog(const shared_str& section)
 
 void CUIPdaWnd::SetActiveCaption()
 {
+	if (m_captionGameDateTime)
+		return;
+
 	TABS_VECTOR*	btn_vec		= UITabControl->GetButtonsVector();
 	TABS_VECTOR::iterator it_b	= btn_vec->begin();
 	TABS_VECTOR::iterator it_e	= btn_vec->end();

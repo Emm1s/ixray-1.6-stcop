@@ -42,6 +42,7 @@ protected:
 	
 	CUIStatic*				m_caption;
 	shared_str				m_caption_const;
+	bool					m_captionGameDateTime = false;
 	CUIAnimatedStatic*		m_anim_static;
 	CUIStatic*				m_clock;
 
