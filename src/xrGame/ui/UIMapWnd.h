@@ -77,6 +77,8 @@ private:
 	CUI3tButton*				m_btn_nav[max_btn_nav];
 	CUIStatic*					m_btn_nav_parent;
 	CUIStatic*					m_controller_cursor = nullptr;
+	// Optional XML: map_pattern_overlay (drawn above map; non-interactive).
+	CUIStatic*					m_mapPatternOverlay = nullptr;
 	u32							m_nav_timing;
 	Fvector2					m_controller_cursor_pos = { 0, 0 };
 	Fvector2					m_controller_cursor_pos_initial = { 0, 0 };

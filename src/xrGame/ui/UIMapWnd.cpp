@@ -256,6 +256,17 @@ void CUIMapWnd::Init(const char* xml_name, const char* start_from)
 	m_UIPropertiesBox->Hide();
 	m_UIPropertiesBox->SetWindowName("property_box");
 
+	xr_strconcat(pth, start_from, ":map_pattern_overlay");
+	if (uiXml.NavigateToNode(pth))
+	{
+		m_mapPatternOverlay = new CUIStatic();
+		m_mapPatternOverlay->SetAutoDelete(true);
+		xml_init.InitStatic(uiXml, pth, 0, m_mapPatternOverlay);
+		m_UILevelFrame->AttachChild(m_mapPatternOverlay);
+		// Disabled for hit-testing only; still draws above the map, below m_controller_cursor.
+		m_mapPatternOverlay->Enable(false);
+	}
+
 	m_controller_cursor = new CUIStatic();
 	m_controller_cursor->InitTexture("ui_cur_task");
 	m_controller_cursor->SetWndSize(Fvector2().set(19.f, 19.f));
