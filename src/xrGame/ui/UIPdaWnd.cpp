@@ -144,6 +144,15 @@ bool TryGetPdaUpdateSection(const shared_str& sectionId, pda_section::part& upda
     return false;
 }
 
+void InitPdaKeySound(CUIXml& xml, const char* nodeName, ref_sound& soundRef)
+{
+	const shared_str soundName = xml.Read(nodeName, 0, "");
+	if (xr_strlen(soundName.c_str()))
+	{
+		::Sound->create(soundRef, *soundName, st_Effect, sg_SourceType);
+	}
+}
+
 // Same time + legacy date format as PDA timer_frame_line (InventoryUtilities).
 shared_str BuildPdaGameDateTimeString()
 {
@@ -265,6 +274,9 @@ void CUIPdaWnd::Init()
 
 	if (uiXml.NavigateToNode("hint_wnd"))
 		m_hint_wnd				= UIHelper::CreateHint( uiXml, "hint_wnd" );
+
+	InitPdaKeySound(uiXml, "snd_key_tab", m_soundKeyTab);
+	InitPdaKeySound(uiXml, "snd_key_close", m_soundKeyClose);
 
 	UITabControl					= new CUITabControl();
 	UITabControl->SetAutoDelete		(true);
@@ -987,10 +999,27 @@ bool CUIPdaWnd::OnKeyboardAction(int dik, EUIMessages keyboard_action)
 	{
 		if (WINDOW_KEY_PRESSED == keyboard_action)
 		{
+			PlayKeyCloseSound();
 			HideDialog();
 		}
 
 		return true;
+	}
+
+	if (WINDOW_KEY_PRESSED == keyboard_action)
+	{
+		if (is_binded(kUI_TAB_LEFT, dik) && !any_binded_key_for_action_pressed_c(kUI_TAB_RIGHT))
+		{
+			UITabControl->PrevTab(true);
+			PlayKeyTabSound();
+			return true;
+		}
+		if (is_binded(kUI_TAB_RIGHT, dik) && !any_binded_key_for_action_pressed_c(kUI_TAB_LEFT))
+		{
+			UITabControl->NextTab(true);
+			PlayKeyTabSound();
+			return true;
+		}
 	}
 
 	return inherited::OnKeyboardAction(dik, keyboard_action);
@@ -1004,6 +1033,7 @@ bool CUIPdaWnd::OnGamepadKeyAction(int key, EUIMessages gamepad_action)
 		{
 			case kACTIVE_JOBS:
 			{
+				PlayKeyCloseSound();
 				HideDialog();
 				break;
 			}
@@ -1013,6 +1043,7 @@ bool CUIPdaWnd::OnGamepadKeyAction(int key, EUIMessages gamepad_action)
 		{
 			case kUI_BACK:
 			{
+				PlayKeyCloseSound();
 				HideDialog();
 				break;
 			}
@@ -1020,12 +1051,14 @@ bool CUIPdaWnd::OnGamepadKeyAction(int key, EUIMessages gamepad_action)
 			{
 				ActionRepeaters()->SetActionStarted(this, kUI_TAB_LEFT);
 				UITabControl->PrevTab(true);
+				PlayKeyTabSound();
 				break;
 			}
 			case kUI_TAB_RIGHT:
 			{
 				ActionRepeaters()->SetActionStarted(this, kUI_TAB_RIGHT);
 				UITabControl->NextTab(true);
+				PlayKeyTabSound();
 				break;
 			}
 			case kUI_TAB_SECONDARY_LEFT:
@@ -1074,6 +1107,7 @@ bool CUIPdaWnd::OnGamepadKeyHold(int key)
 			if (ActionRepeaters()->CanRepeatActionNow(this, kUI_TAB_LEFT) && !any_binded_key_for_action_pressed_c(kUI_TAB_RIGHT))
 			{
 				UITabControl->PrevTab();
+				PlayKeyTabSound();
 				return true;
 			}
 			break;
@@ -1083,6 +1117,7 @@ bool CUIPdaWnd::OnGamepadKeyHold(int key)
 			if (ActionRepeaters()->CanRepeatActionNow(this, kUI_TAB_RIGHT) && !any_binded_key_for_action_pressed_c(kUI_TAB_LEFT))
 			{
 				UITabControl->NextTab();
+				PlayKeyTabSound();
 				return true;
 			}
 			break;
@@ -1211,5 +1246,21 @@ void CUIPdaWnd::ResetCursor()
 	if (!last_cursor_pos.similar({ 0.f, 0.f }))
 	{
 		GetUICursor().SetUICursorPosition(last_cursor_pos);
+	}
+}
+
+void CUIPdaWnd::PlayKeyTabSound()
+{
+	if (m_soundKeyTab.handle())
+	{
+		m_soundKeyTab.play(nullptr, sm_2D);
+	}
+}
+
+void CUIPdaWnd::PlayKeyCloseSound()
+{
+	if (m_soundKeyClose.handle())
+	{
+		m_soundKeyClose.play(nullptr, sm_2D);
 	}
 }

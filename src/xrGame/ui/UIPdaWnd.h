@@ -58,11 +58,15 @@ protected:
 
 	CUIFrameLineWnd*		UIMainButtonsBackground;
 	CUIFrameLineWnd*		UITimerBackground;
+	ref_sound				m_soundKeyTab;
+	ref_sound				m_soundKeyClose;
 
 	void					UpdateDateTime					();
 	void					DrawUpdatedSections				();
 	void					InitTabBackgrounds				(CUIXml& xml);
 	void					SetActiveTabBackground			(const shared_str& sectionId);
+	void					PlayKeyTabSound					();
+	void					PlayKeyCloseSound				();
 private:
 	bool m_isSetActiveSubdialog = false;
 	const char* m_onSetActiveSubdialog = {};
