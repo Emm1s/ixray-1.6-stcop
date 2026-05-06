@@ -28,6 +28,7 @@
 #include "ui/UITalkWnd.h"
 #include "Inventory.h"
 #include "InfoPortion.h"
+#include "ai/stalker/ai_stalker.h"
 #include "ai/monsters/basemonster/base_monster.h"
 #include "WeaponMagazined.h"
 #include "ai/stalker/ai_stalker.h"
@@ -539,6 +540,21 @@ void CScriptGameObject::TransferItem(CScriptGameObject* pItem, CScriptGameObject
 		return;
 	}
 
+	CActor* actor = object().cast_actor();
+	if (actor)
+	{
+		CEntityAlive* targetAlive = pForWho->object().cast_entity_alive();
+		CAI_Stalker* targetStalker = targetAlive ? targetAlive->cast_stalker() : nullptr;
+		if (targetStalker && targetStalker->critically_wounded())
+		{
+			const shared_str section = pIItem->object().cNameSect();
+			if (section == "medkit" || section == "medkit_army" || section == "medkit_scientic")
+			{
+				actor->RegisterHelpWounded();
+			}
+		}
+	}
+
 	// выбросить у себя 
 	NET_Packet P;
 	CGameObject::u_EventGen(P, GE_TRADE_SELL, object().ID());
@@ -556,6 +572,72 @@ u32 CScriptGameObject::Money()
 	CInventoryOwner* pOurOwner = object().cast_inventory_owner();
 	VERIFY(pOurOwner);
 	return pOurOwner->get_money();
+}
+
+u32 CScriptGameObject::GetActorMoneyEarned()
+{
+	CActor* actor = object().cast_actor();
+	if (!actor)
+	{
+		return 0;
+	}
+
+	return actor->GetStatMoneyEarned();
+}
+
+u32 CScriptGameObject::GetActorMoneySpent()
+{
+	CActor* actor = object().cast_actor();
+	if (!actor)
+	{
+		return 0;
+	}
+
+	return actor->GetStatMoneySpent();
+}
+
+float CScriptGameObject::GetActorDistanceKm()
+{
+	CActor* actor = object().cast_actor();
+	if (!actor)
+	{
+		return 0.0f;
+	}
+
+	return actor->GetStatDistanceMeters() / 1000.0f;
+}
+
+u32 CScriptGameObject::GetActorHeadshots()
+{
+	CActor* actor = object().cast_actor();
+	if (!actor)
+	{
+		return 0;
+	}
+
+	return actor->GetStatHeadshots();
+}
+
+u32 CScriptGameObject::GetActorDeaths()
+{
+	CActor* actor = object().cast_actor();
+	if (!actor)
+	{
+		return 0;
+	}
+
+	return actor->GetStatDeaths();
+}
+
+u32 CScriptGameObject::GetActorHelpWounded()
+{
+	CActor* actor = object().cast_actor();
+	if (!actor)
+	{
+		return 0;
+	}
+
+	return actor->GetStatHelpWounded();
 }
 
 void CScriptGameObject::TransferMoney(int money, CScriptGameObject* pForWho)

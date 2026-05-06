@@ -1184,6 +1184,47 @@ void CActor::HitSignal(float perc, Fvector& vLocalDir, CObject* who, s16 element
 	}
 }
 void start_tutorial(const char* name);
+void CActor::OnMoneyChanged(u32 previousMoney, u32 newMoney)
+{
+	if (!m_isMoneyStatInitialized)
+	{
+		m_isMoneyStatInitialized = true;
+		return;
+	}
+
+	if (newMoney > previousMoney)
+	{
+		m_statMoneyEarned += (newMoney - previousMoney);
+	}
+	else if (newMoney < previousMoney)
+	{
+		m_statMoneySpent += (previousMoney - newMoney);
+	}
+}
+
+void CActor::AddDistanceMeters(float deltaMeters)
+{
+	if (deltaMeters > 0.0f)
+	{
+		m_statDistanceMeters += deltaMeters;
+	}
+}
+
+void CActor::RegisterHeadshotKill()
+{
+	++m_statHeadshots;
+}
+
+void CActor::RegisterPlayerDeath()
+{
+	++m_statDeaths;
+}
+
+void CActor::RegisterHelpWounded()
+{
+	++m_statHelpWounded;
+}
+
 void CActor::Die	(CObject* who)
 {
 	SpatialComponent->spatial.type &= ~ESPATIAL_TYPE::ACTOR_ALIVE;
@@ -1191,6 +1232,7 @@ void CActor::Die	(CObject* who)
 #ifdef DEBUG
 	Msg("--- Actor [%s] dies !", this->Name());
 #endif // #ifdef DEBUG
+	RegisterPlayerDeath();
 	inherited::Die		(who);
 
 	if (OnServer())
@@ -2318,6 +2360,24 @@ void CActor::shedule_Update	(u32 DT)
 	}
 
 	inherited::shedule_Update	(DT);
+
+	if (g_Alive())
+	{
+		if (m_hasLastStatPosition)
+		{
+			const float deltaMeters = Position().distance_to(m_lastStatPosition);
+			if (deltaMeters > 0.0f && deltaMeters < 100.0f)
+			{
+				AddDistanceMeters(deltaMeters);
+			}
+		}
+		m_lastStatPosition.set(Position());
+		m_hasLastStatPosition = true;
+	}
+	else
+	{
+		m_hasLastStatPosition = false;
+	}
 
 	//эффектор включаемый при ходьбе
 	if (!pCamBobbing)

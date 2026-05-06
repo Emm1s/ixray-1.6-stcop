@@ -171,6 +171,17 @@ public:
 	virtual void StartTalk			(CInventoryOwner* talk_partner);
 			void RunTalkDialog		(CInventoryOwner* talk_partner, bool disable_break);
 	CActorStatisticMgr&				StatisticMgr()	{return *m_statistic_manager;}
+			void OnMoneyChanged		(u32 previousMoney, u32 newMoney);
+			void AddDistanceMeters	(float deltaMeters);
+			void RegisterHeadshotKill();
+			void RegisterPlayerDeath();
+			void RegisterHelpWounded();
+			u32 GetStatMoneyEarned	() const { return m_statMoneyEarned; }
+			u32 GetStatMoneySpent	() const { return m_statMoneySpent; }
+			float GetStatDistanceMeters() const { return m_statDistanceMeters; }
+			u32 GetStatHeadshots	() const { return m_statHeadshots; }
+			u32 GetStatDeaths		() const { return m_statDeaths; }
+			u32 GetStatHelpWounded	() const { return m_statHelpWounded; }
     CEncyclopediaRegistryWrapper*	encyclopedia_registry;
 	CGameNewsRegistryWrapper		*game_news_registry;
 	CCharacterPhysicsSupport		*m_pPhysics_support;
@@ -247,6 +258,15 @@ protected:
 	ref_sound			m_HeavyBreathSnd = {};
 	ref_sound			m_BloodSnd = {};
 	ref_sound			m_DangerSnd = {};
+	u32					m_statMoneyEarned = 0;
+	u32					m_statMoneySpent = 0;
+	float				m_statDistanceMeters = 0.0f;
+	u32					m_statHeadshots = 0;
+	u32					m_statDeaths = 0;
+	u32					m_statHelpWounded = 0;
+	bool				m_isMoneyStatInitialized = false;
+	Fvector				m_lastStatPosition = {};
+	bool				m_hasLastStatPosition = false;
 	ref_sound			m_rainOnHelmetSnd = {};
 
 	xr_vector<const CArtefact*> m_ArtefactsOnBelt;

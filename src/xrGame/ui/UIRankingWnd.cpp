@@ -258,6 +258,10 @@ void CUIRankingWnd::Init()
 
 	if (xml.NavigateToNode("valuable_artifact_icon", 0))
 		m_valuable_artifact_icon = UIHelper::CreateStatic(xml, "valuable_artifact_icon", this);
+	if (xml.NavigateToNode("valuable_artifact_back"))
+		m_valuable_artifact_back = UIHelper::CreateFrameWindow(xml, "valuable_artifact_back", this);
+	if (xml.NavigateToNode("valuable_artifact_over"))
+		m_valuable_artifact_over = UIHelper::CreateFrameWindow(xml, "valuable_artifact_over", this);
 	if (xml.NavigateToNode("ranking_actor_identity", 0))
 	{
 		m_ranking_actor_identity = new CUICharacterInfo();
@@ -454,7 +458,13 @@ void CUIRankingWnd::get_statistic()
 		{
 			const char* statValue = GetStatValue(item, i);
 			item.value->TextItemControl()->SetColoringMode(true);
-			item.value->SetTextST(statValue);
+			if (!statValue || !statValue[0])
+			{
+				item.value->SetText("");
+				continue;
+			}
+
+			item.value->SetText(statValue);
 		}
 	}
 
@@ -587,13 +597,21 @@ void CUIRankingWnd::get_value_from_script()
 		if (item.value)
 		{
 			const char* statValue = GetStatValue(item, i);
-			item.value->SetTextST(statValue);
+			if (!statValue || !statValue[0])
+			{
+				item.value->SetText("");
+				continue;
+			}
+
+			item.value->SetText(statValue);
 		}
 	}
 }
 
 const char* CUIRankingWnd::GetStatValue(const StatItem& item, const u32 index) const
 {
+	static string64 actorStatBuffer = {};
+
 	if (item.statId.size() != 0)
 	{
 		if (m_isGetPdaStatById)
@@ -617,6 +635,33 @@ const char* CUIRankingWnd::GetStatValue(const StatItem& item, const u32 index) c
 			{
 				return value;
 			}
+		}
+	}
+
+	if (Actor())
+	{
+		switch (index)
+		{
+		case 7:
+			xr_sprintf(actorStatBuffer, sizeof(actorStatBuffer), "%u", Actor()->GetStatMoneyEarned());
+			return actorStatBuffer;
+		case 8:
+			xr_sprintf(actorStatBuffer, sizeof(actorStatBuffer), "%u", Actor()->GetStatMoneySpent());
+			return actorStatBuffer;
+		case 9:
+			xr_sprintf(actorStatBuffer, sizeof(actorStatBuffer), "%u", Actor()->GetStatHelpWounded());
+			return actorStatBuffer;
+		case 10:
+			xr_sprintf(actorStatBuffer, sizeof(actorStatBuffer), "%u", Actor()->GetStatHeadshots());
+			return actorStatBuffer;
+		case 11:
+			xr_sprintf(actorStatBuffer, sizeof(actorStatBuffer), "%u", Actor()->GetStatDeaths());
+			return actorStatBuffer;
+		case 12:
+			xr_sprintf(actorStatBuffer, sizeof(actorStatBuffer), "%.2f km", Actor()->GetStatDistanceMeters() / 1000.0f);
+			return actorStatBuffer;
+		default:
+			break;
 		}
 	}
 

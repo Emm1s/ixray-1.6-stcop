@@ -688,6 +688,8 @@ bool CInventoryOwner::AllowItemToTrade(CInventoryItem const* item, const SInvIte
 
 void CInventoryOwner::set_money(u32 amount, bool bSendEvent)
 {
+	const u32 previousMoney = m_money;
+
 	if (InfinitiveMoney())
 	{
 		m_money = std::max(m_money, amount);
@@ -695,6 +697,11 @@ void CInventoryOwner::set_money(u32 amount, bool bSendEvent)
 	else
 	{
 		m_money = amount;
+	}
+
+	if (CActor* actor = cast_actor())
+	{
+		actor->OnMoneyChanged(previousMoney, m_money);
 	}
 
 	if (bSendEvent)

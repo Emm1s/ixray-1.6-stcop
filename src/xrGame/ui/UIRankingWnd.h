@@ -58,6 +58,8 @@ private:
 	CUIStatic*			m_favorite_weapon_icon = nullptr;
 
 	CUIStatic*			m_valuable_artifact_icon = nullptr;
+	CUIFrameWindow*		m_valuable_artifact_back = nullptr;
+	CUIFrameWindow*		m_valuable_artifact_over = nullptr;
 	CUICharacterInfo*	m_ranking_actor_identity = nullptr;
 
 	//Alundaio: CoC Rankings

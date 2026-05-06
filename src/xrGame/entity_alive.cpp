@@ -25,9 +25,50 @@
 #include "ai_object_location.h"
 #include "alife_registry_wrappers.h"
 #include "../xrEngine/xr_collide_form.h"
+#include "Actor.h"
 
 #define SMALL_ENTITY_RADIUS		0.6f
 #define BLOOD_MARKS_SECT		"bloody_marks"
+
+static bool IsHeadBone(const CEntityAlive* entity, const u16 boneId)
+{
+	if (boneId == BI_NONE)
+	{
+		return false;
+	}
+
+	IKinematics* kinematics = entity && entity->Visual() ? smart_cast<IKinematics*>(entity->Visual()) : nullptr;
+	if (!kinematics)
+	{
+		return false;
+	}
+
+	const u16 bipHead = kinematics->LL_BoneID("bip01_head");
+	if (bipHead != BI_NONE && boneId == bipHead)
+	{
+		return true;
+	}
+
+	const u16 head = kinematics->LL_BoneID("head");
+	if (head != BI_NONE && boneId == head)
+	{
+		return true;
+	}
+
+	const u16 eyeLeft = kinematics->LL_BoneID("eye_left");
+	if (eyeLeft != BI_NONE && boneId == eyeLeft)
+	{
+		return true;
+	}
+
+	const u16 eyeRight = kinematics->LL_BoneID("eye_right");
+	if (eyeRight != BI_NONE && boneId == eyeRight)
+	{
+		return true;
+	}
+
+	return false;
+}
 
 //отметки крови на стенах 
 FactoryPtr<IWallMarkArray>* CEntityAlive::m_pBloodMarksVector = nullptr;
@@ -286,6 +327,8 @@ void CEntityAlive::HitImpulse	(float /**amount/**/, Fvector& /**vWorldDir/**/, F
 void CEntityAlive::Hit(SHit* pHDS)
 {
 	SHit HDS = *pHDS;
+	m_lastHitBoneID = HDS.boneID;
+	m_lastHitWhoID = HDS.who ? HDS.who->ID() : ALife::_OBJECT_ID(-1);
 	//-------------------------------------------------------------------
 	if (HDS.hit_type == ALife::eHitTypeWound_2)
 		HDS.hit_type = ALife::eHitTypeWound;
@@ -329,6 +372,17 @@ void CEntityAlive::Hit(SHit* pHDS)
 
 void CEntityAlive::Die	(CObject* who)
 {
+	if (who)
+	{
+		if (CActor* actor = who->cast_actor())
+		{
+			if (m_lastHitWhoID == actor->ID() && IsHeadBone(this, m_lastHitBoneID))
+			{
+				actor->RegisterHeadshotKill();
+			}
+		}
+	}
+
 	if(who)
 		RELATION_REGISTRY().Action(who->cast_entity_alive(), this, RELATION_REGISTRY::KILL);
 
