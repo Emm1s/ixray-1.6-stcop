@@ -45,6 +45,9 @@ protected:
 	bool					m_captionGameDateTime = false;
 	CUIAnimatedStatic*		m_anim_static;
 	CUIStatic*				m_clock;
+	CUIWindow*				m_pTabBgLayer;
+	xr_map<shared_str, CUIStatic*> m_tabBackgrounds;
+	CUIStatic*				m_pCurrentTabBackground;
 
 	// Currently visible PDA page (native subdialog or script-provided window).
 	CUIWindow*				m_pActiveDialog;
@@ -58,6 +61,8 @@ protected:
 
 	void					UpdateDateTime					();
 	void					DrawUpdatedSections				();
+	void					InitTabBackgrounds				(CUIXml& xml);
+	void					SetActiveTabBackground			(const shared_str& sectionId);
 private:
 	bool m_isSetActiveSubdialog = false;
 	const char* m_onSetActiveSubdialog = {};

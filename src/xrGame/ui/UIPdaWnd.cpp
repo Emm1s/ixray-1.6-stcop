@@ -178,6 +178,8 @@ CUIPdaWnd::CUIPdaWnd()
 	m_caption		 = nullptr;
 	m_caption_const	 = "";
 	m_clock			 = nullptr;
+	m_pTabBgLayer     = nullptr;
+	m_pCurrentTabBackground = nullptr;
 	UIMainButtonsBackground = nullptr;
 	UITimerBackground = nullptr;
 	UINoice			 = nullptr;
@@ -227,6 +229,9 @@ void CUIPdaWnd::Init()
 	CUIXmlInit::InitWindow	(uiXml, "main", 0, this);
 
 	UIMainPdaFrame			= UIHelper::CreateStatic	( uiXml, "background_static", this );
+	m_pTabBgLayer = new CUIWindow();
+	m_pTabBgLayer->SetAutoDelete(true);
+	UIMainPdaFrame->AttachChild(m_pTabBgLayer);
 	if (uiXml.NavigateToNode("caption_static"))
 	{
 		m_caption				= UIHelper::CreateStatic	( uiXml, "caption_static", this );
@@ -282,6 +287,7 @@ void CUIPdaWnd::Init()
 			}
 		}
 	}
+	InitTabBackgrounds(uiXml);
 
 	const auto tabPresentLambda = [this](const char* sectionId)
 	{
@@ -589,11 +595,13 @@ void CUIPdaWnd::SetActiveSubdialog(const shared_str& section)
 			}
 			m_pActiveDialog->Show(true);
 			m_sActiveSection = resolvedSection;
+			SetActiveTabBackground(m_sActiveSection);
 			SetActiveCaption();
 		}
 		else
 		{
 			m_sActiveSection = "";
+			SetActiveTabBackground(m_sActiveSection);
 		}
 	}
 	else
@@ -612,9 +620,69 @@ void CUIPdaWnd::SetActiveSubdialog(const shared_str& section)
 			UITabControl->SetActiveTab(resolvedSection);
 		}
 		m_sActiveSection = resolvedSection;
+		SetActiveTabBackground(m_sActiveSection);
 		SetActiveCaption();
 	}
 
+}
+
+void CUIPdaWnd::InitTabBackgrounds(CUIXml& xml)
+{
+	if (!m_pTabBgLayer || !UITabControl)
+	{
+		return;
+	}
+
+	const int tabsCount = UITabControl->GetTabsCount();
+	for (int i = 0; i < tabsCount; ++i)
+	{
+		CUITabButton* tabButton = UITabControl->GetButtonByIndex(i);
+		if (!tabButton)
+		{
+			continue;
+		}
+
+		const shared_str tabId = ResolveKnownTabId(tabButton->m_btn_id);
+		string256 autoStaticPath;
+		xr_sprintf(autoStaticPath, "tab_backgrounds:%s:auto_static", tabId.c_str());
+
+		bool hasAutoStatic = xml.NavigateToNode(autoStaticPath, 0) != nullptr;
+		if (!hasAutoStatic)
+		{
+			xr_sprintf(autoStaticPath, "pda:tab_backgrounds:%s:auto_static", tabId.c_str());
+			hasAutoStatic = xml.NavigateToNode(autoStaticPath, 0) != nullptr;
+		}
+
+		if (!hasAutoStatic)
+		{
+			continue;
+		}
+
+		CUIStatic* tabBackground = new CUIStatic();
+		tabBackground->SetAutoDelete(true);
+		CUIXmlInit::InitStatic(xml, autoStaticPath, 0, tabBackground, false);
+		tabBackground->Show(false);
+		m_pTabBgLayer->AttachChild(tabBackground);
+		m_tabBackgrounds[tabId] = tabBackground;
+	}
+}
+
+void CUIPdaWnd::SetActiveTabBackground(const shared_str& sectionId)
+{
+	if (m_pCurrentTabBackground)
+	{
+		m_pCurrentTabBackground->Show(false);
+	}
+
+	m_pCurrentTabBackground = nullptr;
+
+	const shared_str resolvedSection = ResolveKnownTabId(sectionId);
+	const xr_map<shared_str, CUIStatic*>::const_iterator backgroundIt = m_tabBackgrounds.find(resolvedSection);
+	if (backgroundIt != m_tabBackgrounds.end())
+	{
+		m_pCurrentTabBackground = backgroundIt->second;
+		m_pCurrentTabBackground->Show(true);
+	}
 }
 
 void CUIPdaWnd::SetActiveCaption()
