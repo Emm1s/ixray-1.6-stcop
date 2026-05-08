@@ -118,7 +118,7 @@ public:
 			void			ResetXformAnimation		();
 
 	virtual void			DrawTexture				();
-	virtual void			DrawText				();
+	virtual void			DrawWidgetText				();
 	virtual void			DrawHighlightedText		();
 
 			void 			AdjustHeightToText		();
