@@ -116,10 +116,10 @@ void CUIStatic::Draw()
 {
 	DrawTexture();
 	inherited::Draw();
-	DrawText();
+	DrawWidgetText();
 }
 
-void CUIStatic::DrawText()
+void CUIStatic::DrawWidgetText()
 {
 	if (!m_bTextEnable)
 		return;
