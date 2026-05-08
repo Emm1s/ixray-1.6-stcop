@@ -40,6 +40,14 @@ CUILogsWnd::CUILogsWnd()
 	m_actor_ch_info			= nullptr;
 	m_previous_time			= Device.dwTimeGlobal;
 	m_selected_period		= 0;
+    m_filter_news           = nullptr;
+    m_filter_talk           = nullptr;
+    m_date_caption          = nullptr;
+    m_date                  = nullptr;
+    m_period_caption        = nullptr;
+    m_period                = nullptr;
+    m_prev_period           = nullptr;
+    m_next_period           = nullptr;
 }
 
 CUILogsWnd::~CUILogsWnd()
@@ -133,10 +141,22 @@ void CUILogsWnd::Init()
 	AttachChild( m_list );
 	CUIXmlInit::InitScrollView( m_uiXml, "logs_list", 0, m_list);
 
-	m_filter_news = UIHelper::CreateCheck( m_uiXml, "filter_news", this );
-	m_filter_talk = UIHelper::CreateCheck( m_uiXml, "filter_talk", this );
-	m_filter_news->SetCheck( true );
-	m_filter_talk->SetCheck( true );
+	if (m_uiXml.NavigateToNode("filter_news"))
+    {
+        m_filter_news = UIHelper::CreateCheck(m_uiXml, "filter_news", this);
+        if (m_filter_news)
+        {
+            m_filter_news->SetCheck(true);
+        }
+    }
+    if (m_uiXml.NavigateToNode("filter_talk"))
+    {
+        m_filter_talk = UIHelper::CreateCheck(m_uiXml, "filter_talk", this);
+        if (m_filter_talk)
+        {
+            m_filter_talk->SetCheck(true);
+        }
+    }
 
 	if (m_uiXml.NavigateToNode("date_caption"))
 		m_date_caption = UIHelper::CreateStatic(m_uiXml, "date_caption", this);
@@ -150,23 +170,46 @@ void CUILogsWnd::Init()
 			"Please, provide both [date] and [date_caption] tags in xml file", m_uiXml.m_xml_file_name);
 	}
 
-	m_period_caption = UIHelper::CreateStatic( m_uiXml, "period_caption", this );
-	m_period         = UIHelper::CreateStatic( m_uiXml, "period", this );
+	if (m_uiXml.NavigateToNode("period_caption"))
+    {
+        m_period_caption = UIHelper::CreateStatic(m_uiXml, "period_caption", this);
+    }
+    if (m_uiXml.NavigateToNode("period"))
+    {
+        m_period = UIHelper::CreateStatic(m_uiXml, "period", this);
+    }
 
-	m_prev_period = UIHelper::Create3tButton( m_uiXml, "btn_prev_period", this );
-	m_next_period = UIHelper::Create3tButton( m_uiXml, "btn_next_period", this );
+    if (m_uiXml.NavigateToNode("btn_prev_period"))
+    {
+        m_prev_period = UIHelper::Create3tButton(m_uiXml, "btn_prev_period", this);
+    }
+    if (m_uiXml.NavigateToNode("btn_next_period"))
+    {
+        m_next_period = UIHelper::Create3tButton(m_uiXml, "btn_next_period", this);
+    }
 
 	m_gamepad_legend = UIHelper::CreateGamepadLegend( m_uiXml, "gamepad_legend", this, false );
 
-	Register( m_filter_news );
-	Register( m_filter_talk );
-	Register( m_prev_period );
-	Register( m_next_period );
-
-	AddCallback( m_filter_news, BUTTON_CLICKED, CUIWndCallback::void_function( this, &CUILogsWnd::UpdateChecks ) );
-	AddCallback( m_filter_talk, BUTTON_CLICKED, CUIWndCallback::void_function( this, &CUILogsWnd::UpdateChecks ) );
-	AddCallback( m_prev_period, BUTTON_CLICKED, CUIWndCallback::void_function( this, &CUILogsWnd::PrevPeriod ) );
-	AddCallback( m_next_period, BUTTON_CLICKED, CUIWndCallback::void_function( this, &CUILogsWnd::NextPeriod ) );
+	if (m_filter_news)
+    {
+        Register(m_filter_news);
+        AddCallback(m_filter_news, BUTTON_CLICKED, CUIWndCallback::void_function(this, &CUILogsWnd::UpdateChecks));
+    }
+    if (m_filter_talk)
+    {
+        Register(m_filter_talk);
+        AddCallback(m_filter_talk, BUTTON_CLICKED, CUIWndCallback::void_function(this, &CUILogsWnd::UpdateChecks));
+    }
+    if (m_prev_period)
+    {
+        Register(m_prev_period);
+        AddCallback(m_prev_period, BUTTON_CLICKED, CUIWndCallback::void_function(this, &CUILogsWnd::PrevPeriod));
+    }
+    if (m_next_period)
+    {
+        Register(m_next_period);
+        AddCallback(m_next_period, BUTTON_CLICKED, CUIWndCallback::void_function(this, &CUILogsWnd::NextPeriod));
+    }
 
 	m_start_game_time = Level().GetStartGameTime();
 	m_start_game_time = GetShiftPeriod( m_start_game_time, 0 );
@@ -187,18 +230,23 @@ void CUILogsWnd::ReLoadNews() {
 	}
 
 	const char* date_str = InventoryUtilities::GetDateAsString(m_selected_period, InventoryUtilities::edpDateToDay).c_str();
-	m_period->TextItemControl()->SetText(date_str);
-	Fvector2 pos = m_period_caption->GetWndPos();
-	pos.x = m_period->GetWndPos().x - m_period_caption->GetWidth() - m_prev_period->GetWidth() - 5.0f;
-	m_period_caption->SetWndPos(pos);
+    if (m_period)
+    {
+        m_period->TextItemControl()->SetText(date_str);
+    }
+    if (m_period && m_period_caption && m_prev_period)
+    {
+        Fvector2 pos = m_period_caption->GetWndPos();
+        pos.x = m_period->GetWndPos().x - m_period_caption->GetWidth() - m_prev_period->GetWidth() - 5.0f;
+        m_period_caption->SetWndPos(pos);
+    }
 
 	ALife::_TIME_ID end_period = GetShiftPeriod(m_selected_period, 1);
 
-	VERIFY(m_filter_news && m_filter_talk);
 	GAME_NEWS_VECTOR& news_vector = pActor->game_news_registry->registry().objects();
 
-	bool filter_news = m_filter_news->GetCheck();
-	bool filter_talk = m_filter_talk->GetCheck();
+	bool filter_news = m_filter_news ? m_filter_news->GetCheck() : true;
+	bool filter_talk = m_filter_talk ? m_filter_talk->GetCheck() : true;
 
 	GAME_NEWS_VECTOR::iterator ib = news_vector.begin();
 	GAME_NEWS_VECTOR::iterator ie = news_vector.end();
@@ -384,24 +432,36 @@ bool CUILogsWnd::OnGamepadKeyAction(int key, EUIMessages gamepad_action)
 			}
 			case kPDA_LOG_DATE_PREV:
 			{
-				m_prev_period->OnClick();
+                if (m_prev_period)
+                {
+                    m_prev_period->OnClick();
+                }
 				break;
 			}
 			case kPDA_LOG_DATE_NEXT:
 			{
-				m_next_period->OnClick();
+                if (m_next_period)
+                {
+                    m_next_period->OnClick();
+                }
 				break;
 			}
 			case kPDA_LOG_SHOW_DIALOGS:
 			{
-				m_filter_talk->SetCheck(!m_filter_talk->GetCheck());
-				m_filter_talk->SendClickCallback();
+                if (m_filter_talk)
+                {
+                    m_filter_talk->SetCheck(!m_filter_talk->GetCheck());
+                    m_filter_talk->SendClickCallback();
+                }
 				break;
 			}
 			case kPDA_LOG_SHOW_NEWS:
 			{
-				m_filter_news->SetCheck(!m_filter_news->GetCheck());
-				m_filter_news->SendClickCallback();
+                if (m_filter_news)
+                {
+                    m_filter_news->SetCheck(!m_filter_news->GetCheck());
+                    m_filter_news->SendClickCallback();
+                }
 				break;
 			}
 			case kPDA_LOG_SCROLL_UP:

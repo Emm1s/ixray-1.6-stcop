@@ -41,20 +41,20 @@ private:
 	CUIStatic*			m_center_caption;
 	CUICharacterInfo*	m_actor_ch_info;
 
-	CUICheckButton*		m_filter_news;
-	CUICheckButton*		m_filter_talk;
+	CUICheckButton*		m_filter_news = nullptr;
+	CUICheckButton*		m_filter_talk = nullptr;
 	
 	CUIStatic*			m_date_caption;
 	CUIStatic*			m_date;
 
-	CUIStatic*			m_period_caption;
-	CUIStatic*			m_period;
+	CUIStatic*			m_period_caption = nullptr;
+	CUIStatic*			m_period = nullptr;
 
 	ALife::_TIME_ID		m_start_game_time;
 	ALife::_TIME_ID		m_selected_period;
 
-	CUI3tButton*		m_prev_period;
-	CUI3tButton*		m_next_period;
+	CUI3tButton*		m_prev_period = nullptr;
+	CUI3tButton*		m_next_period = nullptr;
 	bool				m_ctrl_press;
 	
 	CUIScrollView*		m_list;
