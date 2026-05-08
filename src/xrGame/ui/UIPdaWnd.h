@@ -41,8 +41,12 @@ protected:
 	CUIStatic*				UINoice;
 	
 	CUIStatic*				m_caption;
+    CUIStatic*              m_captionDate;
+    CUIStatic*              m_captionLocation;
 	shared_str				m_caption_const;
+    shared_str              m_prevDateTimeValue;
 	bool					m_captionGameDateTime = false;
+	bool					m_captionShowLocationName = false;
 	CUIAnimatedStatic*		m_anim_static;
 	CUIStatic*				m_clock;
 	CUIWindow*				m_pTabBgLayer;
@@ -61,10 +65,12 @@ protected:
 	ref_sound				m_soundKeyTab;
 	ref_sound				m_soundKeyClose;
 
-	void					UpdateDateTime					();
+    void                    UpdateDateTime                  (bool force = false);
+    void                    UpdateLocationName              ();
 	void					DrawUpdatedSections				();
 	void					InitTabBackgrounds				(CUIXml& xml);
 	void					SetActiveTabBackground			(const shared_str& sectionId);
+    bool                    ShouldAppendLocationToCaption   () const;
 	void					PlayKeyTabSound					();
 	void					PlayKeyCloseSound				();
 private:

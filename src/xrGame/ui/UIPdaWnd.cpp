@@ -36,6 +36,7 @@
 #include "PdaConstants.h"
 #include "PdaState.h"
 #include "PdaScriptBridge.h"
+#include "../../xrEngine/string_table.h"
 
 u32 g_pda_info_state = 0;
 
@@ -162,6 +163,42 @@ shared_str BuildPdaGameDateTimeString()
     return shared_str(gameDateTime.c_str());
 }
 
+shared_str BuildPdaLocationNameString()
+{
+    if (!g_pGameLevel)
+    {
+        return shared_str("");
+    }
+
+    const shared_str levelId = Level().name();
+    if (!levelId.size())
+    {
+        return shared_str("");
+    }
+
+    const xr_string translatedLevel = *g_pStringTable->translate(levelId.c_str());
+    if (translatedLevel.empty())
+    {
+        return shared_str("");
+    }
+
+    return shared_str(translatedLevel.c_str());
+}
+
+// Optional location suffix for caption_static when enabled by xml.
+shared_str BuildPdaLocationCaptionSuffix()
+{
+    const shared_str locationName = BuildPdaLocationNameString();
+    if (!locationName.size())
+    {
+        return shared_str("");
+    }
+
+    xr_string suffix = " - ";
+    suffix += locationName.c_str();
+    return shared_str(suffix.c_str());
+}
+
 } // namespace
 
 void RearrangeTabButtons(CUITabControl* pTab);
@@ -185,7 +222,11 @@ CUIPdaWnd::CUIPdaWnd()
 
 	m_hint_wnd       = nullptr;
 	m_caption		 = nullptr;
+    m_captionDate = nullptr;
+    m_captionLocation = nullptr;
 	m_caption_const	 = "";
+    m_prevDateTimeValue = "";
+	m_captionShowLocationName = false;
 	m_clock			 = nullptr;
 	m_pTabBgLayer     = nullptr;
 	m_pCurrentTabBackground = nullptr;
@@ -247,7 +288,11 @@ void CUIPdaWnd::Init()
 		m_caption_const			= ( m_caption->TextItemControl()->GetText() );
 		// game_datetime: 1 = show game time + legacy date in caption; 0 = default (prefix + active tab, vanilla PDA).
 		m_captionGameDateTime	= uiXml.ReadAttribInt("caption_static", 0, "game_datetime", 0) != 0;
+		// location_name: 1 = append translated current level name to caption_static text.
+		m_captionShowLocationName = uiXml.ReadAttribInt("caption_static", 0, "location_name", 0) != 0;
 	}
+    m_captionDate = UIHelper::CreateStatic(uiXml, "caption_date_static", this, false);
+    m_captionLocation = UIHelper::CreateStatic(uiXml, "caption_location_static", this, false);
 
 	if (uiXml.NavigateToNode("clock_wnd"))
 		m_clock					= UIHelper::CreateStatic	( uiXml, "clock_wnd", this );
@@ -261,6 +306,7 @@ void CUIPdaWnd::Init()
 	
 	if (uiXml.NavigateToNode("timer_frame_line"))
 		UITimerBackground = UIHelper::CreateFrameLine(uiXml, "timer_frame_line", UIMainPdaFrame);
+    UpdateLocationName();
 
 	if (uiXml.NavigateToNode("anim_static"))
 	{
@@ -427,6 +473,8 @@ void CUIPdaWnd::Show(bool status)
 	if(status)
 	{
 		InventoryUtilities::SendInfoToActor	(PdaActorInfo::Show);
+        UpdateLocationName();
+        UpdateDateTime(true);
 		
 		if (m_sActiveSection == nullptr || strcmp(m_sActiveSection.c_str(), "") == 0)
 		{
@@ -465,31 +513,54 @@ void CUIPdaWnd::Show(bool status)
 	}
 }
 
-void CUIPdaWnd::UpdateDateTime()
+void CUIPdaWnd::UpdateDateTime(bool force)
 {
 	const bool hasTimerTarget = UITimerBackground != nullptr;
-	const bool hasCaptionTarget = m_caption && m_captionGameDateTime;
-	if (!hasTimerTarget && !hasCaptionTarget)
+    const bool hasCaptionDateTarget = m_captionDate != nullptr;
+    const bool hasCaptionTarget = m_caption && m_captionGameDateTime && !hasCaptionDateTarget;
+    if (!hasTimerTarget && !hasCaptionTarget && !hasCaptionDateTarget)
 	{
 		return;
 	}
 
-	static shared_str prevDateTimeValue;
 	const shared_str gameDateTime = BuildPdaGameDateTimeString();
-	if (prevDateTimeValue.equal(gameDateTime))
+    if (!force && m_prevDateTimeValue.equal(gameDateTime))
 	{
 		return;
 	}
 
-	prevDateTimeValue = gameDateTime;
+    m_prevDateTimeValue = gameDateTime;
 	if (hasTimerTarget)
 	{
 		UITimerBackground->UITitleText.SetText(gameDateTime.c_str());
 	}
+    if (hasCaptionDateTarget)
+    {
+        m_captionDate->TextItemControl()->SetText(gameDateTime.c_str());
+    }
 	if (hasCaptionTarget)
 	{
-		SetCaption(gameDateTime.c_str());
+        if (ShouldAppendLocationToCaption())
+        {
+            xr_string captionText = gameDateTime.c_str();
+            captionText += BuildPdaLocationCaptionSuffix().c_str();
+            SetCaption(captionText.c_str());
+        }
+        else
+        {
+            SetCaption(gameDateTime.c_str());
+        }
 	}
+}
+
+void CUIPdaWnd::UpdateLocationName()
+{
+    if (!m_captionLocation)
+    {
+        return;
+    }
+
+    m_captionLocation->TextItemControl()->SetText(BuildPdaLocationNameString().c_str());
 }
 
 void CUIPdaWnd::Update()
@@ -699,7 +770,7 @@ void CUIPdaWnd::SetActiveTabBackground(const shared_str& sectionId)
 
 void CUIPdaWnd::SetActiveCaption()
 {
-	if (m_captionGameDateTime)
+    if (m_captionGameDateTime && !m_captionDate)
 		return;
 
 	TABS_VECTOR*	btn_vec		= UITabControl->GetButtonsVector();
@@ -712,10 +783,24 @@ void CUIPdaWnd::SetActiveCaption()
 			const char* cur = (*it_b)->TextItemControl()->GetText();
 			string256 buf;
 			xr_strconcat(buf, m_caption_const.c_str(), cur );
-			SetCaption( buf );
+            if (ShouldAppendLocationToCaption())
+            {
+                xr_string captionText = buf;
+                captionText += BuildPdaLocationCaptionSuffix().c_str();
+                SetCaption(captionText.c_str());
+            }
+            else
+            {
+                SetCaption(buf);
+            }
 			return;
 		}
 	}
+}
+
+bool CUIPdaWnd::ShouldAppendLocationToCaption() const
+{
+    return m_captionShowLocationName && !m_captionLocation;
 }
 
 void CUIPdaWnd::Show_SecondTaskWnd( bool status )
