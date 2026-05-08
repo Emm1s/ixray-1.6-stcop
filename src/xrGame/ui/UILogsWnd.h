@@ -5,8 +5,7 @@
 //	Description : UI Logs (PDA) window class
 ////////////////////////////////////////////////////////////////////////////
 
-#ifndef UI_PDA_LOGS_WND_H_INCLUDED
-#define UI_PDA_LOGS_WND_H_INCLUDED
+#pragma once
 
 #include "../../xrUI/Widgets/UIWindow.h"
 #include "../../xrUI/Widgets/UIWndCallback.h"
@@ -27,11 +26,12 @@ class CUICheckButton;
 struct GAME_NEWS_DATA;
 class CUINewsItemWnd;
 class CUIGamepadLegend;
+class CUITimeLine;
 
 class CUILogsWnd final : public CUIWindow, public CUIWndCallback
 {
 private:
-	typedef CUIWindow	inherited;
+	using inherited = CUIWindow;
 
 	CUIFrameWindow*		m_background;
 	CUIFrameLineWnd*	m_background2;
@@ -69,31 +69,41 @@ private:
 //	void				ItemToCache			(CUIWindow* w);
 	CUIXml				m_uiXml;
 	CUIGamepadLegend*	m_gamepad_legend = nullptr;
+    CUITimeLine*        m_timeline = nullptr;
 
 public:
 						CUILogsWnd			();
-	virtual				~CUILogsWnd			();
+						~CUILogsWnd			() override;
 
 			void		Init				();
 
-	virtual void 		Show				( bool status );
-	virtual void		Update				();
-	virtual void		SendMessage			( CUIWindow* pWnd, s16 msg, void* pData );
+	void 				Show				( bool status ) override;
+	void				Update				() override;
+	void				SendMessage			( CUIWindow* pWnd, s16 msg, void* pData ) override;
 
-	virtual bool		OnKeyboardAction	(int dik, EUIMessages keyboard_action);
-	virtual bool		OnKeyboardHold		(int dik);
-	virtual bool		OnGamepadKeyAction	(int key, EUIMessages gamepad_action);
-	virtual bool		OnGamepadKeyHold	(int key);
+	bool				OnKeyboardAction	(int dik, EUIMessages keyboard_action) override;
+	bool				OnKeyboardHold		(int dik) override;
+	bool				OnGamepadKeyAction	(int key, EUIMessages gamepad_action) override;
+	bool				OnGamepadKeyHold	(int key) override;
 
-	IC		void		UpdateNews			()	{ m_need_reload = true; }
+	IC		void		UpdateNews			()
+    {
+        m_need_reload = true;
+        SyncTimelineState();
+    }
 	void		PerformWork			();
 
-	virtual CUIWindow* ui_cast_window() { return this; }
+	CUIWindow* ui_cast_window() override
+    {
+        return this;
+    }
 
 protected:
 			void		ReLoadNews			();
 			void		AddNewsItem			( GAME_NEWS_DATA& news_data );
 	ALife::_TIME_ID		GetShiftPeriod		( ALife::_TIME_ID datetime, int shift_day );
+    void                OnTimelineNodeSelected(u32 day);
+    void                SyncTimelineState();
 
 			void 	UpdateChecks	( CUIWindow* w, void* d);
 			void 	PrevPeriod		( CUIWindow* w, void* d);
@@ -108,5 +118,3 @@ protected:
 	bool		SortingLessFunction		( CUIWindow* left, CUIWindow* right );
 */
 }; // class CUILogsWnd
-
-#endif // UI_PDA_LOGS_WND_H_INCLUDED
