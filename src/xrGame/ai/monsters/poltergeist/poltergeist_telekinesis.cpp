@@ -87,7 +87,12 @@ void CTelekineticPoltergeist::load(LPCSTR section)
 	m_pmt_raise_time_to_wait_in_objects = READ_IF_EXISTS(pSettings, r_u32, section,
 	                                                     "Tele_Delay_Between_Objects_Raise_Time", 500);
 	m_pmt_fly_velocity = READ_IF_EXISTS(pSettings, r_float, section, "Tele_Fly_Velocity", 30.f);
-	m_pmt_object_collision_damage = READ_IF_EXISTS(pSettings, r_float, section, "Tele_Collision_Damage", 0.5f);
+
+	m_pmt_max_pickuped_weapons = READ_IF_EXISTS(pSettings, r_u32, section, "Tele_Max_Pickuped_Weapons", 2);
+	m_pmt_min_slide_delay = READ_IF_EXISTS(pSettings, r_u32, section, "Tele_Min_Slide_Delay", 1000);
+	m_pmt_max_slide_delay = READ_IF_EXISTS(pSettings, r_u32, section, "Tele_Max_Slide_Delay", 1500);
+	m_pmt_autoaim_torque_factor = READ_IF_EXISTS(pSettings, r_float, section, "Tele_AutoAim_Torque_Factor", 0.33f);
+	m_pmt_delay_before_first_shot = READ_IF_EXISTS(pSettings, r_u32, section, "Tele_Delay_Before_Shoot", 0);
 	
 	Sound->create(m_sound_tele_hold, pSettings->r_string(section, "sound_tele_hold"),
 	              st_Effect, SOUND_TYPE_WORLD);
@@ -253,14 +258,38 @@ bool CTelekineticPoltergeist::tele_raise_objects()
 	STelekineticObject* tele_obj;
 
 	if (obj->cast_weapon_magazined())
-		tele_obj = new STelekineticWeaponObject(m_poltergeist, obj, m_pmt_raise_speed, m_pmt_object_height,
-												m_pmt_time_object_keep, rotate);
-	else if(obj->cast_grenade())
-		tele_obj = new STelekineticGrenadeObject(m_poltergeist, obj, m_pmt_raise_speed, m_pmt_object_height,
-												 m_pmt_time_object_keep, rotate);
+	{
+		STelekineticWeaponParams weapon_params
+		{
+			.autoaim_torque_factor = m_pmt_autoaim_torque_factor,
+			.min_slide_delay = m_pmt_min_slide_delay,
+			.max_slide_delay = m_pmt_max_slide_delay,
+			.delay_before_first_shot = m_pmt_delay_before_first_shot
+		};
+
+		tele_obj = new STelekineticWeaponObject(m_poltergeist,
+		                                        weapon_params,
+		                                        obj,
+		                                        m_pmt_raise_speed,
+		                                        m_pmt_object_height,
+		                                        m_pmt_time_object_keep,
+		                                        rotate);
+	}
+	else if (obj->cast_grenade())
+	{
+		tele_obj = new STelekineticGrenadeObject(m_poltergeist,
+												obj,
+												m_pmt_raise_speed,
+												m_pmt_object_height,
+												m_pmt_time_object_keep, 
+												rotate);
+	}
 	else
-		tele_obj = new STelekineticObject(obj, m_pmt_raise_speed, m_pmt_object_height,
-										  m_pmt_time_object_keep, rotate);
+		tele_obj = new STelekineticObject(obj,
+		                                  m_pmt_raise_speed,
+		                                  m_pmt_object_height,
+		                                  m_pmt_time_object_keep,
+		                                  rotate);
 		
 	if (!tele_obj->can_be_picked_up())
 		return false;

@@ -433,14 +433,38 @@ void CStateBurerAttackTele<Object>::SelectObjects()
 		STelekineticObject* tele_obj = nullptr;
 		
 		if (object->cast_weapon_magazined())
-			tele_obj = new STelekineticWeaponObject(this->object, object, this->object->m_tele_raise_speed, height, 
-													10000, rotate);
+		{
+			STelekineticWeaponParams weapon_params 
+			{
+				.autoaim_torque_factor = this->object->m_autoaim_torque_factor,
+				.min_slide_delay = this->object->m_min_slide_delay,
+				.max_slide_delay = this->object->m_max_slide_delay,
+				.delay_before_first_shot = this->object->m_delay_before_first_shot
+			};
+
+			tele_obj = new STelekineticWeaponObject(this->object,
+			                                        weapon_params,
+			                                        object,
+			                                        this->object->m_tele_raise_speed,
+			                                        height,
+			                                        10000,
+			                                        rotate);
+		}
 		else if (object->cast_grenade())
-			tele_obj = new STelekineticGrenadeObject(this->object, object, this->object->m_tele_raise_speed, height,
-			                                         10000, rotate);
+		{
+			tele_obj = new STelekineticGrenadeObject(this->object,
+													object, 
+													this->object->m_tele_raise_speed, 
+													height,
+													10000, 
+													rotate);
+		}
 		else
-			tele_obj = new STelekineticObject(object, this->object->m_tele_raise_speed, height, 10000,
-											  rotate);
+			tele_obj = new STelekineticObject(object,
+			                                  this->object->m_tele_raise_speed,
+			                                  height,
+			                                  10000,
+			                                  rotate);
 		
 		this->object->CTelekinesis::append_tobject(tele_obj);
 		

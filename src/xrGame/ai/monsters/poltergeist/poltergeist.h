@@ -328,10 +328,6 @@ public:
 	// Задержка (мс) между поднятием объектов в фазе RAISE_OBJECTS.
 	// За счёт этого объекты поднимаются друг за другом в случайное время.
 	u32 m_pmt_raise_time_to_wait_in_objects;
-
-	// Максимальное время (мс), в течение которого один конкретный объект может находиться 
-	// под контролем телекинеза (TS_KEEP), после чего он автоматически отпускается / падает
-	// (защита от "вечного" зависания объектов в воздухе)
 	u32 m_pmt_time_object_keep;
 	
 	enum class ETeleState : u8
@@ -340,22 +336,16 @@ public:
 		MAIN_PHASE,
 		WAIT
 	} m_state;
-
-	// Как я понял, это таймеры для FSM.
-	// m_state_start_time  - Начало точки отсчёта во времени.
-	// m_state_next_update - когда в следующий раз обработать состояние.
-
-	// m_state_start_time - 1000ms, а m_state_next_update = 800ms, и мы хотим обработать N стояние через 800ms
-
-	// if (m_state_start_time + m_state_next_update < time() (Device.dwTimeGlobal под капотом)) 1000ms + 800ms
-	//			обрабатываем состояние.
-
-	// Начало точки отсчёта во времени.
+	
 	u32 m_state_start_time;
-
-	// Через сколько обработать состояние, относительно начала точки отсчёта.
 	u32 m_state_next_update;
 	
+	u32 m_pmt_max_pickuped_weapons;
+	u32 m_pmt_min_slide_delay;
+	u32 m_pmt_max_slide_delay;
+	float m_pmt_autoaim_torque_factor;
+	u32 m_pmt_delay_before_first_shot;
+
 	CTelekineticPoltergeist(CPoltergeist* polter);
 	~CTelekineticPoltergeist() override;
 

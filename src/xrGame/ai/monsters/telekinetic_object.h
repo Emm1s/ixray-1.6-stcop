@@ -94,26 +94,39 @@ struct STelekineticObject
     virtual CTeleWhirlwindObject* cast_whirlwind_object() { return nullptr; }
 };
 
+struct STelekineticWeaponParams
+{
+	f32 autoaim_torque_factor;
+	u32 min_slide_delay;
+	u32 max_slide_delay;
+	u32 delay_before_first_shot;
+};
+
 struct STelekineticWeaponObject : STelekineticObject
 {
 	using inherited = STelekineticObject;
 
 	ITelekineticEnemy* telekinetic_enemy;
-	
+	// Внешие параметры, приходит от CBurer || CTelePoltergeist
+	STelekineticWeaponParams weapon_params;
 	CWeaponMagazined* weapon;
 	
-	u32 weapon_phase_start_time;
-	u32 weapon_next_phase_time;
-
-	u32 delay_before_first_shoot;
+	u32 weapon_phase_start_time; // Когда оружие начало/перестало стрелять.
+	u32 weapon_next_phase_time; // Когда оружию перестать/начать стрелять.
 	
-	u32 last_slide_time;
-	u32 delay_between_weapon_slides;
+	u32 last_slide_time; // Последнее время слайда оружия влево-право.
+	u32 delay_between_weapon_slides; //
 	
 	float backup_weapon_dispersion = 9999.f;
 	s8 backup_weapon_fire_mode = s8(-1);
 
-	STelekineticWeaponObject(ITelekineticEnemy* tele_enemy, CPhysicsShellHolder* owner, float s, float h, u32 ttk, bool rot);
+	STelekineticWeaponObject(ITelekineticEnemy* tele_enemy,
+	                         STelekineticWeaponParams& weapon_params,
+	                         CPhysicsShellHolder* owner,
+	                         float s,
+	                         float h,
+	                         u32 ttk,
+	                         bool rot);
 
 	void setup_local_weapon_things();
 	void restore_global_weapon_things();

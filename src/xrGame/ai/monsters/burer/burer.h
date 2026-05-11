@@ -124,6 +124,12 @@ public:
 
 	CBurerFastGravi	*m_fast_gravi;
 	bool m_use_three_gravi_anims{};
+	
+	u32 m_max_pickuped_weapons;
+	u32 m_min_slide_delay;
+	u32 m_max_slide_delay;
+	float m_autoaim_torque_factor;
+	u32 m_delay_before_first_shot;
 
 public:
 					CBurer				();

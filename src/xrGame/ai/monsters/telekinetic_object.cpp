@@ -278,17 +278,21 @@ void STelekineticObject::update_hold_sound()
 
 // -------------------- WEAPON CONTROLLER --------------------
 
-STelekineticWeaponObject::STelekineticWeaponObject(ITelekineticEnemy* tele_enemy, CPhysicsShellHolder* owner, float s, float h,
-                                                   u32 ttk, bool rot) :
+
+STelekineticWeaponObject::STelekineticWeaponObject(ITelekineticEnemy* tele_enemy,
+                                                   STelekineticWeaponParams& weapon_params, 
+                                                   CPhysicsShellHolder* owner,
+                                                   float s, 
+                                                   float h,
+                                                   u32 ttk,
+                                                   bool rot) :
 	STelekineticObject(owner, s, h, ttk, rot),
 	telekinetic_enemy(tele_enemy),
 	weapon(owner->cast_weapon_magazined()),
 	weapon_next_phase_time(0),
-	delay_before_first_shoot(0),
 	last_slide_time(time()),
-	delay_between_weapon_slides(1000)
+	weapon_params(weapon_params)
 {
-	delay_before_first_shoot = time() + 1500;
 	STelekineticWeaponObject::switch_state(ETelekineticState::TS_RAISE);
 }
 
@@ -467,8 +471,8 @@ void STelekineticWeaponObject::update_auto_aim()
 		angle_difference_signed(target_eulers.y, curr_eulers.y),
 		angle_difference_signed(target_eulers.z, curr_eulers.z)
 	};
-    	
-	diff.mul(weapon->m_pPhysicsShell->getMass());
+	
+	diff.mul(weapon->m_pPhysicsShell->getMass() * weapon_params.autoaim_torque_factor);
 	weapon->m_pPhysicsShell->setTorque(diff);
     	
 	weapon->XFORM().transform_dir(diff);
@@ -491,7 +495,7 @@ bool STelekineticWeaponObject::can_shoot()
 	if (!enemy_->g_Alive())
 		return false;
 	
-	if (delay_before_first_shoot > time())
+	if (weapon_params.delay_before_first_shot + time_keep_started > time_keep_started)
 		return false;
 	
 	if (!is_enemy_tracing())
