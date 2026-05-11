@@ -18,10 +18,19 @@ class CUIFrameWindow;
 class CUIScrollView;
 class CUIStatic;
 class CUI3tButton;
+class CUITabControl;
 class CUICheckButton;
 class CUIFrameLineWnd;
 class CGameTask;
+class CUITaskItem;
 class UIHint;
+
+enum class ETaskListFilter : u8
+{
+	All = 0,
+	Story,
+	Side
+};
 
 class UITaskListWnd final : public CUIWindow, public CUIWndCallback
 {
@@ -43,7 +52,11 @@ public:
 	virtual void	OnFocusLost			();
 	virtual void	Update				();
 	virtual void	SendMessage			( CUIWindow* pWnd, s16 msg, void* pData );
-			void	ShowOnlySecondaryTasks(bool mode) { m_show_only_secondary_tasks = mode; }
+			void	ShowOnlySecondaryTasks(bool mode) { m_filter = mode ? ETaskListFilter::Side : ETaskListFilter::All; }
+			void	SetFilterMode		(ETaskListFilter mode);
+			ETaskListFilter GetFilterMode() const { return m_filter; }
+			bool	HasFilterTabs		() const { return m_filter_tabs != nullptr; }
+			void	UpdateStorylineTask	(CGameTask* task);
 
 			void	UpdateList			();
 
@@ -51,12 +64,17 @@ public:
 
 protected:
 	void 			OnBtnClose			( CUIWindow* w, void* d);
+	void			OnStorylineTaskFocus(CUIWindow* w, void* d);
 	bool 			SortingLessFunction	( CUIWindow* left, CUIWindow* right );
 	bool			SelectNextToSelected( bool bNext );
 
 //			void	UpdateCounter		();
 public:
 	UIHint*				hint_wnd;
+
+private:
+	CGameTask*			StorylineTask		() const;
+	void				UpdateStorylineTaskFocus();
 
 private: // m_
 	CUIFrameWindow*		m_background;
@@ -65,10 +83,13 @@ private: // m_
 	CUIStatic*			m_caption;
 //	CUIStatic*			m_counter;
 	CUI3tButton*		m_bt_close;
+	CUITabControl*		m_filter_tabs;
+	CUITaskItem*		_storylineTaskItem;
+	CUI3tButton*		_btnStorylineTaskFocus;
 
 //	u32					m_activ_task_count;
 	float				m_orig_h;
-	bool				m_show_only_secondary_tasks;
+	ETaskListFilter		m_filter;
 
 }; // class UITaskListWnd
 
@@ -110,7 +131,9 @@ private: // m_
 	CUI3tButton*	m_name;
 	CUICheckButton*	m_bt_view;
 	CUIStatic*		m_st_story;
+	CUIStatic*		m_task_icon;
 	CUI3tButton*	m_bt_focus;
+	CUI3tButton*	m_btn_task_focus;
 
 	enum
 	{

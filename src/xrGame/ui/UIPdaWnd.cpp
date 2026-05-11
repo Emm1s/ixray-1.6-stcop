@@ -61,6 +61,7 @@ constexpr LegacyTabIdEntry g_legacyTabIds[] = {
 // Canonical section ids that ResolveKnownTabId may normalize through [pda_tab_aliases].
 constexpr const char* g_knownPdaSectionIds[] = {
     PdaSectionId::Tasks,
+    PdaSectionId::TaskList,
     PdaSectionId::Quests,
     PdaSectionId::FractionWar,
     PdaSectionId::Contacts,
@@ -93,6 +94,11 @@ shared_str ResolveKnownTabId(const shared_str& sectionId)
 bool TryGetPdaUpdateSection(const shared_str& sectionId, pda_section::part& updateSection)
 {
     if (PdaSectionId::Equals(sectionId, PdaSectionId::Tasks))
+    {
+        updateSection = pda_section::quests;
+        return true;
+    }
+    if (PdaSectionId::Equals(sectionId, PdaSectionId::TaskList))
     {
         updateSection = pda_section::quests;
         return true;
@@ -352,7 +358,7 @@ void CUIPdaWnd::Init()
 		return UITabControl->GetButtonById(ResolveTabId(sectionId)) != nullptr;
 	};
 
-	if (tabPresentLambda(PdaSectionId::Tasks) && !pUITaskWnd)
+	if ((tabPresentLambda(PdaSectionId::Tasks) || tabPresentLambda(PdaSectionId::TaskList)) && !pUITaskWnd)
 	{
 		pUITaskWnd = new CUITaskWnd();
 		pUITaskWnd->hint_wnd = m_hint_wnd;
@@ -478,16 +484,17 @@ void CUIPdaWnd::Show(bool status)
 		
 		if (m_sActiveSection == nullptr || strcmp(m_sActiveSection.c_str(), "") == 0)
 		{
+			const char* defaultSection = PdaSectionId::Quests;
 			if (UITabControl->GetButtonById(ResolveTabId(PdaSectionId::Tasks)))
 			{
-				SetActiveSubdialog(ResolveTabId(PdaSectionId::Tasks));
-				UITabControl->SetActiveTab(ResolveTabId(PdaSectionId::Tasks));
+				defaultSection = PdaSectionId::Tasks;
 			}
-			else
+			else if (UITabControl->GetButtonById(ResolveTabId(PdaSectionId::TaskList)))
 			{
-				SetActiveSubdialog(ResolveTabId(PdaSectionId::Quests));
-				UITabControl->SetActiveTab(ResolveTabId(PdaSectionId::Quests));
+				defaultSection = PdaSectionId::TaskList;
 			}
+			SetActiveSubdialog(ResolveTabId(defaultSection));
+			UITabControl->SetActiveTab(ResolveTabId(defaultSection));
 		}
 		else
 			SetActiveSubdialog(m_sActiveSection);
@@ -594,6 +601,10 @@ void CUIPdaWnd::SetActiveSubdialog(const shared_str& section)
 
 	m_pActiveDialog = nullptr;
 	if (PdaSectionId::Equals(resolvedSection, PdaSectionId::Tasks))
+	{
+		m_pActiveDialog = pUITaskWnd;
+	}
+	else if (PdaSectionId::Equals(resolvedSection, PdaSectionId::TaskList))
 	{
 		m_pActiveDialog = pUITaskWnd;
 	}
@@ -705,6 +716,13 @@ void CUIPdaWnd::SetActiveSubdialog(const shared_str& section)
 		m_sActiveSection = resolvedSection;
 		SetActiveTabBackground(m_sActiveSection);
 		SetActiveCaption();
+
+		// "Task list" tab is a thin alias for the Tasks subdialog that immediately surfaces the task list side panel.
+		if (pUITaskWnd && m_pActiveDialog == pUITaskWnd
+			&& PdaSectionId::Equals(resolvedSection, PdaSectionId::TaskList))
+		{
+			pUITaskWnd->Show_TaskListWnd(true);
+		}
 	}
 
 }
@@ -847,7 +865,8 @@ void CUIPdaWnd::Draw()
 
 void CUIPdaWnd::DrawHint()
 {
-	if (PdaSectionId::Equals(m_sActiveSection, PdaSectionId::Tasks))
+	if (PdaSectionId::Equals(m_sActiveSection, PdaSectionId::Tasks)
+		|| PdaSectionId::Equals(m_sActiveSection, PdaSectionId::TaskList))
 	{
 		pUITaskWnd->DrawHint();
 	}
@@ -889,7 +908,8 @@ void CUIPdaWnd::UpdatePda()
 	if (pUILogsWnd)
 		pUILogsWnd->UpdateNews();
 
-	if (PdaSectionId::Equals(m_sActiveSection, PdaSectionId::Tasks))
+	if (PdaSectionId::Equals(m_sActiveSection, PdaSectionId::Tasks)
+		|| PdaSectionId::Equals(m_sActiveSection, PdaSectionId::TaskList))
 	{
 		pUITaskWnd->ReloadTaskInfo();
 	}

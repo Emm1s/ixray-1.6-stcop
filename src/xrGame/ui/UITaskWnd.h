@@ -37,6 +37,7 @@ private:
 	CUITaskItem*			m_pSecondaryTaskItem;
 
 	CUI3tButton*			m_BtnTaskListWnd;
+	bool					m_hasTaskListFilterTabs = false;
 	CUIStatic*				m_second_task_index;
 	CUIStatic*				m_devider;
 	u32						m_actual_frame;
@@ -118,6 +119,11 @@ public:
 			};
 			void SecondaryTasksEnabled(bool enable)
 			{
+				if (m_hasTaskListFilterTabs)
+				{
+					return;
+				}
+
 				m_bSecondaryTasksEnabled = enable;
 				if (m_cbFilters[MAP_MARKS_FILTER_SECONDARY_TASKS])
 					m_cbFilters[MAP_MARKS_FILTER_SECONDARY_TASKS]->SetCheck(enable);

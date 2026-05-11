@@ -71,6 +71,11 @@ void CUITaskWnd::Init()
 	if (xml.NavigateToNode("task_split"))
 		m_task_split = UIHelper::CreateFrameLine(xml, "task_split", this);
 
+	// Detect new in-panel filter tabs (All/Story/Side) in pda_tasks.xml: if present, the legacy
+	// secondary-tasks checkbox becomes redundant and is suppressed below.
+	m_hasTaskListFilterTabs = xml.NavigateToNode("second_task_wnd:task_filter_tabs")
+		&& xml.GetNodesNum("second_task_wnd:task_filter_tabs", 0, "button") > 0;
+
 	if (xml.NavigateToNode("filter_treasures"))
 	{
 		m_cbFilters[MAP_MARKS_FILTER_TREASURES] = UIHelper::CreateCheck(xml, "filter_treasures", this);
@@ -87,7 +92,7 @@ void CUITaskWnd::Init()
 	}
 	m_bPrimaryObjectsEnabled		= true;
 
-	if (xml.NavigateToNode("filter_secondary_tasks"))
+	if (!m_hasTaskListFilterTabs && xml.NavigateToNode("filter_secondary_tasks"))
 	{
 		m_cbFilters[MAP_MARKS_FILTER_SECONDARY_TASKS] = UIHelper::CreateCheck(xml, "filter_secondary_tasks", this);
 		m_cbFilters[MAP_MARKS_FILTER_SECONDARY_TASKS]->SetCheck(true);
@@ -164,8 +169,12 @@ void CUITaskWnd::Init()
         Register(m_btn_focus2);
         AddCallback(m_btn_focus2, BUTTON_DOWN, CUIWndCallback::void_function(this, &CUITaskWnd::OnTask2DbClicked));
     }
-	m_BtnTaskListWnd		= UIHelper::Create3tButton( xml, "btn_second_task", this );
-	AddCallback				(m_BtnTaskListWnd, BUTTON_CLICKED, CUIWndCallback::void_function(this, &CUITaskWnd::OnShowTaskListWnd));
+	// btn_second_task is optional: mods can move the task list toggle to the main PDA tab (eptTaskList) instead.
+	if (xml.NavigateToNode("btn_second_task"))
+	{
+		m_BtnTaskListWnd = UIHelper::Create3tButton(xml, "btn_second_task", this);
+		AddCallback(m_BtnTaskListWnd, BUTTON_CLICKED, CUIWndCallback::void_function(this, &CUITaskWnd::OnShowTaskListWnd));
+	}
 
 	if (xml.NavigateToNode("second_task_index"))
 		m_second_task_index = UIHelper::CreateStatic(xml, "second_task_index", this);
@@ -174,7 +183,11 @@ void CUITaskWnd::Init()
 	m_task_wnd->SetAutoDelete	(true);
 	m_task_wnd->hint_wnd		= hint_wnd;
 	m_task_wnd->init_from_xml	(xml, "second_task_wnd");
-	m_task_wnd->ShowOnlySecondaryTasks(m_pSecondaryTaskItem != nullptr);
+	// Skip legacy "only secondary" preset when the in-panel filter tabs own the filtering UX.
+	if (!m_task_wnd->HasFilterTabs())
+	{
+		m_task_wnd->ShowOnlySecondaryTasks(m_pSecondaryTaskItem != nullptr);
+	}
 
 	m_pMapWnd->AttachChild		(m_task_wnd);
 	m_task_wnd->SetMessageTarget(this);
@@ -275,6 +288,7 @@ void CUITaskWnd::ReloadTaskInfo()
 	{
 		m_pSecondaryTaskItem->InitTask(secondaryTask);
 	}
+	m_task_wnd->UpdateStorylineTask(primaryTask);
 
 	if (!primaryTask || (primaryTask->m_map_object_id == u16(-1) || primaryTask->m_map_location.size() == 0))
 		m_btn_focus->Show(false);
