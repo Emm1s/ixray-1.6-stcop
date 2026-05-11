@@ -594,8 +594,8 @@ void STelekineticWeaponObject::perform_keep_object()
 		
 		// Скалируем случайное время для слайдов в зависимости от max_keep_time, нижний порог не <1s и верхний не <2s.
 		// Ибо если max_keep_time = 2000ms, то 2000 / 5 = 400ms, а 2000 / 2 = 1000ms, то будет слишком дико)))
-		u32 min = std::max<u32>(max_keep_time / 5, 1000); 
-		u32 max = std::max<u32>(max_keep_time / 2, 2000); 
+		u32 min = std::max<u32>(max_keep_time / 5, weapon_params.min_slide_delay);
+		u32 max = std::max<u32>(max_keep_time / 2, weapon_params.max_slide_delay);
 		
 		last_slide_time = time();
 		delay_between_weapon_slides = Random.randI(static_cast<s32>(min), static_cast<s32>(max));
