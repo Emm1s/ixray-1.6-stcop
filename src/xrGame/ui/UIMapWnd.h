@@ -23,6 +23,7 @@ class UIHint;
 class CUIPdaSpot;
 class CUIPropertiesBox;
 class CUIGamepadLegend;
+class UIMapZoomScale;
 
 using GameMaps = xr_map<shared_str, CUICustomMap*>;
 using GameMapsPairIt = GameMaps::iterator;
@@ -79,6 +80,7 @@ private:
 	CUIStatic*					m_controller_cursor = nullptr;
 	// Optional XML: map_pattern_overlay (drawn above map; non-interactive).
 	CUIStatic*					m_mapPatternOverlay = nullptr;
+	UIMapZoomScale*				_zoomScale = nullptr;
 	u32							m_nav_timing;
 	Fvector2					m_controller_cursor_pos = { 0, 0 };
 	Fvector2					m_controller_cursor_pos_initial = { 0, 0 };

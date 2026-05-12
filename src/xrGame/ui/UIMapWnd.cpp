@@ -23,9 +23,24 @@
 #include "map_hint.h"
 #include "../../xrUI/UICursor.h"
 #include "UIPdaSpot.h"
+#include "UIMapZoomScale.h"
 
 #include "../../xrUI/Widgets/UIPropertiesBox.h"
 #include "../../xrUI/Widgets/UIListBoxItem.h"
+
+namespace
+{
+bool resolveMapZoomScaleXmlPath(CUIXml& uiXml, const char* startFrom, string512& pathOut)
+{
+	xr_strconcat(pathOut, startFrom, ":zoom_scale");
+	if (uiXml.NavigateToNode(pathOut))
+	{
+		return true;
+	}
+	xr_strconcat(pathOut, startFrom, ":main_wnd:zoom_scale");
+	return uiXml.NavigateToNode(pathOut);
+}
+} // namespace
 
 CUIMapWnd* g_map_wnd = nullptr; // quick temporary solution -(
 CUIMapWnd* GetMapWnd()
@@ -67,6 +82,7 @@ CUIMapWnd::~CUIMapWnd()
 	delete_data( m_GameMaps );
 	delete_data( m_map_location_hint );
 	delete_data( m_text_hint );
+	xr_delete( _zoomScale );
 /*
 #ifdef DEBUG
 	delete_data( m_dbg_text_hint );
@@ -273,6 +289,13 @@ void CUIMapWnd::Init(const char* xml_name, const char* start_from)
 	};
 	initMapPatternOverlayLambda();
 
+	if (resolveMapZoomScaleXmlPath(uiXml, start_from, pth))
+	{
+		_zoomScale = new UIMapZoomScale();
+		_zoomScale->InitFromXml(uiXml, pth);
+		AttachChild(_zoomScale);
+	}
+
 	m_controller_cursor = new CUIStatic();
 	m_controller_cursor->InitTexture("ui_cur_task");
 	m_controller_cursor->SetWndSize(Fvector2().set(19.f, 19.f));
@@ -294,6 +317,10 @@ void CUIMapWnd::Init(const char* xml_name, const char* start_from)
 void CUIMapWnd::Show(bool status)
 {
 	inherited::Show(status);
+	if (_zoomScale)
+	{
+		_zoomScale->Show(status);
+	}
 	if (!status)
 	{
 		SetPersonalSpotPlacement(false);
@@ -893,8 +920,15 @@ void CUIMapWnd::Update()
 {
 	if(m_GlobalMap)
 		m_GlobalMap->WorkingArea().set(ActiveMapRect());
-	inherited::Update			();
 	m_ActionPlanner->Update		();
+	if (_zoomScale && m_GlobalMap)
+	{
+		_zoomScale->SyncFromMap(
+			m_GlobalMap->GetMinZoom(),
+			m_GlobalMap->GetMaxZoom(),
+			m_GlobalMap->GetCurrentZoom().x);
+	}
+	inherited::Update			();
 	UpdateNav					();
 	UpdateControllerCursor		();
 }
