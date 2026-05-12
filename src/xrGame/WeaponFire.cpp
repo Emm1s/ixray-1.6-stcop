@@ -8,8 +8,6 @@
 #include "Actor.h"
 
 #include "ActorEffector.h"
-#include "alife_object_registry.h"
-#include "alife_simulator.h"
 #include "EffectorShot.h"
 
 #include "Level_Bullet_Manager.h"
@@ -54,8 +52,6 @@ float CWeapon::GetWeaponDeterioration	()
 {
 	return conditionDecreasePerShot;
 };
-
-#pragma optimize("", off)
 
 void CWeapon::FireTrace		(const Fvector& P, const Fvector& D)
 {
