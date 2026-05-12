@@ -432,6 +432,16 @@ void CStateBurerAttackTele<Object>::SelectObjects()
 		
 		if (object->cast_weapon_magazined())
 		{
+			size_t weapons_count = std::count_if(this->object->CTelekinesis::get_tele_objects().begin(),
+			                                     this->object->CTelekinesis::get_tele_objects().end(),
+			                                     [](STelekineticObject* tele_object)
+			                                     {
+				                                     return tele_object->cast_telekinetic_weapon_object();
+			                                     });
+	
+			if (weapons_count >= this->object->m_max_pickuped_weapons)
+				return;
+			
 			STelekineticWeaponParams weapon_params 
 			{
 				.autoaim_torque_factor = this->object->m_autoaim_torque_factor,

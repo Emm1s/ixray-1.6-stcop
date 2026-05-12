@@ -256,11 +256,21 @@ bool CTelekineticPoltergeist::tele_raise_objects()
 	
 	CPhysicsShellHolder* obj = tele_objects[0] != nullptr ? tele_objects[0]->cast_physics_shell_holder() : nullptr;
 	bool rotate = false;
-
+	
 	STelekineticObject* tele_obj;
 
 	if (obj->cast_weapon_magazined())
 	{
+		size_t weapons_count = std::count_if(m_poltergeist->get_tele_objects().begin(),
+		                                     m_poltergeist->get_tele_objects().end(),
+		                                     [](STelekineticObject* tele_object)
+		                                     {
+			                                     return tele_object->cast_telekinetic_weapon_object();
+		                                     });
+	
+		if (weapons_count >= m_pmt_max_pickuped_weapons)
+			return false;
+		
 		STelekineticWeaponParams weapon_params
 		{
 			.autoaim_torque_factor = m_pmt_autoaim_torque_factor,
@@ -302,7 +312,7 @@ bool CTelekineticPoltergeist::tele_raise_objects()
 	tele_obj->set_particle(m_pmt_particle_tele_object);
 	tele_obj->start_object_particles();
 
-	return false;
+	return true;
 }
 
 bool CTelekineticPoltergeist::trace_object(CObject* obj, const Fvector& target)
