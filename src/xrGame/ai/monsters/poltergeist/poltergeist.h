@@ -350,6 +350,8 @@ public:
 	u32 m_pmt_max_slide_delay;
 	float m_pmt_autoaim_torque_factor;
 	u32 m_pmt_delay_before_first_shot;
+	shared_str m_pmt_particle_tele_object;
+	bool m_pmt_weapon_slide_enable;
 
 	CTelekineticPoltergeist(CPoltergeist* polter);
 	~CTelekineticPoltergeist() override;

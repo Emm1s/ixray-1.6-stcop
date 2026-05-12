@@ -57,9 +57,9 @@ public:
 
 	} m_gravi_object;
 
-	const char*	 particle_gravi_wave;
-	const char*   particle_gravi_prepare;
-	const char*	 particle_tele_object;
+	const char*	particle_gravi_wave;
+	const char* particle_gravi_prepare;
+	shared_str	particle_tele_object;
 
 	//////////////////////////////////////////////////////////////////////////
 	// Sounds
@@ -130,6 +130,7 @@ public:
 	u32 m_max_slide_delay;
 	float m_autoaim_torque_factor;
 	u32 m_delay_before_first_shot;
+	bool m_weapon_slide_enable;
 
 public:
 					CBurer				();
@@ -159,9 +160,6 @@ public:
 
 			void	StartGraviPrepare	();
 			void	StopGraviPrepare	();
-
-			void	StartTeleObjectParticle(CGameObject *pO);
-			void	StopTeleObjectParticle(CGameObject *pO);
 
 			void	ActivateShield		();
 			void	DeactivateShield	();

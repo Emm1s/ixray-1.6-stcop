@@ -121,7 +121,7 @@ void CStateBurerAttackTele<Object>::deactivate()
 			continue;
 		}
 
-		this->object->StopTeleObjectParticle				(cur_object);
+		tobject->stop_object_particles();
 	}
 
 	FireAllToEnemy									();
@@ -330,8 +330,6 @@ void CStateBurerAttackTele<Object>::ExecuteTeleFire()
 	const float fire_time = dist_to_enemy / this->object->m_tele_fly_velocity;
 
 	this->object->CTelekinesis::throw_object_time(selected_object, enemy_pos, fire_time);
-
-	this->object->StopTeleObjectParticle(selected_object);
 	this->object->sound().play(CBurer::eMonsterSoundTeleAttack);
 }
 
@@ -439,7 +437,8 @@ void CStateBurerAttackTele<Object>::SelectObjects()
 				.autoaim_torque_factor = this->object->m_autoaim_torque_factor,
 				.min_slide_delay = this->object->m_min_slide_delay,
 				.max_slide_delay = this->object->m_max_slide_delay,
-				.delay_before_first_shot = this->object->m_delay_before_first_shot
+				.delay_before_first_shot = this->object->m_delay_before_first_shot,
+				.weapon_slide_enable = this->object->m_weapon_slide_enable,
 			};
 
 			tele_obj = new STelekineticWeaponObject(this->object,
@@ -447,7 +446,7 @@ void CStateBurerAttackTele<Object>::SelectObjects()
 			                                        object,
 			                                        this->object->m_tele_raise_speed,
 			                                        height,
-			                                        10000,
+			                                        this->object->m_tele_time_to_hold,
 			                                        rotate);
 		}
 		else if (object->cast_grenade())
@@ -456,20 +455,20 @@ void CStateBurerAttackTele<Object>::SelectObjects()
 													object, 
 													this->object->m_tele_raise_speed, 
 													height,
-													10000, 
+													this->object->m_tele_time_to_hold, 
 													rotate);
 		}
 		else
 			tele_obj = new STelekineticObject(object,
 			                                  this->object->m_tele_raise_speed,
 			                                  height,
-			                                  10000,
+			                                  this->object->m_tele_time_to_hold,
 			                                  rotate);
 		
 		this->object->CTelekinesis::append_tobject(tele_obj);
-		
 		tele_obj->set_sound(this->object->sound_tele_hold, this->object->sound_tele_throw);
-		this->object->StartTeleObjectParticle(object);
+		tele_obj->set_particle(this->object->particle_tele_object);
+		tele_obj->start_object_particles();
 	}
 }
 

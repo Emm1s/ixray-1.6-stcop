@@ -112,9 +112,9 @@ void CBurer::Load(const char* section)
 	anim().accel_load						(section);
 	anim().accel_chain_add					(eAnimWalkFwd,		eAnimRun);
 
-	particle_gravi_wave					=	pSettings->r_string(section,"Particle_Gravi_Wave");
-	particle_gravi_prepare				=	pSettings->r_string(section,"Particle_Gravi_Prepare");
-	particle_tele_object				=	pSettings->r_string(section,"Particle_Tele_Object");
+	particle_gravi_wave	= pSettings->r_string(section,"Particle_Gravi_Wave");
+	particle_gravi_prepare = pSettings->r_string(section,"Particle_Gravi_Prepare");
+	particle_tele_object = READ_IF_EXISTS(pSettings, r_string, section, "Particle_Tele_Object", "static\fire_distort");
 	
 	::Sound->create(sound_gravi_wave,	pSettings->r_string(section,"sound_gravi_wave"),st_Effect,SOUND_TYPE_WORLD);
 	::Sound->create(sound_tele_hold,	pSettings->r_string(section,"sound_tele_hold"),	st_Effect,SOUND_TYPE_WORLD);
@@ -154,7 +154,7 @@ void CBurer::Load(const char* section)
 	m_tele_object_max_mass				= 	pSettings->r_float(section,"Tele_Object_Max_Mass");
 	m_tele_max_handled_objects			= 	pSettings->r_u32(section,"Tele_Max_Handled_Objects");
 	m_tele_max_time						= 	READ_IF_EXISTS(pSettings, r_u32, section, "Tele_Max_Time", 10000);
-	m_tele_time_to_hold					= 	pSettings->r_u32(section,"Tele_Time_To_Hold");
+	m_tele_time_to_hold					= 	READ_IF_EXISTS(pSettings, r_u32, section, "Tele_Time_To_Hold", 10'000);
 	m_tele_min_distance					= 	READ_IF_EXISTS(pSettings, r_float, section, "tele_min_distance", 8);
 	m_tele_max_distance					= 	READ_IF_EXISTS(pSettings, r_float, section, "tele_max_distance", 30);
 	m_tele_raise_speed					= 	READ_IF_EXISTS(pSettings, r_float, section, "tele_raise_speed", 5.f);
@@ -168,6 +168,7 @@ void CBurer::Load(const char* section)
 	m_max_slide_delay = READ_IF_EXISTS(pSettings, r_u32, section, "Tele_Max_Slide_Delay", 1500);
 	m_autoaim_torque_factor = READ_IF_EXISTS(pSettings, r_float, section, "Tele_AutoAim_Torque_Factor", 0.33f);
 	m_delay_before_first_shot = READ_IF_EXISTS(pSettings, r_u32, section, "Tele_Delay_Before_First_Shoot", 0);
+	m_weapon_slide_enable = READ_IF_EXISTS(pSettings, r_bool, section, "Tele_Weapon_Slide_Enable", false);
 	
 	SVelocityParam &velocity_none		= 	move().get_velocity(MonsterMovement::eVelocityParameterIdle);	
 	SVelocityParam &velocity_turn		= 	move().get_velocity(MonsterMovement::eVelocityParameterStand);
@@ -672,18 +673,6 @@ void CBurer::StopGraviPrepare()
 		tmp_packet.w_u16(pA->ID());
 		Level().Server->SendBroadcast(BroadcastCID, tmp_packet, net_flags(true, true));
 	}
-}
-
-void CBurer::StartTeleObjectParticle(CGameObject *pO) 
-{
-	TParticlesPlayer* PPlayer = pO->GetOrCreateComponent<TParticlesPlayer>();
-	PPlayer->StartParticles(particle_tele_object, Fvector().set(0.0f, 0.1f, 0.0f), pO->ID());
-}
-
-void CBurer::StopTeleObjectParticle(CGameObject *pO) 
-{
-	TParticlesPlayer* PPlayer = pO->GetOrCreateComponent<TParticlesPlayer>();
-	PPlayer->StopParticles(particle_tele_object, BI_NONE, true);
 }
 
 void CBurer::Hit(SHit* pHDS)

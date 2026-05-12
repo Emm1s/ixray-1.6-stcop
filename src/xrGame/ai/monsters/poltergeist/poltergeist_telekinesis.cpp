@@ -92,7 +92,9 @@ void CTelekineticPoltergeist::load(LPCSTR section)
 	m_pmt_min_slide_delay = READ_IF_EXISTS(pSettings, r_u32, section, "Tele_Min_Slide_Delay", 1000);
 	m_pmt_max_slide_delay = READ_IF_EXISTS(pSettings, r_u32, section, "Tele_Max_Slide_Delay", 1500);
 	m_pmt_autoaim_torque_factor = READ_IF_EXISTS(pSettings, r_float, section, "Tele_AutoAim_Torque_Factor", 0.33f);
-	m_pmt_delay_before_first_shot = READ_IF_EXISTS(pSettings, r_u32, section, "Tele_Delay_Before_Shoot", 0);
+	m_pmt_delay_before_first_shot = READ_IF_EXISTS(pSettings, r_u32, section, "Tele_Delay_Before_First_Shoot", 0);
+	m_pmt_particle_tele_object = READ_IF_EXISTS(pSettings, r_string, section, "Particle_Tele_Object", "static\fire_distort");
+	m_pmt_weapon_slide_enable = READ_IF_EXISTS(pSettings, r_bool, section, "Tele_Weapon_Slide_Enable", false);
 	
 	Sound->create(m_sound_tele_hold, pSettings->r_string(section, "sound_tele_hold"),
 	              st_Effect, SOUND_TYPE_WORLD);
@@ -264,7 +266,8 @@ bool CTelekineticPoltergeist::tele_raise_objects()
 			.autoaim_torque_factor = m_pmt_autoaim_torque_factor,
 			.min_slide_delay = m_pmt_min_slide_delay,
 			.max_slide_delay = m_pmt_max_slide_delay,
-			.delay_before_first_shot = m_pmt_delay_before_first_shot
+			.delay_before_first_shot = m_pmt_delay_before_first_shot,
+			.weapon_slide_enable = m_pmt_weapon_slide_enable
 		};
 
 		tele_obj = new STelekineticWeaponObject(m_poltergeist,
@@ -296,7 +299,9 @@ bool CTelekineticPoltergeist::tele_raise_objects()
 
 	m_poltergeist->CTelekinesis::append_tobject(tele_obj);
 	tele_obj->set_sound(m_sound_tele_hold, m_sound_tele_throw);
-	
+	tele_obj->set_particle(m_pmt_particle_tele_object);
+	tele_obj->start_object_particles();
+
 	return false;
 }
 

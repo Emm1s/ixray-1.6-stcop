@@ -35,6 +35,7 @@ struct STelekineticObject
     CPhysicsShellHolder* object;
     ref_sound sound_hold;
     ref_sound sound_throw;
+	shared_str particle_sect;
 
     float target_height;
     float strength;
@@ -52,6 +53,10 @@ struct STelekineticObject
     virtual ~STelekineticObject() {};
 
     virtual void set_sound(const ref_sound& snd_hold, const ref_sound& snd_throw);
+	virtual void set_particle(shared_str& particles_sect);
+	
+	virtual void start_object_particles();
+	virtual void stop_object_particles();
 
     virtual void raise(float step);
     virtual void raise_update();
@@ -100,6 +105,7 @@ struct STelekineticWeaponParams
 	u32 min_slide_delay;
 	u32 max_slide_delay;
 	u32 delay_before_first_shot;
+	bool weapon_slide_enable;
 };
 
 struct STelekineticWeaponObject : STelekineticObject
@@ -118,6 +124,7 @@ struct STelekineticWeaponObject : STelekineticObject
 	u32 delay_between_weapon_slides; //
 	
 	float backup_weapon_dispersion = 9999.f;
+	u32 first_shot_delay_ms = 0;
 	s8 backup_weapon_fire_mode = s8(-1);
 
 	STelekineticWeaponObject(ITelekineticEnemy* tele_enemy,

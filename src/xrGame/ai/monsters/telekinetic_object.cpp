@@ -33,6 +33,23 @@ void STelekineticObject::set_sound(const ref_sound& snd_hold, const ref_sound& s
 	sound_throw.clone(snd_throw, st_Effect, sg_SourceType);
 }
 
+void STelekineticObject::set_particle(shared_str& particles_sect)
+{
+	particle_sect = particles_sect;
+}
+
+void STelekineticObject::start_object_particles()
+{
+	TParticlesPlayer* PPlayer = object->GetOrCreateComponent<TParticlesPlayer>();
+	PPlayer->StartParticles(particle_sect, Fvector().set(0.0f, 0.1f, 0.0f), object->ID());
+}
+
+void STelekineticObject::stop_object_particles()
+{
+	TParticlesPlayer* PPlayer = object->GetOrCreateComponent<TParticlesPlayer>();
+	PPlayer->StopParticles(particle_sect, BI_NONE, true);
+}
+
 void STelekineticObject::raise_update()
 {
 	if (check_height() || check_raise_time_out())
@@ -182,6 +199,7 @@ void STelekineticObject::release()
 		object->m_pPhysicsShell->applyImpulseTrace(object->Position(), random_dir,
 		                                           object->m_pPhysicsShell->getMass() * 2.f);
 	
+	stop_object_particles();
 	switch_state(ETelekineticState::TS_NONE);
 }
 
@@ -205,6 +223,8 @@ void STelekineticObject::throw_object_time(const Fvector& target, float time)
 
 	if (sound_hold.is_playing())
 		sound_hold.stop();
+	
+	stop_object_particles();
 }
 
 void STelekineticObject::throw_object(const Fvector& target, float power)
@@ -312,6 +332,8 @@ void STelekineticWeaponObject::setup_local_weapon_things()
 	backup_weapon_dispersion = weapon->getFireDispersionBase();
 	backup_weapon_fire_mode = weapon->GetQueueSize();
 	
+	first_shot_delay_ms = time() + weapon_params.delay_before_first_shot;
+	
 	// WEAPON_ININITE_QUEUE (-1) = auto, 1 = single, 2 = burst
 	weapon->SetQueueSize(WEAPON_ININITE_QUEUE); // чтобы пистолетам задать режим стрельбы auto
 	
@@ -320,19 +342,19 @@ void STelekineticWeaponObject::setup_local_weapon_things()
 		switch (g_SingleGameDifficulty)
 		{
 		case egdNovice:
-			weapon->setFireDispersionBase(0.16f);
+			weapon->setFireDispersionBase(0.15f);
 			break;
 		
 		case egdStalker:
-			weapon->setFireDispersionBase(0.14f);
+			weapon->setFireDispersionBase(0.13f);
 			break;
 		
 		case egdVeteran:
-			weapon->setFireDispersionBase(0.12f);
+			weapon->setFireDispersionBase(0.11f);
 			break;
 		
 		case egdMaster:
-			weapon->setFireDispersionBase(0.10f);
+			weapon->setFireDispersionBase(0.1f);
 			break;
 		}
 	}
@@ -342,7 +364,7 @@ void STelekineticWeaponObject::setup_local_weapon_things()
 		if (weapon->cast_weapon_shotgun() /*|| weapon->cast_weapon_rg6()*/)
 			return;
 		
-		weapon->setFireDispersionBase(0.18f);
+		weapon->setFireDispersionBase(0.2f);
 	}
 }
 
@@ -495,7 +517,7 @@ bool STelekineticWeaponObject::can_shoot()
 	if (!enemy_->g_Alive())
 		return false;
 	
-	if (weapon_params.delay_before_first_shot + time_keep_started > time_keep_started)
+	if (first_shot_delay_ms > time())
 		return false;
 	
 	if (!is_enemy_tracing())
@@ -575,7 +597,7 @@ void STelekineticWeaponObject::perform_keep_object()
 {
 	inherited::perform_keep_object();
 	
-	if (last_slide_time + delay_between_weapon_slides < time())
+	if (weapon_params.weapon_slide_enable && last_slide_time + delay_between_weapon_slides < time())
 	{
 		Fvector random_lr_dir;
 		Fvector object_position = object->Position();

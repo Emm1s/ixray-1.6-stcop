@@ -333,7 +333,6 @@ void CPoltergeist::renderable_Render()
 void CPoltergeist::UpdateCL()
 {
 	inherited::UpdateCL();
-	CTelekinesis::schedule_update();
 	m_poltergeist->UpdateCL();
 	update_detection();
 	def_lerp(m_height, target_height, m_height_change_velocity, client_update_fdelta());
@@ -361,7 +360,9 @@ void CPoltergeist::shedule_Update(u32 dt)
 
 	inherited::shedule_Update(dt);
 	
+	CTelekinesis::schedule_update();
 	Energy::schedule_update();
+	
 	UpdateHeight();
 	ability()->update_schedule();
 }
