@@ -105,6 +105,11 @@ u32 CBurer::get_tele_keep_time()
 	return m_tele_time_to_hold;
 }
 
+CBaseMonster* CBurer::get_self()
+{
+	return this;
+}
+
 void CBurer::Load(const char* section)
 {
 	inherited::Load							(section);

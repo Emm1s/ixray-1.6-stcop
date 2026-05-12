@@ -294,6 +294,11 @@ u32 CPoltergeist::get_tele_keep_time()
 	return m_poltergeist->cast_to_polter_tele()->m_pmt_time_object_keep;
 }
 
+CBaseMonster* CPoltergeist::get_self()
+{
+	return this;
+}
+
 void CPoltergeist::Hide()
 {
 	if (state_invisible) return;

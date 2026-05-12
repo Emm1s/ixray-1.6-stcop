@@ -24,6 +24,7 @@ public:
 	virtual CEntityAlive* get_enemy() = 0;
 	virtual float get_tele_distance() = 0;
 	virtual u32 get_tele_keep_time()  = 0;
+	virtual CBaseMonster* get_self()  = 0;
 };
 
 class CTelekinesis : public CPHUpdateObject

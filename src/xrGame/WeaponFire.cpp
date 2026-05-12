@@ -8,6 +8,8 @@
 #include "Actor.h"
 
 #include "ActorEffector.h"
+#include "alife_object_registry.h"
+#include "alife_simulator.h"
 #include "EffectorShot.h"
 
 #include "Level_Bullet_Manager.h"
@@ -52,6 +54,8 @@ float CWeapon::GetWeaponDeterioration	()
 {
 	return conditionDecreasePerShot;
 };
+
+#pragma optimize("", off)
 
 void CWeapon::FireTrace		(const Fvector& P, const Fvector& D)
 {
@@ -108,12 +112,21 @@ void CWeapon::FireTrace		(const Fvector& P, const Fvector& D)
 			fire_disp = GetFireDispersion(true);
 		}
 	}
-	
+
+	u16 weapon_id = ID();
+	u16 initiator_id = H_Parent() ? H_Parent()->ID() : Initiator();
 	bool SendHit = SendHitAllowed(H_Parent() ? H_Parent() : this);
+
 	//выстерлить пулю (с учетом возможной стрельбы дробью)
-	for(int i = 0; i < l_cartridge.param_s.buckShot; ++i) 
+	for (int i = 0; i < l_cartridge.param_s.buckShot; ++i)
 	{
-		FireBullet(P, D, fire_disp, l_cartridge, H_Parent() ? H_Parent()->ID() : ID(), ID(), SendHit);
+		FireBullet(P,
+		           D,
+		           fire_disp,
+		           l_cartridge,
+		           initiator_id,
+		           weapon_id,
+		           SendHit);
 	}
 	
 	if(m_bLightShotEnabled) 

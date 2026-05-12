@@ -332,6 +332,8 @@ void STelekineticWeaponObject::setup_local_weapon_things()
 	backup_weapon_dispersion = weapon->getFireDispersionBase();
 	backup_weapon_fire_mode = weapon->GetQueueSize();
 	
+	weapon->SetInitiator(telekinetic_enemy->get_self()->ID());
+	
 	first_shot_delay_ms = time() + weapon_params.delay_before_first_shot;
 	
 	// WEAPON_ININITE_QUEUE (-1) = auto, 1 = single, 2 = burst
@@ -373,6 +375,7 @@ void STelekineticWeaponObject::restore_global_weapon_things()
 	if (weapon == nullptr)
 		return;
 	
+	weapon->SetInitiator(-1);
 	weapon->SetQueueSize(backup_weapon_fire_mode);
 	weapon->setFireDispersionBase(backup_weapon_dispersion);
 }

@@ -127,6 +127,7 @@ public:
 	
 	float get_tele_distance() override;
 	u32 get_tele_keep_time() override;
+	CBaseMonster* get_self() override;
 
 public:
 	bool run_home_point_when_enemy_inaccessible() const override { return false; }

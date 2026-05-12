@@ -172,6 +172,7 @@ public:
 	CEntityAlive* get_enemy() override;
 	float get_tele_distance() override;
 	u32 get_tele_keep_time() override;
+	CBaseMonster* get_self() override;
 
 #ifdef DEBUG
 	virtual CBaseMonster::SDebugInfo show_debug_info();
