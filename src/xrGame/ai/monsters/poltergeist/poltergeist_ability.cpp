@@ -6,12 +6,16 @@
 #include "../../../level_debug.h"
 #include "../../../ParticlesObject.h"
 
-IPolter::IPolter(CPoltergeist *polter)
+IPolter::IPolter(CPoltergeist* polter) : m_particles_hidden(nullptr),
+                                         m_particles_damage(nullptr),
+                                         m_particles_death(nullptr),
+                                         m_particles_idle(nullptr),
+                                         m_last_hit_frame(0)
 {
-	m_poltergeist					= polter;
+	m_poltergeist = polter;
 
-	m_particles_object			= 0;
-	m_particles_object_electro	= 0;
+	m_particles_object = nullptr;
+	m_particles_object_electro = nullptr;
 }
 
 
@@ -98,12 +102,6 @@ void IPolter::on_hit(SHit* pHDS)
 //////////////////////////////////////////////////////////////////////////
 // Other
 //////////////////////////////////////////////////////////////////////////
-
-
-#define IMPULSE					10.f
-#define IMPULSE_RADIUS			5.f
-#define TRACE_DISTANCE			10.f
-#define TRACE_ATTEMPT_COUNT		3
 
 void CPoltergeist::PhysicalImpulse	(const Fvector &position)
 {

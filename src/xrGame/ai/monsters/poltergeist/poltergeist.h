@@ -24,6 +24,11 @@ class CPoltergeist final : public CBaseMonster,
 	friend class CPoltergeisMovementManager;
 	friend class CTelekineticPoltergeist;
 
+	static constexpr f32 IMPULSE				= 10.0f;
+	static constexpr f32 IMPULSE_RADIUS			= 5.0f;
+	static constexpr f32 TRACE_DISTANCE			= 10.0f;
+	static constexpr u32 TRACE_ATTEMPT_COUNT	= 3;
+	
 	float m_height;
 	bool m_disable_hide;
 
