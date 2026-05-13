@@ -119,7 +119,7 @@ void CBurer::Load(const char* section)
 
 	particle_gravi_wave	= pSettings->r_string(section,"Particle_Gravi_Wave");
 	particle_gravi_prepare = pSettings->r_string(section,"Particle_Gravi_Prepare");
-	particle_tele_object = READ_IF_EXISTS(pSettings, r_string, section, "Particle_Tele_Object", "static\fire_distort");
+	particle_tele_object = READ_IF_EXISTS(pSettings, r_string, section, "Particle_Tele_Object", "static\\fire_distort");
 	
 	::Sound->create(sound_gravi_wave,	pSettings->r_string(section,"sound_gravi_wave"),st_Effect,SOUND_TYPE_WORLD);
 	::Sound->create(sound_tele_hold,	pSettings->r_string(section,"sound_tele_hold"),	st_Effect,SOUND_TYPE_WORLD);

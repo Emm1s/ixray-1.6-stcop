@@ -93,8 +93,10 @@ void CTelekineticPoltergeist::load(LPCSTR section)
 	m_pmt_max_slide_delay = READ_IF_EXISTS(pSettings, r_u32, section, "Tele_Max_Slide_Delay", 1500);
 	m_pmt_autoaim_torque_factor = READ_IF_EXISTS(pSettings, r_float, section, "Tele_AutoAim_Torque_Factor", 0.33f);
 	m_pmt_delay_before_first_shot = READ_IF_EXISTS(pSettings, r_u32, section, "Tele_Delay_Before_First_Shoot", 0);
-	m_pmt_particle_tele_object = READ_IF_EXISTS(pSettings, r_string, section, "Particle_Tele_Object", "static\fire_distort");
+	m_pmt_particle_tele_object = READ_IF_EXISTS(pSettings, r_string, section, "Particle_Tele_Object", "static\\fire_distort");
 	m_pmt_weapon_slide_enable = READ_IF_EXISTS(pSettings, r_bool, section, "Tele_Weapon_Slide_Enable", false);
+	
+	Msg(*m_pmt_particle_tele_object);
 	
 	Sound->create(m_sound_tele_hold, pSettings->r_string(section, "sound_tele_hold"),
 	              st_Effect, SOUND_TYPE_WORLD);
