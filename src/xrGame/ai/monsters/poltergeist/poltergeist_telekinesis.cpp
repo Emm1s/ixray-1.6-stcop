@@ -96,8 +96,6 @@ void CTelekineticPoltergeist::load(LPCSTR section)
 	m_pmt_particle_tele_object = READ_IF_EXISTS(pSettings, r_string, section, "Particle_Tele_Object", "static\\fire_distort");
 	m_pmt_weapon_slide_enable = READ_IF_EXISTS(pSettings, r_bool, section, "Tele_Weapon_Slide_Enable", false);
 	
-	Msg(*m_pmt_particle_tele_object);
-	
 	Sound->create(m_sound_tele_hold, pSettings->r_string(section, "sound_tele_hold"),
 	              st_Effect, SOUND_TYPE_WORLD);
 	Sound->create(m_sound_tele_throw, pSettings->r_string(section, "sound_tele_throw"),

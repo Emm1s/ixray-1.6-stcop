@@ -294,10 +294,7 @@ void STelekineticObject::update_hold_sound()
 		sound_hold.play_at_pos(object, object->Position());
 }
 
-#pragma optimize("", off)
-
 // -------------------- WEAPON CONTROLLER --------------------
-
 
 STelekineticWeaponObject::STelekineticWeaponObject(ITelekineticEnemy* tele_enemy,
                                                    STelekineticWeaponParams& weapon_params, 
