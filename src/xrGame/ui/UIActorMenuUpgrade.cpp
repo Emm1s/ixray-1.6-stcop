@@ -55,7 +55,7 @@ void CUIActorMenu::DeInitUpgradeMode()
 	if(!CurrentGameUI())
 		return;
   
-	if(CurrentGameUI()->TalkMenu && CurrentGameUI()->TalkMenu->IsShown())
+	if(CurrentGameUI()->TalkMenu && CurrentGameUI()->TalkMenu->IsActiveTalkUi())
 	{
 		CurrentGameUI()->TalkMenu->NeedUpdateQuestions();
 	}

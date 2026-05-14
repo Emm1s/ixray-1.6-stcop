@@ -42,6 +42,9 @@ public:
 	void 						Reload					();
 	void 						UpdateInfo				();
 
+	CUIFrameWindow*				GetRightFrame				() const { return UIRightFrame; }
+	CUIScrollView*				GetDetailsScroll			() const { return UIDetailsWnd; }
+
 	CUIScrollView*				UIListWnd;
 	CUIScrollView*				UIDetailsWnd;
 	UIHint*						m_hint_wnd;
@@ -64,7 +67,7 @@ class CUIPdaContactItem :public CUIPdaListItem, public CUISelectable
 	CUIPdaContactsWnd*			m_cw;
 public:
 								CUIPdaContactItem		(CUIPdaContactsWnd* cw)		{m_cw = cw;}
-	virtual						~CUIPdaContactItem		();
+	virtual						~CUIPdaContactItem		() = default;
 	virtual void				SetSelected				(bool b);
 	virtual bool				OnMouseDown				(int mouse_btn);
 

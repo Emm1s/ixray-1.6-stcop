@@ -50,6 +50,8 @@ public:
 			bool	HasWindow			(CUIWindow* pWnd);
 			void	RemoveWindow		(CUIWindow* pWnd);
 			void	Clear				();
+			bool	TryClear			();
+			bool	HasPad				() const							{ return m_pad != nullptr; }
 			void	ScrollToBegin		();
 			void	ScrollToItem		(CUIWindow *pItem, int addVerticalOffset);
 			void	ScrollToEnd			();

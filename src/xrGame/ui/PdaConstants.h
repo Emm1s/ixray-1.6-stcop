@@ -12,6 +12,9 @@ constexpr const char* Main = "pda.xml";
 constexpr const char* Map = "pda_map.xml";
 constexpr const char* Ranking = "pda_ranking.xml";
 constexpr const char* FactionWar = "pda_fraction_war.xml";
+// Contacts layout also owns embedded PDA talk nodes.
+constexpr const char* ContactsNew = "pda_contacts_new.xml";
+constexpr const char* ContactsDialog = "pda_dialog";
 } // namespace PdaXml
 
 namespace PdaSectionId

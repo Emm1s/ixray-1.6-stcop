@@ -133,33 +133,23 @@ void CXMLOverride::GenerateNewDoc(tinyxml2::XMLDocument& Original, tinyxml2::XML
 				if (IterateElement == nullptr)
 					break;
 
-				xr_string ElValue = Element->Value();
-				if (ElValue == "string")
+				const char* idAttrib = Element->Attribute("id");
+				tinyxml2::XMLElement* testChild = IterateElement->FirstChildElement(Element->Value());
+				if (idAttrib != nullptr)
 				{
-					const char* IDAttrib = Element->Attribute("id");
-
-					IterateElement = IterateElement->FirstChildElement();
-					while (IterateElement != nullptr)
+					while (testChild != nullptr)
 					{
-						xr_string CheckID = IterateElement->Attribute("id");
-						if (CheckID == IDAttrib)
+						const char* checkId = testChild->Attribute("id");
+						if (checkId != nullptr && xr_strcmp(checkId, idAttrib) == 0)
+						{
 							break;
+						}
 
-						IterateElement = IterateElement->NextSiblingElement();
+						testChild = testChild->NextSiblingElement(Element->Value());
 					}
 				}
-				else
-				{
-					tinyxml2::XMLElement* TestChild = IterateElement->FirstChildElement(Element->Value());
-					if (TestChild != nullptr)
-					{
-						IterateElement = TestChild;
-					}
-					else
-					{
-						IterateElement = nullptr;
-					}
-				}
+
+				IterateElement = testChild;
 			}
 
 			if (IterateElement != nullptr)

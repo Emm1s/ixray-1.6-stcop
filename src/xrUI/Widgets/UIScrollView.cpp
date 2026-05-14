@@ -132,6 +132,30 @@ void CUIScrollView::Clear				()
 	ScrollToBegin		();
 }
 
+bool CUIScrollView::TryClear()
+{
+	// InitScrollView() creates m_pad; if XML init failed, treat as non-clearable (not "empty").
+	if (!m_pad)
+	{
+		return false;
+	}
+
+	if (!m_pad->csUi.TryEnter())
+	{
+		return false;
+	}
+
+	while (!m_pad->GetChildWndList().empty())
+	{
+		m_pad->DetachChild(m_pad->GetChildWndList().back());
+	}
+	m_pad->csUi.Leave();
+
+	m_flags.set(eNeedRecalc, true);
+	ScrollToBegin();
+	return true;
+}
+
 Fvector2  CUIScrollView::GetPadSize()									
 {
 	if(m_flags.test	(eNeedRecalc) )

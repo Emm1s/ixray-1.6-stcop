@@ -13,10 +13,76 @@
 #include "../../xrServerEntities/xrServer_Objects_ALife_Monsters.h"
 #include "../../xrUI/UICursor.h"
 #include "../../xrEngine/xr_input.h"
+#include "../pda_communication.h"
+#include "UIGameCustom.h"
+#include "UITalkWnd.h"
+#include "PdaConstants.h"
+
+namespace
+{
+// Ends embedded phrase UI and PDA talk session when the highlighted contact no longer matches the active NPC.
+void StopEmbeddedPhraseUiIfSessionNpcDiffers(CInventoryOwner* highlightedOwner)
+{
+	if (!highlightedOwner)
+	{
+		return;
+	}
+
+	CPdaCommunication& comm = PdaCommunication();
+	if (!comm.IsSessionActive())
+	{
+		return;
+	}
+
+	CInventoryOwner* sessionNpc = comm.GetSessionNpc();
+	if (!sessionNpc || sessionNpc == highlightedOwner)
+	{
+		return;
+	}
+
+	CUIGameCustom* gameUi = CurrentGameUI();
+	if (gameUi && gameUi->TalkMenu)
+	{
+		gameUi->TalkMenu->StopPdaDialog();
+	}
+	else
+	{
+		comm.Stop();
+	}
+}
+
+bool TryLaunchEmbeddedPdaPhraseUi(CUIPdaContactsWnd* contactsWnd)
+{
+    CUIGameCustom* gameUi = CurrentGameUI();
+    if (!gameUi || !gameUi->TalkMenu)
+    {
+        return false;
+    }
+
+    CUITalkWnd* talkWnd = gameUi->TalkMenu;
+    talkWnd->SetPdaMode(true);
+    if (!talkWnd->IsEmbeddedInPda() && contactsWnd)
+    {
+        talkWnd->BeginPdaEmbed(contactsWnd);
+    }
+
+    if (!talkWnd->IsEmbeddedInPda())
+    {
+        talkWnd->StopPdaDialog();
+        return false;
+    }
+
+    const bool isInitialized = talkWnd->InitializeDialogForPda();
+    if (!isInitialized)
+    {
+        talkWnd->StopPdaDialog();
+    }
+
+    return isInitialized;
+}
+} // namespace
 
 #define PDA_CONTACT_HEIGHT 70
-
-#define		PDA_CONTACTS_XML			"pda_contacts_new.xml"
 
 CUIPdaContactsWnd::CUIPdaContactsWnd()
 {
@@ -39,8 +105,6 @@ void CUIPdaContactsWnd::Show(bool status)
 	inherited::Show(status);
 	if (status)
 	{
-		if (UIDetailsWnd)
-			UIDetailsWnd->Clear();
 		Reload();
 	}
 
@@ -48,8 +112,13 @@ void CUIPdaContactsWnd::Show(bool status)
 
 void CUIPdaContactsWnd::Init()
 {
-	CUIXml		uiXml;
-	uiXml.Load(CONFIG_PATH, UI_PATH, PDA_CONTACTS_XML);
+	CUIXml uiXml;
+	// CUIXml::Load(CONFIG_PATH, UI_PATH, ...) maps names via UI().get_xml_name() (e.g. widescreen -> *_16.xml).
+	if (!uiXml.Load(CONFIG_PATH, UI_PATH, PdaXml::ContactsNew))
+	{
+		Msg("! CUIPdaContactsWnd: failed to load [%s] from configs/ui (check addon merge order)", PdaXml::ContactsNew);
+		return;
+	}
 
 	CUIXmlInit	xml_init;
 
@@ -278,10 +347,6 @@ bool CUIPdaContactsWnd::OnGamepadKeyHold(int id)
 }
 
 
-CUIPdaContactItem::~CUIPdaContactItem()
-{
-}
-
 extern CSE_ALifeTraderAbstract* ch_info_get_from_id (u16 id);
 
 #include "UICharacterInfo.h"
@@ -290,27 +355,44 @@ void CUIPdaContactItem::SetSelected	(bool b)
 {
 	CUISelectable::SetSelected(b);
 
-	if (!m_cw->UIDetailsWnd)
-		return;
-
-	if(b)
+	if (!b || !m_cw->UIDetailsWnd)
 	{
-		m_cw->UIDetailsWnd->Clear		();
-		CCharacterInfo				chInfo;
-		CSE_ALifeTraderAbstract*	T = ch_info_get_from_id(UIInfo->OwnerID());
-		chInfo.Init					(T);
-
-		ADD_TEXT_TO_VIEW2( g_pStringTable->translate(chInfo.Bio()).c_str(), m_cw->UIDetailsWnd);
+		return;
 	}
+
+	CInventoryOwner* owner = static_cast<CInventoryOwner*>(m_data);
+	StopEmbeddedPhraseUiIfSessionNpcDiffers(owner);
+
+	m_cw->UIDetailsWnd->Clear		();
+	CCharacterInfo				chInfo;
+	CSE_ALifeTraderAbstract*	T = ch_info_get_from_id(UIInfo->OwnerID());
+	chInfo.Init					(T);
+
+	ADD_TEXT_TO_VIEW2( g_pStringTable->translate(chInfo.Bio()).c_str(), m_cw->UIDetailsWnd);
 }
 
 bool CUIPdaContactItem::OnMouseDown(int mouse_btn)
 {
-	if(mouse_btn==MOUSE_1){
-		m_cw->UIListWnd->SetSelected(this);
+	if (mouse_btn != MOUSE_1)
+	{
+		return false;
+	}
+
+	// Selection/focus alone must not start a phrase session; LMB activates dialog branches like face-to-face talk.
+	m_cw->UIListWnd->SetSelected(this);
+
+	CInventoryOwner* owner = static_cast<CInventoryOwner*>(m_data);
+	if (!owner)
+	{
 		return true;
 	}
-	return false;
+
+	if (PdaCommunication().OpenDialog(owner))
+	{
+		TryLaunchEmbeddedPdaPhraseUi(m_cw);
+	}
+
+	return true;
 }
 
 void CUIPdaContactItem::OnFocusReceive()

@@ -8,6 +8,7 @@
 
 #include "Level.h"
 #include "UIGameCustom.h"
+#include "ui/UITalkWnd.h"
 #include "ActorCondition.h"
 #include "game_cl_base.h"
 #include "WeaponMagazined.h"
@@ -724,10 +725,17 @@ bool CActor::CanMove()
 	
 	}
 
-	if(IsTalking())
+	if (IsTalking())
+	{
+		if (CurrentGameUI() && CurrentGameUI()->TalkMenu && CurrentGameUI()->TalkMenu->IsPdaMode())
+		{
+			return true;
+		}
+
 		return false;
-	else
-		return true;
+	}
+
+	return true;
 }
 
 void CActor::StopAnyMove()

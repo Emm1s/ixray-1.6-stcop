@@ -82,7 +82,7 @@ void _AddIconedTalkMessage(const char* text, const char* texture_name, const Fre
 	if (!pGameSP)
 		return;
 
-	if (pGameSP->TalkMenu->IsShown())
+	if (pGameSP->TalkMenu->IsActiveTalkUi())
 	{
 		pGameSP->TalkMenu->AddIconedMessage(text, texture_name, tex_rect, templ_name ? templ_name : "iconed_answer_item");
 	}
@@ -100,7 +100,7 @@ void _AddIconedTalkMessage(const char* caption, const char* text, const char* te
 {
 	if (CUIGameCustom* current_ui = CurrentGameUI())
 	{
-		if (current_ui->TalkMenu->IsShown())
+		if (current_ui->TalkMenu->IsActiveTalkUi())
 		{
 			current_ui->TalkMenu->AddIconedMessage(caption, text, texture_name, templ_name ? templ_name : "iconed_answer_item");
 		}
@@ -1010,7 +1010,7 @@ void CScriptGameObject::SwitchToTrade()
 
 	if (CUIGameCustom* current_ui = CurrentGameUI())
 	{
-		if (current_ui->TalkMenu->IsShown())
+		if (current_ui->TalkMenu->IsActiveTalkUi())
 		{
 			current_ui->TalkMenu->SwitchToTrade();
 		}
@@ -1027,7 +1027,7 @@ void CScriptGameObject::SwitchToUpgrade()
 
 	if (CUIGameCustom* current_ui = CurrentGameUI())
 	{
-		if (current_ui->TalkMenu && current_ui->TalkMenu->IsShown())
+		if (current_ui->TalkMenu && current_ui->TalkMenu->IsActiveTalkUi())
 			current_ui->TalkMenu->HideDialog();
 
 		current_ui->StartUpgrade(Actor(), nullptr);

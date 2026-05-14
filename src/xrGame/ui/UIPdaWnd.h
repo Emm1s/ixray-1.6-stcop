@@ -27,7 +27,6 @@ class CUIEncyclopediaWnd;
 class CUIActorInfoWnd;
 class CUIDiaryWnd;
 class CUIMapWnd;
-
 class CUIPdaWnd final : public CUIDialogWnd
 {
 	typedef CUIDialogWnd	inherited;
@@ -89,7 +88,7 @@ public:
 	CUIActorInfoWnd*		pUIActorInfoWnd;
 	CUIDiaryWnd*			pUIDiaryWnd;
 	CUIMapWnd*				pUIMapWnd;
-	
+
 	CMapSpot*				pSelectedMapSpot;
 	Fvector2				last_cursor_pos;
 
