@@ -429,8 +429,8 @@ void CStateBurerAttackTele<Object>::SelectObjects()
 			height *= 0.7f;
 		
 		STelekineticObject* tele_obj = nullptr;
-		
-		if (object->cast_weapon_magazined())
+
+		if (object->cast_weapon_magazined() && this->object->m_shooting_from_weapon_enable)
 		{
 			size_t weapons_count = std::count_if(this->object->CTelekinesis::get_tele_objects().begin(),
 			                                     this->object->CTelekinesis::get_tele_objects().end(),
@@ -459,7 +459,7 @@ void CStateBurerAttackTele<Object>::SelectObjects()
 			                                        this->object->m_tele_time_to_hold,
 			                                        rotate);
 		}
-		else if (object->cast_grenade())
+		else if (object->cast_grenade() && this->object->m_shooting_from_weapon_enable)
 		{
 			tele_obj = new STelekineticGrenadeObject(this->object,
 													object, 

@@ -168,6 +168,8 @@ void CBurer::Load(const char* section)
 	
 	particle_fire_shield				= 	pSettings->r_string(section,"Particle_Shield");
 
+	m_shooting_from_weapon_enable = READ_IF_EXISTS(pSettings, r_bool, section, "Tele_Shooting_From_Weapon_Enable", true);
+	m_activate_n_throw_grenade = READ_IF_EXISTS(pSettings, r_bool, section, "Tele_Activate_N_Throw_Grenade", true);
 	m_max_pickuped_weapons = READ_IF_EXISTS(pSettings, r_u32, section, "Tele_Max_Pickuped_Weapons", 2);
 	m_min_slide_delay = READ_IF_EXISTS(pSettings, r_u32, section, "Tele_Min_Slide_Delay", 1000);
 	m_max_slide_delay = READ_IF_EXISTS(pSettings, r_u32, section, "Tele_Max_Slide_Delay", 1500);

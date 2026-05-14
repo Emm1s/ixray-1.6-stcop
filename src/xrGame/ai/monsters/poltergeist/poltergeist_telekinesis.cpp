@@ -88,6 +88,8 @@ void CTelekineticPoltergeist::load(LPCSTR section)
 	                                                     "Tele_Delay_Between_Objects_Raise_Time", 500);
 	m_pmt_fly_velocity = READ_IF_EXISTS(pSettings, r_float, section, "Tele_Fly_Velocity", 30.f);
 
+	m_pmt_shooting_from_weapon_enable = READ_IF_EXISTS(pSettings, r_bool, section, "Tele_Shooting_From_Weapon_Enable", true);
+	m_pmt_shooting_from_weapon_enable = READ_IF_EXISTS(pSettings, r_bool, section, "Tele_Activate_N_Throw_Grenade", true);
 	m_pmt_max_pickuped_weapons = READ_IF_EXISTS(pSettings, r_u32, section, "Tele_Max_Pickuped_Weapons", 2);
 	m_pmt_min_slide_delay = READ_IF_EXISTS(pSettings, r_u32, section, "Tele_Min_Slide_Delay", 1000);
 	m_pmt_max_slide_delay = READ_IF_EXISTS(pSettings, r_u32, section, "Tele_Max_Slide_Delay", 1500);
@@ -259,7 +261,7 @@ bool CTelekineticPoltergeist::tele_raise_objects()
 	
 	STelekineticObject* tele_obj;
 
-	if (obj->cast_weapon_magazined())
+	if (obj->cast_weapon_magazined() && m_pmt_shooting_from_weapon_enable)
 	{
 		size_t weapons_count = std::count_if(m_poltergeist->get_tele_objects().begin(),
 		                                     m_poltergeist->get_tele_objects().end(),
@@ -288,7 +290,7 @@ bool CTelekineticPoltergeist::tele_raise_objects()
 		                                        m_pmt_time_object_keep,
 		                                        rotate);
 	}
-	else if (obj->cast_grenade())
+	else if (obj->cast_grenade() && m_pmt_activate_n_throw_grenade)
 	{
 		tele_obj = new STelekineticGrenadeObject(m_poltergeist,
 												obj,

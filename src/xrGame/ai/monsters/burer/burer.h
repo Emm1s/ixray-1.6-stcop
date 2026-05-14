@@ -125,6 +125,8 @@ public:
 	CBurerFastGravi	*m_fast_gravi;
 	bool m_use_three_gravi_anims{};
 	
+	bool m_shooting_from_weapon_enable;
+	bool m_activate_n_throw_grenade;
 	u32 m_max_pickuped_weapons;
 	u32 m_min_slide_delay;
 	u32 m_max_slide_delay;

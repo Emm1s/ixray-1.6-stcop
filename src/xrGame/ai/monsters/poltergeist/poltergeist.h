@@ -353,6 +353,8 @@ public:
 	u32 m_pmt_delay_before_first_shot;
 	shared_str m_pmt_particle_tele_object;
 	bool m_pmt_weapon_slide_enable;
+	bool m_pmt_shooting_from_weapon_enable;
+	bool m_pmt_activate_n_throw_grenade;
 
 	CTelekineticPoltergeist(CPoltergeist* polter);
 	~CTelekineticPoltergeist() override;
