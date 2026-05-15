@@ -53,6 +53,7 @@ void CUIScrollView::SendMessage	(CUIWindow* pWnd, s16 msg, void* pData)
 void CUIScrollView::ForceUpdate()
 {
 	m_flags.set			(eNeedRecalc,true);
+	RecalcSize			();
 }
 
 void CUIScrollView::InitScrollView()
@@ -227,6 +228,10 @@ void CUIScrollView::RecalcSize			()
 
 void CUIScrollView::UpdateScroll		()
 {
+	if (!m_VScrollBar || !m_pad)
+	{
+		return;
+	}
 
 	Fvector2 w_pos					= m_pad->GetWndPos();
 	m_VScrollBar->SetHeight(GetHeight());
@@ -234,6 +239,9 @@ void CUIScrollView::UpdateScroll		()
 
 	m_VScrollBar->SetScrollPos	(iFloor(-w_pos.y));
 
+	const bool showScroll = NeedShowScrollBar();
+	m_VScrollBar->Show(showScroll);
+	m_VScrollBar->Enable(showScroll);
 }
 
 float CUIScrollView::Scroll2ViewV	(){
@@ -302,7 +310,7 @@ void CUIScrollView::Draw()
 
 	UI().PopScissor();
 
-	if (NeedShowScrollBar())
+	if (m_VScrollBar && m_VScrollBar->IsShown())
 	{
 		m_VScrollBar->Draw();
 	}
@@ -310,7 +318,18 @@ void CUIScrollView::Draw()
 
 bool CUIScrollView::NeedShowScrollBar()
 {
-	return m_flags.test(eFixedScrollBar) || GetHeight() < m_pad->GetHeight();
+	if (!m_VScrollBar || !m_pad)
+	{
+		return false;
+	}
+
+	if (m_flags.test(eFixedScrollBar))
+	{
+		return true;
+	}
+
+	const float visibleHeight = GetHeight() - GetVertIndent();
+	return m_pad->GetHeight() > visibleHeight + 1.0f;
 }
 
 void CUIScrollView::OnScrollV			(CUIWindow*, void*)

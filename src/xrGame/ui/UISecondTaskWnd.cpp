@@ -30,7 +30,31 @@
 #include "../Level.h"
 #include "../GametaskManager.h"
 #include "../Actor.h"
+#include "PdaConstants.h"
+#include "../../xrUI/Widgets/UIMessages.h"
 
+namespace
+{
+bool IsWindowOrChildOf(CUIWindow* child, CUIWindow* ancestor)
+{
+	while (child)
+	{
+		if (child == ancestor)
+		{
+			return true;
+		}
+		child = child->GetParent();
+	}
+	return false;
+}
+
+bool TaskHasMapTarget(const CGameTask* task)
+{
+	return task
+		&& task->m_map_object_id != u16(-1)
+		&& task->m_map_location.size() > 0;
+}
+} // namespace
 
 UITaskListWnd::UITaskListWnd()
 	: hint_wnd(nullptr), m_background(nullptr), m_list(nullptr),
@@ -64,12 +88,12 @@ void UITaskListWnd::init_from_xml( CUIXml& xml, const char* path )
 	Register( m_bt_close );
 	AddCallback( m_bt_close, BUTTON_DOWN, CUIWndCallback::void_function( this, &UITaskListWnd::OnBtnClose ) );
 
-	if (xml.NavigateToNode("storyline_task_item"))
+	if (xml.NavigateToNode(PdaTaskXml::PanelStorylineItemRel))
 	{
 		_storylineTaskItem = new CUITaskItem();
 		_storylineTaskItem->SetAutoDelete(true);
 		AttachChild(_storylineTaskItem);
-		_storylineTaskItem->Init(xml, "storyline_task_item");
+		_storylineTaskItem->Init(xml, PdaTaskXml::PanelStorylineItemRel);
 		Register(_storylineTaskItem);
 		AddCallback(
 			_storylineTaskItem,
@@ -78,13 +102,13 @@ void UITaskListWnd::init_from_xml( CUIXml& xml, const char* path )
 		);
 	}
 
-	if (_storylineTaskItem && xml.NavigateToNode("storyline_task_item:btn_task_focus"))
+	if (_storylineTaskItem && xml.NavigateToNode(PdaTaskXml::PanelStorylineFocusRel))
 	{
-		_btnStorylineTaskFocus = UIHelper::Create3tButton(xml, "storyline_task_item:btn_task_focus", _storylineTaskItem);
-	}
-	else if (xml.NavigateToNode("btn_task_focus"))
-	{
-		_btnStorylineTaskFocus = UIHelper::Create3tButton(xml, "btn_task_focus", this);
+		_btnStorylineTaskFocus = UIHelper::Create3tButton(
+			xml,
+			PdaTaskXml::PanelStorylineFocusRel,
+			_storylineTaskItem
+		);
 	}
 
 	if (_btnStorylineTaskFocus)
@@ -107,13 +131,13 @@ void UITaskListWnd::init_from_xml( CUIXml& xml, const char* path )
 	m_list->SetWindowName("---second_task_list");
 	m_list->m_sort_function = fastdelegate::MakeDelegate( this, &UITaskListWnd::SortingLessFunction );
 
-	// Optional in-panel filter tabs (All/Story/Side). Backwards compatible: if XML omits the node, m_filter_tabs stays nullptr.
-	if (xml.NavigateToNode("task_filter_tabs") && xml.GetNodesNum("task_filter_tabs", 0, "button") > 0)
+	if (xml.NavigateToNode(PdaTaskXml::PanelFilterTabsRel)
+		&& xml.GetNodesNum(PdaTaskXml::PanelFilterTabsRel, 0, "button") > 0)
 	{
 		m_filter_tabs = new CUITabControl();
 		m_filter_tabs->SetAutoDelete(true);
 		AttachChild(m_filter_tabs);
-		CUIXmlInit::InitTabControl(xml, "task_filter_tabs", 0, m_filter_tabs);
+		CUIXmlInit::InitTabControl(xml, PdaTaskXml::PanelFilterTabsRel, 0, m_filter_tabs);
 		m_filter_tabs->SetMessageTarget(this);
 	}
 
@@ -290,6 +314,13 @@ void UITaskListWnd::UpdateList()
 			}
 		}
 	}
+	m_list->UpdateChildrenLenght();
+	m_list->ForceUpdate();
+	if (!m_list->NeedShowScrollBar())
+	{
+		m_list->ScrollToBegin();
+		prev_scroll_pos = m_list->GetMinScrollPos();
+	}
 	m_list->SetScrollPos(prev_scroll_pos);
 }
 
@@ -304,6 +335,15 @@ void UITaskListWnd::SetFilterMode(ETaskListFilter mode)
 	if (IsShown())
 	{
 		UpdateList();
+	}
+
+	if (m_filter_tabs)
+	{
+		GetMessageTarget()->SendMessage(
+			this,
+			PDA_TASK_LIST_FILTER_CHANGED,
+			reinterpret_cast<void*>(static_cast<intptr_t>(mode))
+		);
 	}
 }
 
@@ -481,12 +521,29 @@ bool UITaskListWndItem::init_task( CGameTask* task, UITaskListWnd* parent )
 		m_task_icon = UIHelper::CreateStatic(xml, "second_task_wnd:task_item:t_icon", this);
 	}
 
-	m_bt_focus = UIHelper::Create3tButton( xml, "second_task_wnd:task_item:btn_focus", this );
-
-	// Optional per-task "focus on map" button (XML node: second_task_wnd:task_item:btn_task_focus).
-	if (xml.NavigateToNode("second_task_wnd:task_item:btn_task_focus"))
+	if (xml.NavigateToNode(PdaTaskXml::TaskItemFocus))
 	{
-		m_btn_task_focus = UIHelper::Create3tButton(xml, "second_task_wnd:task_item:btn_task_focus", this);
+		m_bt_focus = UIHelper::Create3tButton(xml, PdaTaskXml::TaskItemFocus, this);
+	}
+	else if (xml.NavigateToNode(PdaTaskXml::TaskItemTaskFocus))
+	{
+		m_bt_focus = UIHelper::Create3tButton(xml, PdaTaskXml::TaskItemTaskFocus, this);
+	}
+
+	// Optional second focus button when both btn_focus and btn_task_focus are defined in XML.
+	if (m_bt_focus && xml.NavigateToNode(PdaTaskXml::TaskItemTaskFocus)
+		&& xml.NavigateToNode(PdaTaskXml::TaskItemFocus))
+	{
+		m_btn_task_focus = UIHelper::Create3tButton(xml, PdaTaskXml::TaskItemTaskFocus, this);
+	}
+
+	if (m_bt_focus)
+	{
+		m_bt_focus->SetMessageTarget(this);
+	}
+	if (m_btn_task_focus)
+	{
+		m_btn_task_focus->SetMessageTarget(this);
 	}
 
 	m_color_states[stt_activ ] = CUIXmlInit::GetColor( xml, "second_task_wnd:task_item:activ",  0, (u32)(-1) );
@@ -529,25 +586,31 @@ void UITaskListWndItem::update_view()
 {
 	VERIFY( m_task );
 	CMapLocation* ml = m_task->LinkedMapLocation();
-	const bool hasSpot = ml && ml->SpotEnabled();
-	if ( hasSpot )
+	const bool hasMapTarget = TaskHasMapTarget(m_task);
+	const bool spotVisible = ml && ml->SpotEnabled();
+	if ( spotVisible )
 	{
 		if (m_bt_view)
+		{
 			m_bt_view->SetCheck(false);
-		else
-			m_bt_focus->Show(true);
+		}
 	}
 	else
 	{
 		if (m_bt_view)
+		{
 			m_bt_view->SetCheck(true);
-		else
-			m_bt_focus->Show(false);
+		}
+	}
+
+	if (m_bt_focus)
+	{
+		m_bt_focus->Show(hasMapTarget);
 	}
 
 	if (m_btn_task_focus)
 	{
-		m_btn_task_focus->Show(hasSpot);
+		m_btn_task_focus->Show(hasMapTarget);
 	}
 
 	if (m_st_story)
@@ -576,9 +639,22 @@ void UITaskListWndItem::update_view()
 
 	m_name->TextItemControl()->SetTextST( g_pStringTable->ParseStringFromScript(m_task->m_Title).c_str() );
 	m_name->AdjustHeightToText();
+	const float prevHeight = GetHeight();
 	float h1 = m_name->GetWndPos().y + m_name->GetHeight() + 10.0f;
-	h1 = std::max( h1, GetHeight() );
+	h1 = std::max( h1, prevHeight );
 	SetHeight( h1 );
+	if (!fsimilar(prevHeight, h1))
+	{
+		CUIWindow* pad = GetParent();
+		if (pad)
+		{
+			CUIScrollView* scroll = smart_cast<CUIScrollView*>(pad->GetParent());
+			if (scroll)
+			{
+				scroll->ForceUpdate();
+			}
+		}
+	}
 
     const CGameTask* storyTask = Level().GameTaskManager()->ActiveTask(eTaskTypeStoryline);
     const CGameTask* additionalTask = Level().GameTaskManager()->ActiveTask(eTaskTypeAdditional);
@@ -600,12 +676,13 @@ void UITaskListWndItem::update_view()
 
 void UITaskListWndItem::SendMessage( CUIWindow* pWnd, s16 msg, void* pData )
 {
-	if ( pWnd == m_bt_focus || (m_btn_task_focus && pWnd == m_btn_task_focus) )
+	const bool isFocusControl = (m_bt_focus && IsWindowOrChildOf(pWnd, m_bt_focus))
+		|| (m_btn_task_focus && IsWindowOrChildOf(pWnd, m_btn_task_focus));
+
+	if (isFocusControl && (msg == BUTTON_DOWN || msg == BUTTON_CLICKED))
 	{
-		if ( msg == BUTTON_DOWN )
-		{
-			GetMessageTarget()->SendMessage( this, PDA_TASK_SET_TARGET_MAP, (void*)m_task );
-		}
+		GetMessageTarget()->SendMessage(this, PDA_TASK_SET_TARGET_MAP, (void*)m_task);
+		return;
 	}
 
 	if ( pWnd == m_bt_view )
@@ -643,7 +720,7 @@ bool UITaskListWndItem::OnMouseAction( float x, float y, EUIMessages mouse_actio
 {
 	if ( inherited::OnMouseAction( x, y, mouse_action ) )
 	{
-		//return true;
+		return true;
 	}
 
 	switch ( mouse_action )
@@ -657,7 +734,7 @@ bool UITaskListWndItem::OnMouseAction( float x, float y, EUIMessages mouse_actio
 		}
 	}//switch
 
-	return true;
+	return false;
 }
 
 void UITaskListWndItem::OnFocusReceive()

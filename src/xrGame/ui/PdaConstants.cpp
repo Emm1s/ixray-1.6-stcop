@@ -1,5 +1,6 @@
 #include "StdAfx.h"
 #include "PdaConstants.h"
+#include "../../xrUI/xrUIXmlParser.h"
 
 namespace
 {
@@ -47,4 +48,25 @@ bool Equals(const shared_str& sectionId, const char* defaultId)
     const char* resolvedId = Resolve(defaultId);
     return sectionId == defaultId || sectionId == resolvedId;
 }
+}
+
+STaskWndFeatures DetectTaskWndFeatures(CUIXml& xml)
+{
+    STaskWndFeatures features;
+    features.panelStoryline = xml.NavigateToNode(PdaTaskXml::PanelStorylineItem) != nullptr;
+    features.filterTabs = xml.NavigateToNode(PdaTaskXml::PanelFilterTabs)
+        && xml.GetNodesNum(PdaTaskXml::PanelFilterTabs, 0, "button") > 0;
+
+    const bool hasLegacyStoryline = xml.NavigateToNode(PdaTaskXml::LegacyStorylineItem) != nullptr;
+    if (features.panelStoryline && hasLegacyStoryline)
+    {
+        Msg(
+            "! [PDA] pda_tasks.xml: both %s and %s are present; panel storyline takes precedence",
+            PdaTaskXml::PanelStorylineItem,
+            PdaTaskXml::LegacyStorylineItem
+        );
+    }
+
+    features.legacyHeader = !features.panelStoryline && hasLegacyStoryline;
+    return features;
 }

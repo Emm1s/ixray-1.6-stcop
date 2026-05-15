@@ -52,11 +52,11 @@ public:
 	virtual void	OnFocusLost			();
 	virtual void	Update				();
 	virtual void	SendMessage			( CUIWindow* pWnd, s16 msg, void* pData );
-			void	ShowOnlySecondaryTasks(bool mode) { m_filter = mode ? ETaskListFilter::Side : ETaskListFilter::All; }
 			void	SetFilterMode		(ETaskListFilter mode);
 			ETaskListFilter GetFilterMode() const { return m_filter; }
 			bool	HasFilterTabs		() const { return m_filter_tabs != nullptr; }
 			void	UpdateStorylineTask	(CGameTask* task);
+			CUITaskItem* GetStorylineTaskItem() const { return _storylineTaskItem; }
 
 			void	UpdateList			();
 

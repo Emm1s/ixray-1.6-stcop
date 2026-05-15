@@ -5,6 +5,8 @@
 #include "../GameTaskDefs.h"
 #include "../GameTask.h"
 #include "../../xrUI/Widgets/UICheckButton.h"
+#include "PdaConstants.h"
+#include "UISecondTaskWnd.h"
 
 class CUIMapWnd;
 class CUIStatic;
@@ -14,7 +16,6 @@ class CUI3tButton;
 class CUIFrameLineWnd;
 class CUIFrameWindow;
 class CUICheckButton;
-class UITaskListWnd;
 class UIMapLegend;
 class UIHint;
 class CUIGamepadLegend;
@@ -37,7 +38,7 @@ private:
 	CUITaskItem*			m_pSecondaryTaskItem;
 
 	CUI3tButton*			m_BtnTaskListWnd;
-	bool					m_hasTaskListFilterTabs = false;
+	STaskWndFeatures		m_features;
 	CUIStatic*				m_second_task_index;
 	CUIStatic*				m_devider;
 	u32						m_actual_frame;
@@ -117,17 +118,8 @@ public:
 				if (m_cbFilters[MAP_MARKS_FILTER_NPCS])
 					m_cbFilters[MAP_MARKS_FILTER_NPCS]->SetCheck(enable);
 			};
-			void SecondaryTasksEnabled(bool enable)
-			{
-				if (m_hasTaskListFilterTabs)
-				{
-					return;
-				}
-
-				m_bSecondaryTasksEnabled = enable;
-				if (m_cbFilters[MAP_MARKS_FILTER_SECONDARY_TASKS])
-					m_cbFilters[MAP_MARKS_FILTER_SECONDARY_TASKS]->SetCheck(enable);
-			};
+			void SecondaryTasksEnabled(bool enable);
+			void ApplySecondaryTasksMapFilter(bool enable);
 			void PrimaryObjectsEnabled(bool enable)
 			{
 				m_bPrimaryObjectsEnabled = enable;
@@ -166,6 +158,11 @@ private:
 	void				OnTaskScopeFailed		(CUIWindow*, void*);
 
 	void				ResolveTaskRows			(CGameTask*& outPrimary, CGameTask*& outSecondary) const;
+	void				InitStorylineWidgets		(CUIXml& xml);
+	void				InitStorylineFocusButton	(CUIXml& xml);
+	CUITaskItem*		StorylineHintItem			() const;
+	void				OnTaskListFilterChanged		(ETaskListFilter mode);
+	bool				CanUseTaskMapSpot			(CGameTask* task, bool forShow) const;
 };
 
 class CUITaskItem final : public CUIWindow

@@ -1,5 +1,7 @@
 #pragma once
 
+class CUIXml;
+
 namespace PdaConfig
 {
 constexpr const char* TabAliasesSection = "pda_tab_aliases";
@@ -93,4 +95,27 @@ constexpr const char* Medic = "ui_pda2_medic_location";
 constexpr const char* ActorBox = "ui_pda2_actor_box_location";
 constexpr const char* ActorSleep = "ui_pda2_actor_sleep_location";
 } // namespace PdaMapSpot
+
+// pda_tasks.xml node paths (legacy map header vs in-panel task list).
+namespace PdaTaskXml
+{
+constexpr const char* PanelStorylineItem = "second_task_wnd:storyline_task_item";
+constexpr const char* PanelFilterTabs = "second_task_wnd:task_filter_tabs";
+constexpr const char* PanelStorylineItemRel = "storyline_task_item";
+constexpr const char* PanelStorylineFocusRel = "storyline_task_item:btn_task_focus";
+constexpr const char* PanelFilterTabsRel = "task_filter_tabs";
+constexpr const char* LegacyStorylineItem = "storyline_task_item";
+constexpr const char* LegacyTaskFocus = "btn_task_focus";
+constexpr const char* TaskItemFocus = "second_task_wnd:task_item:btn_focus";
+constexpr const char* TaskItemTaskFocus = "second_task_wnd:task_item:btn_task_focus";
+} // namespace PdaTaskXml
+
+struct STaskWndFeatures
+{
+	bool panelStoryline = false;
+	bool filterTabs = false;
+	bool legacyHeader = false;
+};
+
+STaskWndFeatures DetectTaskWndFeatures(CUIXml& xml);
 

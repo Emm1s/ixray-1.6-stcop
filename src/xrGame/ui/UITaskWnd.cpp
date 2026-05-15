@@ -19,8 +19,8 @@
 #include "../Level.h"
 #include "../GametaskManager.h"
 #include "../Actor.h"
-#include "../GametaskManager.h"
 #include "../../xrUI/Widgets/UICheckButton.h"
+#include "../../xrUI/Widgets/UIMessages.h"
 #include "../../xrEngine/string_table.h"
 #include "../../xrUI/Widgets/UIGamepadLegend.h"
 #include "PdaConstants.h"
@@ -71,10 +71,7 @@ void CUITaskWnd::Init()
 	if (xml.NavigateToNode("task_split"))
 		m_task_split = UIHelper::CreateFrameLine(xml, "task_split", this);
 
-	// Detect new in-panel filter tabs (All/Story/Side) in pda_tasks.xml: if present, the legacy
-	// secondary-tasks checkbox becomes redundant and is suppressed below.
-	m_hasTaskListFilterTabs = xml.NavigateToNode("second_task_wnd:task_filter_tabs")
-		&& xml.GetNodesNum("second_task_wnd:task_filter_tabs", 0, "button") > 0;
+	m_features = DetectTaskWndFeatures(xml);
 
 	if (xml.NavigateToNode("filter_treasures"))
 	{
@@ -92,7 +89,7 @@ void CUITaskWnd::Init()
 	}
 	m_bPrimaryObjectsEnabled		= true;
 
-	if (!m_hasTaskListFilterTabs && xml.NavigateToNode("filter_secondary_tasks"))
+	if (!m_features.filterTabs && xml.NavigateToNode("filter_secondary_tasks"))
 	{
 		m_cbFilters[MAP_MARKS_FILTER_SECONDARY_TASKS] = UIHelper::CreateCheck(xml, "filter_secondary_tasks", this);
 		m_cbFilters[MAP_MARKS_FILTER_SECONDARY_TASKS]->SetCheck(true);
@@ -143,11 +140,8 @@ void CUITaskWnd::Init()
 		m_devider = UIHelper::CreateStatic(xml, "line_devider", this);
 	}
 
-	m_pStoryLineTaskItem			= new CUITaskItem();
-	m_pStoryLineTaskItem->Init		(xml,"storyline_task_item");
-	AttachChild						(m_pStoryLineTaskItem);
-	m_pStoryLineTaskItem->SetAutoDelete(true);
-	AddCallback						(m_pStoryLineTaskItem, WINDOW_LBUTTON_DB_CLICK,   CUIWndCallback::void_function(this,&CUITaskWnd::OnTask1DbClicked));
+	InitStorylineWidgets(xml);
+	InitStorylineFocusButton(xml);
 
 	if (xml.NavigateToNode("secondary_task_item"))
     {
@@ -158,10 +152,6 @@ void CUITaskWnd::Init()
         m_pSecondaryTaskItem->SetAutoDelete(true);
         AddCallback(m_pSecondaryTaskItem, WINDOW_LBUTTON_DB_CLICK, CUIWndCallback::void_function(this, &CUITaskWnd::OnTask2DbClicked));
     }
-
-	m_btn_focus		= UIHelper::Create3tButton( xml, "btn_task_focus", this );
-	Register		(m_btn_focus);
-	AddCallback		(m_btn_focus,  BUTTON_DOWN, CUIWndCallback::void_function(this,&CUITaskWnd::OnTask1DbClicked));
 
     if (xml.NavigateToNode("btn_task_focus2"))
     {
@@ -183,16 +173,22 @@ void CUITaskWnd::Init()
 	m_task_wnd->SetAutoDelete	(true);
 	m_task_wnd->hint_wnd		= hint_wnd;
 	m_task_wnd->init_from_xml	(xml, "second_task_wnd");
-	// Skip legacy "only secondary" preset when the in-panel filter tabs own the filtering UX.
-	if (!m_task_wnd->HasFilterTabs())
-	{
-		m_task_wnd->ShowOnlySecondaryTasks(m_pSecondaryTaskItem != nullptr);
-	}
 
 	m_pMapWnd->AttachChild		(m_task_wnd);
 	m_task_wnd->SetMessageTarget(this);
 	m_task_wnd->Show			(false);
 	m_task_wnd_show				= false;
+
+	if (!m_features.filterTabs)
+	{
+		m_task_wnd->SetFilterMode(
+			m_pSecondaryTaskItem ? ETaskListFilter::Side : ETaskListFilter::All
+		);
+	}
+	else
+	{
+		OnTaskListFilterChanged(ETaskListFilter::All);
+	}
 
 	m_map_legend_wnd					= new UIMapLegend(); 
 	m_map_legend_wnd->SetAutoDelete		(true);
@@ -211,13 +207,18 @@ void CUITaskWnd::Update()
 		ReloadTaskInfo();
 	}
 
-	if ( m_pStoryLineTaskItem->show_hint && m_pStoryLineTaskItem->OwnerTask() )
+	CUITaskItem* storylineHintItem = StorylineHintItem();
+
+	if (storylineHintItem && storylineHintItem->show_hint && storylineHintItem->OwnerTask())
 	{
-		m_pMapWnd->ShowHintTask( m_pStoryLineTaskItem->OwnerTask(), m_pStoryLineTaskItem );
+		m_pMapWnd->ShowHintTask(storylineHintItem->OwnerTask(), storylineHintItem);
 	}
 	else if (m_pSecondaryTaskItem && m_pSecondaryTaskItem->show_hint && m_pSecondaryTaskItem->OwnerTask())
 	{
-		m_pStoryLineTaskItem->show_hint = false;
+		if (storylineHintItem)
+		{
+			storylineHintItem->show_hint = false;
+		}
 		m_pMapWnd->ShowHintTask(m_pSecondaryTaskItem->OwnerTask(), m_pSecondaryTaskItem);
 	}
 	else
@@ -248,7 +249,7 @@ void CUITaskWnd::SendMessage(CUIWindow* pWnd, s16 msg, void* pData)
 		TaskSetTargetMap( task );
 		return;
 	}
-	if ( msg == PDA_TASK_SHOW_MAP_SPOT && pData && m_bSecondaryTasksEnabled)
+	if ( msg == PDA_TASK_SHOW_MAP_SPOT && pData )
 	{
 		CGameTask* task = static_cast<CGameTask*>( pData );
 		TaskShowMapSpot( task, true );
@@ -272,6 +273,12 @@ void CUITaskWnd::SendMessage(CUIWindow* pWnd, s16 msg, void* pData)
 		m_pMapWnd->HideCurHint();
 		return;
 	}
+	if ( msg == PDA_TASK_LIST_FILTER_CHANGED )
+	{
+		const auto mode = static_cast<ETaskListFilter>(reinterpret_cast<intptr_t>(pData));
+		OnTaskListFilterChanged(mode);
+		return;
+	}
 
 	inherited::SendMessage(  pWnd, msg, pData );
 	CUIWndCallback::OnEvent( pWnd, msg, pData );
@@ -283,17 +290,30 @@ void CUITaskWnd::ReloadTaskInfo()
 	CGameTask* secondaryTask = nullptr;
 	ResolveTaskRows(primaryTask, secondaryTask);
 
-	m_pStoryLineTaskItem->InitTask(primaryTask);
+	if (m_pStoryLineTaskItem)
+	{
+		m_pStoryLineTaskItem->InitTask(primaryTask);
+	}
 	if (m_pSecondaryTaskItem)
 	{
 		m_pSecondaryTaskItem->InitTask(secondaryTask);
 	}
-	m_task_wnd->UpdateStorylineTask(primaryTask);
+	if (m_features.panelStoryline)
+	{
+		m_task_wnd->UpdateStorylineTask(primaryTask);
+	}
 
-	if (!primaryTask || (primaryTask->m_map_object_id == u16(-1) || primaryTask->m_map_location.size() == 0))
-		m_btn_focus->Show(false);
-	else
-		m_btn_focus->Show(true);
+	if (m_btn_focus)
+	{
+		if (!primaryTask || (primaryTask->m_map_object_id == u16(-1) || primaryTask->m_map_location.size() == 0))
+		{
+			m_btn_focus->Show(false);
+		}
+		else
+		{
+			m_btn_focus->Show(true);
+		}
+	}
 
 	if (m_btn_focus2)
 	{
@@ -429,13 +449,33 @@ void CUITaskWnd::Show_TaskListWnd(bool status)
 	m_task_wnd_show = status;
 }
 
+bool CUITaskWnd::CanUseTaskMapSpot(CGameTask* task, bool forShow) const
+{
+	if (!task)
+	{
+		return false;
+	}
+
+	if (!forShow)
+	{
+		return true;
+	}
+
+	if (task->GetTaskType() == eTaskTypeStoryline)
+	{
+		return true;
+	}
+
+	return m_bSecondaryTasksEnabled;
+}
+
 void CUITaskWnd::TaskSetTargetMap( CGameTask* task )
 {
-	if (!task || !m_bSecondaryTasksEnabled)
+	if (!CanUseTaskMapSpot(task, true))
 	{
 		return;
 	}
-	
+
 	TaskShowMapSpot( task, true );
 	CMapLocation* ml = task->LinkedMapLocation();
 	if ( ml && ml->SpotEnabled() )
@@ -447,7 +487,7 @@ void CUITaskWnd::TaskSetTargetMap( CGameTask* task )
 
 void CUITaskWnd::TaskShowMapSpot( CGameTask* task, bool show )
 {
-	if (!task || !m_bSecondaryTasksEnabled)
+	if (!task || !CanUseTaskMapSpot(task, show))
 	{
 		return;
 	}
@@ -506,8 +546,7 @@ void CUITaskWnd::OnShowPrimaryObjects(CUIWindow* ui, void* d)
 }
 void CUITaskWnd::OnShowSecondaryTasks(CUIWindow* ui, void* d)
 {
-	m_bSecondaryTasksEnabled = !m_bSecondaryTasksEnabled ;
-	ReloadTaskInfo();
+	SecondaryTasksEnabled(!m_bSecondaryTasksEnabled);
 }
 void CUITaskWnd::OnShowQuestNpcs(CUIWindow* ui, void* d)
 {
@@ -572,6 +611,82 @@ void CUITaskWnd::ResolveTaskRows(CGameTask*& outPrimary, CGameTask*& outSecondar
 	default:
 		break;
 	}
+}
+
+void CUITaskWnd::SecondaryTasksEnabled(bool enable)
+{
+	if (m_features.filterTabs)
+	{
+		return;
+	}
+
+	ApplySecondaryTasksMapFilter(enable);
+}
+
+void CUITaskWnd::ApplySecondaryTasksMapFilter(bool enable)
+{
+	m_bSecondaryTasksEnabled = enable;
+	if (m_cbFilters[MAP_MARKS_FILTER_SECONDARY_TASKS])
+	{
+		m_cbFilters[MAP_MARKS_FILTER_SECONDARY_TASKS]->SetCheck(enable);
+	}
+	ReloadTaskInfo();
+}
+
+void CUITaskWnd::OnTaskListFilterChanged(ETaskListFilter mode)
+{
+	if (!m_features.filterTabs)
+	{
+		return;
+	}
+
+	const bool enableSecondary = mode != ETaskListFilter::Story;
+	ApplySecondaryTasksMapFilter(enableSecondary);
+}
+
+CUITaskItem* CUITaskWnd::StorylineHintItem() const
+{
+	if (m_pStoryLineTaskItem)
+	{
+		return m_pStoryLineTaskItem;
+	}
+
+	if (m_features.panelStoryline && m_task_wnd)
+	{
+		return m_task_wnd->GetStorylineTaskItem();
+	}
+
+	return nullptr;
+}
+
+void CUITaskWnd::InitStorylineWidgets(CUIXml& xml)
+{
+	if (!m_features.legacyHeader)
+	{
+		return;
+	}
+
+	m_pStoryLineTaskItem = new CUITaskItem();
+	m_pStoryLineTaskItem->Init(xml, PdaTaskXml::LegacyStorylineItem);
+	AttachChild(m_pStoryLineTaskItem);
+	m_pStoryLineTaskItem->SetAutoDelete(true);
+	AddCallback(
+		m_pStoryLineTaskItem,
+		WINDOW_LBUTTON_DB_CLICK,
+		CUIWndCallback::void_function(this, &CUITaskWnd::OnTask1DbClicked)
+	);
+}
+
+void CUITaskWnd::InitStorylineFocusButton(CUIXml& xml)
+{
+	if (!m_features.legacyHeader || !xml.NavigateToNode(PdaTaskXml::LegacyTaskFocus))
+	{
+		return;
+	}
+
+	m_btn_focus = UIHelper::Create3tButton(xml, PdaTaskXml::LegacyTaskFocus, this);
+	Register(m_btn_focus);
+	AddCallback(m_btn_focus, BUTTON_DOWN, CUIWndCallback::void_function(this, &CUITaskWnd::OnTask1DbClicked));
 }
 
 bool CUITaskWnd::OnGamepadKeyAction(int id, EUIMessages gamepad_action)
