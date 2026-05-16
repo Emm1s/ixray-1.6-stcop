@@ -13,10 +13,10 @@
 #include "../xrServerEntities/object_broker.h"
 
 template <
-	typename typename _data_type = xr_empty,
-	typename typename _edge_weight_type = float,
-	typename typename __vertex_id_type = u32,
-	typename typename _edge_data_type = xr_empty
+	typename _data_type = xr_empty,
+	typename _edge_weight_type = float,
+	typename __vertex_id_type = u32,
+	typename _edge_data_type = xr_empty
 >
 class CGraphAbstract {
 public:
