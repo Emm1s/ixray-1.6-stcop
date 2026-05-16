@@ -26,7 +26,7 @@ class CUICheckButton;
 struct GAME_NEWS_DATA;
 class CUINewsItemWnd;
 class CUIGamepadLegend;
-class CUITimeLine;
+class CUICalendar;
 
 class CUILogsWnd final : public CUIWindow, public CUIWndCallback
 {
@@ -43,7 +43,7 @@ private:
 
 	CUICheckButton*		m_filter_news = nullptr;
 	CUICheckButton*		m_filter_talk = nullptr;
-	
+
 	CUIStatic*			m_date_caption;
 	CUIStatic*			m_date;
 
@@ -55,8 +55,10 @@ private:
 
 	CUI3tButton*		m_prev_period = nullptr;
 	CUI3tButton*		m_next_period = nullptr;
+	CUI3tButton*		m_btn_calendar = nullptr;
+	CUICalendar*		m_calendar = nullptr;
 	bool				m_ctrl_press;
-	
+
 	CUIScrollView*		m_list;
 	u32					m_previous_time;
 	bool				m_need_reload;
@@ -69,7 +71,6 @@ private:
 //	void				ItemToCache			(CUIWindow* w);
 	CUIXml				m_uiXml;
 	CUIGamepadLegend*	m_gamepad_legend = nullptr;
-    CUITimeLine*        m_timeline = nullptr;
 
 public:
 						CUILogsWnd			();
@@ -87,28 +88,26 @@ public:
 	bool				OnGamepadKeyHold	(int key) override;
 
 	IC		void		UpdateNews			()
-    {
-        m_need_reload = true;
-        SyncTimelineState();
-    }
+	{
+		m_need_reload = true;
+		SyncCalendarState();
+	}
 	void		PerformWork			();
 
-	CUIWindow* ui_cast_window() override
-    {
-        return this;
-    }
+	CUIWindow* ui_cast_window() override { return this; }
 
 protected:
 			void		ReLoadNews			();
 			void		AddNewsItem			( GAME_NEWS_DATA& news_data );
 	ALife::_TIME_ID		GetShiftPeriod		( ALife::_TIME_ID datetime, int shift_day );
-    void                OnTimelineNodeSelected(u32 day);
-    void                SyncTimelineState();
+			void		SyncCalendarState	();
+			void		OnCalendarDaySelected( ALife::_TIME_ID period );
 
 			void 	UpdateChecks	( CUIWindow* w, void* d);
 			void 	PrevPeriod		( CUIWindow* w, void* d);
 			void 	NextPeriod		( CUIWindow* w, void* d);
-	
+			void	ToggleCalendarPopup	( CUIWindow* w, void* d );
+
 			void 		on_scroll_keys		( int dik, int step = 1 );
 
 /*

@@ -16,15 +16,13 @@
 #include "../../xrUI/Widgets/UIFixedScrollBar.h"
 #include "../../xrUI/Widgets/UIScrollView.h"
 #include "../../xrUI/Widgets/UICheckButton.h"
-#include "../../xrUI/Widgets/UIStackPanel.h"
 #include "../../xrUI/UIHelper.h"
 #include "UICharacterInfo.h"
 #include "UIInventoryUtilities.h"
-#include "CUITimeLine.h"
+#include "CUICalendar.h"
 
 #include "../Actor.h"
 #include "../game_news.h"
-#include "../alife_time_manager.h"
 #include "../alife_registry_wrappers.h"
 #include "../../xrEngine/string_table.h"
 #include "UINewsItemWnd.h"
@@ -32,56 +30,7 @@
 
 #define PDA_LOGS_XML "pda_logs.xml"
 
-extern ENGINE_API void split_time(u64 time, u32 &years, u32 &months, u32 &days, u32 &hours, u32 &minutes, u32 &seconds, u32 &milliseconds);
-
 u64 const day2ms			= u64( 24 * 60 * 60 * 1000 );
-
-namespace
-{
-bool IsLeapYear(u32 year)
-{
-    return (year % 400 == 0) || ((year % 4 == 0) && (year % 100 != 0));
-}
-
-u32 GetDaysInMonth(u32 year, u32 month)
-{
-    switch (month)
-    {
-        case 1:
-        case 3:
-        case 5:
-        case 7:
-        case 8:
-        case 10:
-        case 12:
-            return 31;
-        case 4:
-        case 6:
-        case 9:
-        case 11:
-            return 30;
-        case 2:
-            return IsLeapYear(year) ? 29 : 28;
-        default:
-            return 0;
-    }
-}
-
-bool IsLogVisibleByFilter(const GAME_NEWS_DATA& newsData, bool filterNews, bool filterTalk)
-{
-    if (newsData.m_type == GAME_NEWS_DATA::eNews)
-    {
-        return filterNews;
-    }
-
-    if (newsData.m_type == GAME_NEWS_DATA::eTalk)
-    {
-        return filterTalk;
-    }
-
-    return false;
-}
-}
 
 CUILogsWnd::CUILogsWnd()
 {
@@ -96,6 +45,8 @@ CUILogsWnd::CUILogsWnd()
     m_period                = nullptr;
     m_prev_period           = nullptr;
     m_next_period           = nullptr;
+    m_btn_calendar          = nullptr;
+    m_calendar              = nullptr;
 }
 
 CUILogsWnd::~CUILogsWnd()
@@ -114,8 +65,12 @@ void CUILogsWnd::Show( bool status )
 			m_actor_ch_info->InitCharacter(Actor());
 		m_selected_period = GetShiftPeriod( Level().GetGameTime(), 0 );
 		m_need_reload = true;
-        SyncTimelineState();
+		SyncCalendarState();
 		Update();
+	}
+	else if (m_calendar)
+	{
+		m_calendar->HidePopup();
 	}
 	inherited::Show( status );
 }
@@ -144,7 +99,7 @@ void CUILogsWnd::Update()
 		WINDOW_LIST::iterator it_e = m_items_ready.end();
 		for(; it!=it_e; ++it)
 			m_list->AddWindow			(*it, true);
-		
+
 		m_items_ready.clear();
 	}
 }
@@ -236,21 +191,9 @@ void CUILogsWnd::Init()
     {
         m_next_period = UIHelper::Create3tButton(m_uiXml, "btn_next_period", this);
     }
-
-    if (m_uiXml.NavigateToNode("pda_timeline"))
+    if (m_uiXml.NavigateToNode("btn_calendar"))
     {
-        m_timeline = new CUITimeLine();
-        m_timeline->SetAutoDelete(true);
-        if (m_timeline->InitFromXml(m_uiXml, "pda_timeline"))
-        {
-            m_timeline->SetOnNodeSelected(xr_delegate<void(u32)>(this, &CUILogsWnd::OnTimelineNodeSelected));
-            AttachChild(m_timeline);
-        }
-        else
-        {
-            xr_delete(m_timeline);
-            Msg("! [Timeline] pda_timeline init failed. Logs page keeps legacy behavior.");
-        }
+        m_btn_calendar = UIHelper::Create3tButton(m_uiXml, "btn_calendar", this);
     }
 
 	m_gamepad_legend = UIHelper::CreateGamepadLegend( m_uiXml, "gamepad_legend", this, false );
@@ -275,10 +218,25 @@ void CUILogsWnd::Init()
         Register(m_next_period);
         AddCallback(m_next_period, BUTTON_CLICKED, CUIWndCallback::void_function(this, &CUILogsWnd::NextPeriod));
     }
+    if (m_btn_calendar)
+    {
+        Register(m_btn_calendar);
+        AddCallback(m_btn_calendar, BUTTON_CLICKED, CUIWndCallback::void_function(this, &CUILogsWnd::ToggleCalendarPopup));
+    }
 
 	m_start_game_time = Level().GetStartGameTime();
 	m_start_game_time = GetShiftPeriod( m_start_game_time, 0 );
-    SyncTimelineState();
+
+	m_calendar = new CUICalendar();
+	if (m_calendar->InitFromXml(m_uiXml, this, m_btn_calendar))
+	{
+		m_calendar->SetOnDaySelected(xr_delegate<void(ALife::_TIME_ID)>(this, &CUILogsWnd::OnCalendarDaySelected));
+		SyncCalendarState();
+	}
+	else
+	{
+		xr_delete(m_calendar);
+	}
 }
 void itemToCache(CUIWindow* w)
 {
@@ -357,7 +315,7 @@ void CUILogsWnd::PerformWork()
 			u32 idx						= m_news_in_queue.back();
 			m_news_in_queue.pop_back	();
 			GAME_NEWS_DATA& gn			= news_vector[idx];
-			
+
 			AddNewsItem					( gn );
 		}
 	}
@@ -397,14 +355,14 @@ void CUILogsWnd::AddNewsItem(GAME_NEWS_DATA& news_data)
 	CUIWindow* news_itm_w		= ItemFromCache();
 	CUINewsItemWnd*	news_itm	= smart_cast<CUINewsItemWnd*>(news_itm_w);
 	news_itm->Setup				(news_data);
-	
+
 	m_items_ready.push_back		(news_itm);
 }
 
 void CUILogsWnd::UpdateChecks( CUIWindow* w, void* d )
 {
 	m_need_reload = true;
-    SyncTimelineState();
+	SyncCalendarState();
 }
 
 void CUILogsWnd::PrevPeriod( CUIWindow* w, void* d )
@@ -417,7 +375,7 @@ void CUILogsWnd::PrevPeriod( CUIWindow* w, void* d )
 	}
 	if(current_period != m_selected_period)
 		m_need_reload = true;
-    SyncTimelineState();
+	SyncCalendarState();
 }
 
 void CUILogsWnd::NextPeriod( CUIWindow* w, void* d )
@@ -431,7 +389,7 @@ void CUILogsWnd::NextPeriod( CUIWindow* w, void* d )
 	}
 	if(current_period != m_selected_period)
 		m_need_reload = true;
-    SyncTimelineState();
+	SyncCalendarState();
 }
 
 ALife::_TIME_ID CUILogsWnd::GetShiftPeriod( ALife::_TIME_ID datetime, int shift_day )
@@ -441,162 +399,34 @@ ALife::_TIME_ID CUILogsWnd::GetShiftPeriod( ALife::_TIME_ID datetime, int shift_
 	return datetime;
 }
 
-void CUILogsWnd::OnTimelineNodeSelected(u32 day)
+void CUILogsWnd::SyncCalendarState()
 {
-    if (!m_timeline || day == 0)
-    {
-        return;
-    }
+	if (!m_calendar || !m_calendar->HasUi())
+	{
+		return;
+	}
 
-    u32 year = 0;
-    u32 month = 0;
-    u32 oldDay = 0;
-    u32 hours = 0;
-    u32 minutes = 0;
-    u32 seconds = 0;
-    u32 milliseconds = 0;
-    split_time(m_selected_period, year, month, oldDay, hours, minutes, seconds, milliseconds);
-    if (day > GetDaysInMonth(year, month))
-    {
-        return;
-    }
+	m_start_game_time = GetShiftPeriod(Level().GetStartGameTime(), 0);
 
-    const ALife::_TIME_ID candidatePeriod = GetShiftPeriod(generate_time(year, month, day, 0, 0, 0, 0), 0);
-    const ALife::_TIME_ID minPeriod = m_start_game_time;
-    const ALife::_TIME_ID maxPeriod = GetShiftPeriod(Level().GetGameTime(), 0);
-
-    ALife::_TIME_ID clampedPeriod = candidatePeriod;
-    if (clampedPeriod < minPeriod)
-    {
-        clampedPeriod = minPeriod;
-    }
-    if (clampedPeriod > maxPeriod)
-    {
-        clampedPeriod = maxPeriod;
-    }
-
-    if (clampedPeriod != m_selected_period)
-    {
-        m_selected_period = clampedPeriod;
-        m_need_reload = true;
-    }
-
-    SyncTimelineState();
+	const bool filterNews = m_filter_news ? m_filter_news->GetCheck() : true;
+	const bool filterTalk = m_filter_talk ? m_filter_talk->GetCheck() : true;
+	m_calendar->UpdateState(m_start_game_time, m_selected_period, filterNews, filterTalk);
 }
 
-void CUILogsWnd::SyncTimelineState()
+void CUILogsWnd::OnCalendarDaySelected(ALife::_TIME_ID period)
 {
-    if (!m_timeline)
-    {
-        return;
-    }
+	m_selected_period = period;
+	m_need_reload = true;
+	ReLoadNews();
+}
 
-    u32 currentYear = 0;
-    u32 currentMonth = 0;
-    u32 currentDay = 0;
-    u32 selectedYear = 0;
-    u32 selectedMonth = 0;
-    u32 selectedDay = 0;
-    u32 hours = 0;
-    u32 minutes = 0;
-    u32 seconds = 0;
-    u32 milliseconds = 0;
-    split_time(
-        Level().GetGameTime(),
-        currentYear,
-        currentMonth,
-        currentDay,
-        hours,
-        minutes,
-        seconds,
-        milliseconds);
-    split_time(
-        m_selected_period,
-        selectedYear,
-        selectedMonth,
-        selectedDay,
-        hours,
-        minutes,
-        seconds,
-        milliseconds);
-
-    const u32 nodeCount = m_timeline->GetNodeCount();
-    xr_vector<u8> hasMessagesByDay;
-    hasMessagesByDay.resize(nodeCount + 1, 0);
-
-    const bool filterNews = m_filter_news ? m_filter_news->GetCheck() : true;
-    const bool filterTalk = m_filter_talk ? m_filter_talk->GetCheck() : true;
-    CActor* actor = Actor();
-    if (actor)
-    {
-        GAME_NEWS_VECTOR& newsVector = actor->game_news_registry->registry().objects();
-        for (GAME_NEWS_VECTOR::iterator it = newsVector.begin(); it != newsVector.end(); ++it)
-        {
-            GAME_NEWS_DATA& newsData = (*it);
-            if (!IsLogVisibleByFilter(newsData, filterNews, filterTalk))
-            {
-                continue;
-            }
-
-            u32 newsYear = 0;
-            u32 newsMonth = 0;
-            u32 newsDay = 0;
-            split_time(
-                newsData.receive_time,
-                newsYear,
-                newsMonth,
-                newsDay,
-                hours,
-                minutes,
-                seconds,
-                milliseconds);
-            if (newsYear == selectedYear &&
-                newsMonth == selectedMonth &&
-                newsDay > 0 &&
-                newsDay <= nodeCount)
-            {
-                hasMessagesByDay[newsDay] = 1;
-            }
-        }
-    }
-
-    const u32 daysInMonth = GetDaysInMonth(selectedYear, selectedMonth);
-    const ALife::_TIME_ID currentPeriod = GetShiftPeriod(Level().GetGameTime(), 0);
-
-    for (u32 day = 1; day <= nodeCount; ++day)
-    {
-        bool hasMessages = false;
-        ETimelineState state = ETimelineState::Future;
-
-        if (day <= daysInMonth)
-        {
-            const ALife::_TIME_ID dayPeriod = GetShiftPeriod(
-                generate_time(selectedYear, selectedMonth, day, 0, 0, 0, 0),
-                0);
-            if (dayPeriod >= m_start_game_time && dayPeriod <= currentPeriod)
-            {
-                hasMessages = hasMessagesByDay[day] != 0;
-                state = ETimelineState::Empty;
-                if (selectedYear == currentYear &&
-                    selectedMonth == currentMonth &&
-                    day == currentDay)
-                {
-                    state = ETimelineState::Present;
-                }
-                else if (hasMessages)
-                {
-                    state = ETimelineState::Archive;
-                }
-            }
-        }
-
-        m_timeline->SetNodeState(day, state, hasMessages);
-    }
-
-    if (selectedDay <= nodeCount)
-    {
-        m_timeline->SetSelectedDay(selectedDay);
-    }
+void CUILogsWnd::ToggleCalendarPopup(CUIWindow* w, void* d)
+{
+	if (m_calendar)
+	{
+		SyncCalendarState();
+		m_calendar->TogglePopup();
+	}
 }
 
 bool CUILogsWnd::OnKeyboardAction( int dik, EUIMessages keyboard_action )
@@ -618,7 +448,7 @@ bool CUILogsWnd::OnKeyboardAction( int dik, EUIMessages keyboard_action )
 			{
 				m_ctrl_press = true;
 				return true;
-			}break;		
+			}break;
 		}
 	}
 	m_ctrl_press = false;
@@ -741,7 +571,7 @@ void CUILogsWnd::on_scroll_keys( int dik, int step )
 			m_list->ScrollBar()->TryScrollDec();
 			m_list->ScrollBar()->SetStepSize( orig );
 			break;
-		}	
+		}
 	case SDL_SCANCODE_DOWN:
 		{
 			int orig = m_list->ScrollBar()->GetStepSize();
@@ -769,7 +599,7 @@ void CUILogsWnd::on_scroll_keys( int dik, int step )
 			}
 			m_list->ScrollBar()->TryScrollInc();
 			break;
-		}		
+		}
 	}// switch
 
 }
