@@ -33,6 +33,16 @@
 
 using namespace luabind;
 
+namespace
+{
+constexpr u32 rankingStatActorMoneyEarnedIndex = 7;
+constexpr u32 rankingStatActorMoneySpentIndex = 8;
+constexpr u32 rankingStatActorHelpWoundedIndex = 9;
+constexpr u32 rankingStatActorHeadshotsIndex = 10;
+constexpr u32 rankingStatActorDeathsIndex = 11;
+constexpr u32 rankingStatActorDistanceIndex = 12;
+}
+
 CUIRankingWnd::CUIRankingWnd()
 {
 	m_actor_ch_info				= nullptr;
@@ -259,9 +269,9 @@ void CUIRankingWnd::Init()
 	if (xml.NavigateToNode("valuable_artifact_icon", 0))
 		m_valuable_artifact_icon = UIHelper::CreateStatic(xml, "valuable_artifact_icon", this);
 	if (xml.NavigateToNode("valuable_artifact_back"))
-		m_valuable_artifact_back = UIHelper::CreateFrameWindow(xml, "valuable_artifact_back", this);
+		UIHelper::CreateFrameWindow(xml, "valuable_artifact_back", this);
 	if (xml.NavigateToNode("valuable_artifact_over"))
-		m_valuable_artifact_over = UIHelper::CreateFrameWindow(xml, "valuable_artifact_over", this);
+		UIHelper::CreateFrameWindow(xml, "valuable_artifact_over", this);
 	if (xml.NavigateToNode("ranking_actor_identity", 0))
 	{
 		m_ranking_actor_identity = new CUICharacterInfo();
@@ -642,22 +652,22 @@ const char* CUIRankingWnd::GetStatValue(const StatItem& item, const u32 index) c
 	{
 		switch (index)
 		{
-		case 7:
+		case rankingStatActorMoneyEarnedIndex:
 			xr_sprintf(actorStatBuffer, sizeof(actorStatBuffer), "%u", Actor()->GetStatMoneyEarned());
 			return actorStatBuffer;
-		case 8:
+		case rankingStatActorMoneySpentIndex:
 			xr_sprintf(actorStatBuffer, sizeof(actorStatBuffer), "%u", Actor()->GetStatMoneySpent());
 			return actorStatBuffer;
-		case 9:
+		case rankingStatActorHelpWoundedIndex:
 			xr_sprintf(actorStatBuffer, sizeof(actorStatBuffer), "%u", Actor()->GetStatHelpWounded());
 			return actorStatBuffer;
-		case 10:
+		case rankingStatActorHeadshotsIndex:
 			xr_sprintf(actorStatBuffer, sizeof(actorStatBuffer), "%u", Actor()->GetStatHeadshots());
 			return actorStatBuffer;
-		case 11:
+		case rankingStatActorDeathsIndex:
 			xr_sprintf(actorStatBuffer, sizeof(actorStatBuffer), "%u", Actor()->GetStatDeaths());
 			return actorStatBuffer;
-		case 12:
+		case rankingStatActorDistanceIndex:
 			xr_sprintf(actorStatBuffer, sizeof(actorStatBuffer), "%.2f km", Actor()->GetStatDistanceMeters() / 1000.0f);
 			return actorStatBuffer;
 		default:

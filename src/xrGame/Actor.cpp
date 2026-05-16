@@ -63,6 +63,11 @@ extern float cammera_into_collision_shift ;
 string32		ACTOR_DEFS::g_quick_use_slots[4]={0, 0, 0, 0};
 //skeleton
 
+namespace
+{
+constexpr float maxActorStatDistanceStepMeters = 100.0f;
+}
+
 
 
 static Fbox		bbStandBox;
@@ -2366,7 +2371,7 @@ void CActor::shedule_Update	(u32 DT)
 		if (m_hasLastStatPosition)
 		{
 			const float deltaMeters = Position().distance_to(m_lastStatPosition);
-			if (deltaMeters > 0.0f && deltaMeters < 100.0f)
+			if (deltaMeters > 0.0f && deltaMeters < maxActorStatDistanceStepMeters)
 			{
 				AddDistanceMeters(deltaMeters);
 			}

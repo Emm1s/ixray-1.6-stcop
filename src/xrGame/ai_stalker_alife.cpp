@@ -83,12 +83,15 @@ void CAI_Stalker::transfer_item(CInventoryItem* item, CGameObject* old_owner, CG
 {
 	if (item && old_owner && new_owner && new_owner == this)
 	{
-		if (CActor* actor = old_owner->cast_actor())
+		if (CActor* const actor = old_owner->cast_actor())
 		{
-			const shared_str section = item->object().cNameSect();
-			if ((section == "medkit" || section == "medkit_army" || section == "medkit_scientic") && critically_wounded())
+			if (critically_wounded())
 			{
-				actor->RegisterHelpWounded();
+				const shared_str& section = item->object().cNameSect();
+				if (section == "medkit" || section == "medkit_army" || section == "medkit_scientic")
+				{
+					actor->RegisterHelpWounded();
+				}
 			}
 		}
 	}

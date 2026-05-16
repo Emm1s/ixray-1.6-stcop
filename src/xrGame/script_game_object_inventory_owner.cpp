@@ -31,7 +31,6 @@
 #include "ai/stalker/ai_stalker.h"
 #include "ai/monsters/basemonster/base_monster.h"
 #include "WeaponMagazined.h"
-#include "ai/stalker/ai_stalker.h"
 #include "agent_manager.h"
 #include "agent_member_manager.h"
 #include "stalker_animation_manager.h"
@@ -540,14 +539,13 @@ void CScriptGameObject::TransferItem(CScriptGameObject* pItem, CScriptGameObject
 		return;
 	}
 
-	CActor* actor = object().cast_actor();
-	if (actor)
+	if (CActor* actor = object().cast_actor())
 	{
-		CEntityAlive* targetAlive = pForWho->object().cast_entity_alive();
-		CAI_Stalker* targetStalker = targetAlive ? targetAlive->cast_stalker() : nullptr;
+		CEntityAlive* const targetAlive = pForWho->object().cast_entity_alive();
+		CAI_Stalker* const targetStalker = targetAlive ? targetAlive->cast_stalker() : nullptr;
 		if (targetStalker && targetStalker->critically_wounded())
 		{
-			const shared_str section = pIItem->object().cNameSect();
+			const shared_str& section = pIItem->object().cNameSect();
 			if (section == "medkit" || section == "medkit_army" || section == "medkit_scientic")
 			{
 				actor->RegisterHelpWounded();
@@ -576,68 +574,56 @@ u32 CScriptGameObject::Money()
 
 u32 CScriptGameObject::GetActorMoneyEarned()
 {
-	CActor* actor = object().cast_actor();
-	if (!actor)
+	if (CActor* actor = object().cast_actor())
 	{
-		return 0;
+		return actor->GetStatMoneyEarned();
 	}
-
-	return actor->GetStatMoneyEarned();
+	return 0;
 }
 
 u32 CScriptGameObject::GetActorMoneySpent()
 {
-	CActor* actor = object().cast_actor();
-	if (!actor)
+	if (CActor* actor = object().cast_actor())
 	{
-		return 0;
+		return actor->GetStatMoneySpent();
 	}
-
-	return actor->GetStatMoneySpent();
+	return 0;
 }
 
 float CScriptGameObject::GetActorDistanceKm()
 {
-	CActor* actor = object().cast_actor();
-	if (!actor)
+	if (CActor* actor = object().cast_actor())
 	{
-		return 0.0f;
+		return actor->GetStatDistanceMeters() / 1000.0f;
 	}
-
-	return actor->GetStatDistanceMeters() / 1000.0f;
+	return 0.0f;
 }
 
 u32 CScriptGameObject::GetActorHeadshots()
 {
-	CActor* actor = object().cast_actor();
-	if (!actor)
+	if (CActor* actor = object().cast_actor())
 	{
-		return 0;
+		return actor->GetStatHeadshots();
 	}
-
-	return actor->GetStatHeadshots();
+	return 0;
 }
 
 u32 CScriptGameObject::GetActorDeaths()
 {
-	CActor* actor = object().cast_actor();
-	if (!actor)
+	if (CActor* actor = object().cast_actor())
 	{
-		return 0;
+		return actor->GetStatDeaths();
 	}
-
-	return actor->GetStatDeaths();
+	return 0;
 }
 
 u32 CScriptGameObject::GetActorHelpWounded()
 {
-	CActor* actor = object().cast_actor();
-	if (!actor)
+	if (CActor* actor = object().cast_actor())
 	{
-		return 0;
+		return actor->GetStatHelpWounded();
 	}
-
-	return actor->GetStatHelpWounded();
+	return 0;
 }
 
 void CScriptGameObject::TransferMoney(int money, CScriptGameObject* pForWho)

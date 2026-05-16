@@ -32,39 +32,25 @@
 
 static bool IsHeadBone(const CEntityAlive* entity, const u16 boneId)
 {
-	if (boneId == BI_NONE)
+	if (boneId == BI_NONE || !entity || !entity->Visual())
 	{
 		return false;
 	}
 
-	IKinematics* kinematics = entity && entity->Visual() ? smart_cast<IKinematics*>(entity->Visual()) : nullptr;
+	IKinematics* const kinematics = smart_cast<IKinematics*>(entity->Visual());
 	if (!kinematics)
 	{
 		return false;
 	}
 
-	const u16 bipHead = kinematics->LL_BoneID("bip01_head");
-	if (bipHead != BI_NONE && boneId == bipHead)
+	static const char* headBoneNames[] = {"bip01_head", "head", "eye_left", "eye_right"};
+	for (const char* boneName : headBoneNames)
 	{
-		return true;
-	}
-
-	const u16 head = kinematics->LL_BoneID("head");
-	if (head != BI_NONE && boneId == head)
-	{
-		return true;
-	}
-
-	const u16 eyeLeft = kinematics->LL_BoneID("eye_left");
-	if (eyeLeft != BI_NONE && boneId == eyeLeft)
-	{
-		return true;
-	}
-
-	const u16 eyeRight = kinematics->LL_BoneID("eye_right");
-	if (eyeRight != BI_NONE && boneId == eyeRight)
-	{
-		return true;
+		const u16 id = kinematics->LL_BoneID(boneName);
+		if (id != BI_NONE && boneId == id)
+		{
+			return true;
+		}
 	}
 
 	return false;
@@ -372,14 +358,11 @@ void CEntityAlive::Hit(SHit* pHDS)
 
 void CEntityAlive::Die	(CObject* who)
 {
-	if (who)
+	if (CActor* actor = who ? who->cast_actor() : nullptr)
 	{
-		if (CActor* actor = who->cast_actor())
+		if (m_lastHitWhoID == actor->ID() && IsHeadBone(this, m_lastHitBoneID))
 		{
-			if (m_lastHitWhoID == actor->ID() && IsHeadBone(this, m_lastHitBoneID))
-			{
-				actor->RegisterHeadshotKill();
-			}
+			actor->RegisterHeadshotKill();
 		}
 	}
 
