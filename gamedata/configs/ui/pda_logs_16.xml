@@ -103,43 +103,8 @@
 		<texture>ui_inGame2_pda_Filtr_arrow_left</texture>
 	</btn_prev_period>
 
-	<btn_calendar x="763" y="91" width="37" height="37" stretch="1">
-		<window_name>btn_calendar</window_name>
-		<texture>ui_pda_cal_btn</texture>
-	</btn_calendar>
-
 	<btn_next_period x="803" y="91" width="37" height="37" stretch="1">
 		<window_name>btn_next_period</window_name>
 		<texture>ui_inGame2_pda_Filtr_arrow_right</texture>
 	</btn_next_period>
-
-	<calendar_popup x="500" y="120" width="205" height="228" free_month_nav="1" free_month_year_min="1986" free_month_year_max="2099">
-		<background x="0" y="0" width="205" height="228" stretch="1">
-			<texture>ui_pda_cal_popup</texture>
-		</background>
-
-		<month_stepper x="8" y="8" width="189" height="37">
-			<btn_prev_month x="0" y="0" width="37" height="37">
-				<texture>ui_inGame2_pda_Filtr_arrow_left</texture>
-			</btn_prev_month>
-			<month_caption x="41" y="0" width="107" height="37">
-				<text align="c" vert_align="c" font="letterica16" r="220" g="220" b="220"/>
-			</month_caption>
-			<btn_next_month x="152" y="0" width="37" height="37">
-				<texture>ui_inGame2_pda_Filtr_arrow_right</texture>
-			</btn_next_month>
-		</month_stepper>
-
-		<weekdays_row x="16" y="50" width="173" height="16">
-			<auto_static x="0" y="0" width="23" height="16"><text align="c" font="letterica16" r="140" g="140" b="140">Пн</text></auto_static>
-			<auto_static x="25" y="0" width="23" height="16"><text align="c" font="letterica16" r="140" g="140" b="140">Вт</text></auto_static>
-			<auto_static x="50" y="0" width="23" height="16"><text align="c" font="letterica16" r="140" g="140" b="140">Ср</text></auto_static>
-			<auto_static x="75" y="0" width="23" height="16"><text align="c" font="letterica16" r="140" g="140" b="140">Чт</text></auto_static>
-			<auto_static x="100" y="0" width="23" height="16"><text align="c" font="letterica16" r="140" g="140" b="140">Пт</text></auto_static>
-			<auto_static x="125" y="0" width="23" height="16"><text align="c" font="letterica16" r="140" g="140" b="140">Сб</text></auto_static>
-			<auto_static x="150" y="0" width="23" height="16"><text align="c" font="letterica16" r="140" g="140" b="140">Вс</text></auto_static>
-		</weekdays_row>
-
-		<days_host x="16" y="68" width="173" height="148" columns="7" rows="6" cell_size="23" spacing="2" cell_texture="ui_pda_cal_day"/>
-	</calendar_popup>
 </w>
