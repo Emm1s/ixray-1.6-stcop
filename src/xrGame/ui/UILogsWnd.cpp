@@ -17,6 +17,7 @@
 #include "../../xrUI/Widgets/UIScrollView.h"
 #include "../../xrUI/Widgets/UICheckButton.h"
 #include "../../xrUI/UIHelper.h"
+#include "../../xrUI/UICursor.h"
 #include "UICharacterInfo.h"
 #include "UIInventoryUtilities.h"
 #include "CUICalendar.h"
@@ -32,29 +33,172 @@
 
 u64 const day2ms			= u64( 24 * 60 * 60 * 1000 );
 
+namespace
+{
+void itemToCache(CUIWindow* w)
+{
+	w->SetAutoDelete(false);
+	w->SetParent(nullptr);
+}
+
+bool CursorInScrollList(CUIScrollView* list)
+{
+	if (!list || !list->IsShown())
+	{
+		return false;
+	}
+
+	Frect rect;
+	list->GetAbsoluteRect(rect);
+	Fvector2 pos = UI().GetUICursor().GetCursorPosition();
+	return rect.in(pos);
+}
+} // namespace
+
 CUILogsWnd::CUILogsWnd()
 {
 	m_actor_ch_info			= nullptr;
 	m_previous_time			= Device.dwTimeGlobal;
 	m_selected_period		= 0;
-    m_filter_news           = nullptr;
-    m_filter_talk           = nullptr;
-    m_date_caption          = nullptr;
-    m_date                  = nullptr;
-    m_period_caption        = nullptr;
-    m_period                = nullptr;
-    m_prev_period           = nullptr;
-    m_next_period           = nullptr;
-    m_btn_calendar          = nullptr;
-    m_calendar              = nullptr;
+	m_filter_news           = nullptr;
+	m_filter_talk           = nullptr;
+	m_date_caption          = nullptr;
+	m_date                  = nullptr;
+	m_period_caption        = nullptr;
+	m_period                = nullptr;
+	m_prev_period           = nullptr;
+	m_next_period           = nullptr;
+	m_btn_calendar          = nullptr;
+	m_calendar              = nullptr;
+	m_list                  = nullptr;
+	m_list_news             = nullptr;
+	m_list_dialogs          = nullptr;
 }
 
 CUILogsWnd::~CUILogsWnd()
 {
-	m_list->Clear			();
-	delete_data				(m_items_cache);
+	if (m_list)
+	{
+		m_list->Clear();
+	}
+	if (m_list_news)
+	{
+		m_list_news->Clear();
+	}
+	if (m_list_dialogs)
+	{
+		m_list_dialogs->Clear();
+	}
+	delete_data(m_items_cache);
 }
 
+void CUILogsWnd::InitScrollList(LPCSTR nodeName, CUIScrollView*& outList)
+{
+	CUIFixedScrollBar* tmp_scroll = new CUIFixedScrollBar();
+	outList = new CUIScrollView(tmp_scroll);
+	outList->SetAutoDelete(true);
+	AttachChild(outList);
+	CUIXmlInit::InitScrollView(m_uiXml, nodeName, 0, outList);
+}
+
+void CUILogsWnd::ApplySplitModeUi()
+{
+	if (m_filter_news)
+	{
+		m_filter_news->Show(false);
+	}
+	if (m_filter_talk)
+	{
+		m_filter_talk->Show(false);
+	}
+}
+
+CUIScrollView* CUILogsWnd::ActiveScrollList()
+{
+	if (!m_use_split_lists)
+	{
+		return m_list;
+	}
+
+	if (CursorInScrollList(m_list_dialogs))
+	{
+		return m_list_dialogs;
+	}
+	if (CursorInScrollList(m_list_news))
+	{
+		return m_list_news;
+	}
+	return m_list_news;
+}
+
+void CUILogsWnd::ClearListToCache(CUIScrollView* list)
+{
+	if (!list || list->Empty())
+	{
+		return;
+	}
+
+	xrCriticalSectionGuard guard(list->csUi);
+	m_items_cache.insert(m_items_cache.end(), list->Items().begin(), list->Items().end());
+	list->Items().clear();
+	std::for_each(m_items_cache.begin(), m_items_cache.end(), itemToCache);
+}
+
+void CUILogsWnd::FlushReadyItems(WINDOW_LIST& ready, CUIScrollView* list)
+{
+	if (ready.empty() || !list)
+	{
+		return;
+	}
+
+	for (CUIWindow* w : ready)
+	{
+		list->AddWindow(w, true);
+	}
+	ready.clear();
+}
+
+void CUILogsWnd::ScrollAllListsToBegin()
+{
+	if (m_use_split_lists)
+	{
+		if (m_list_news)
+		{
+			m_list_news->ScrollToBegin();
+		}
+		if (m_list_dialogs)
+		{
+			m_list_dialogs->ScrollToBegin();
+		}
+		return;
+	}
+
+	if (m_list)
+	{
+		m_list->ScrollToBegin();
+	}
+}
+
+void CUILogsWnd::ScrollAllListsToEnd()
+{
+	if (m_use_split_lists)
+	{
+		if (m_list_news)
+		{
+			m_list_news->ScrollToEnd();
+		}
+		if (m_list_dialogs)
+		{
+			m_list_dialogs->ScrollToEnd();
+		}
+		return;
+	}
+
+	if (m_list)
+	{
+		m_list->ScrollToEnd();
+	}
+}
 
 void CUILogsWnd::Show( bool status )
 {
@@ -93,14 +237,15 @@ void CUILogsWnd::Update()
 			m_date_caption->SetWndPos(pos);
 		}
 	}
-	if(!m_items_ready.empty())
-	{
-		WINDOW_LIST::iterator it = m_items_ready.begin();
-		WINDOW_LIST::iterator it_e = m_items_ready.end();
-		for(; it!=it_e; ++it)
-			m_list->AddWindow			(*it, true);
 
-		m_items_ready.clear();
+	if (m_use_split_lists)
+	{
+		FlushReadyItems(m_items_ready_news, m_list_news);
+		FlushReadyItems(m_items_ready_talk, m_list_dialogs);
+	}
+	else
+	{
+		FlushReadyItems(m_items_ready, m_list);
 	}
 }
 
@@ -139,28 +284,47 @@ void CUILogsWnd::Init()
 	xr_strcat( buf, sizeof(buf), g_pStringTable->translate("ui_logs_center_caption").c_str() );
 	m_center_caption->SetText( buf );
 
-	CUIFixedScrollBar* tmp_scroll = new CUIFixedScrollBar();
-	m_list = new CUIScrollView(tmp_scroll);
-	m_list->SetAutoDelete( true );
-	AttachChild( m_list );
-	CUIXmlInit::InitScrollView( m_uiXml, "logs_list", 0, m_list);
+	const bool hasSplitLists = m_uiXml.NavigateToNode("logs_list_news") && m_uiXml.NavigateToNode("logs_list_dialogs");
+	const bool hasLegacyList = m_uiXml.NavigateToNode("logs_list");
+
+	if (hasSplitLists)
+	{
+		m_use_split_lists = true;
+		InitScrollList("logs_list_news", m_list_news);
+		InitScrollList("logs_list_dialogs", m_list_dialogs);
+	}
+	else if (hasLegacyList)
+	{
+		m_use_split_lists = false;
+		InitScrollList("logs_list", m_list);
+	}
+	else
+	{
+		Msg("! CUILogsWnd: missing [logs_list] or [logs_list_news]+[logs_list_dialogs] in [%s]", m_uiXml.m_xml_file_name);
+		R_ASSERT2(hasLegacyList, "CUILogsWnd: logs list node is required");
+	}
 
 	if (m_uiXml.NavigateToNode("filter_news"))
-    {
-        m_filter_news = UIHelper::CreateCheck(m_uiXml, "filter_news", this);
-        if (m_filter_news)
-        {
-            m_filter_news->SetCheck(true);
-        }
-    }
-    if (m_uiXml.NavigateToNode("filter_talk"))
-    {
-        m_filter_talk = UIHelper::CreateCheck(m_uiXml, "filter_talk", this);
-        if (m_filter_talk)
-        {
-            m_filter_talk->SetCheck(true);
-        }
-    }
+	{
+		m_filter_news = UIHelper::CreateCheck(m_uiXml, "filter_news", this);
+		if (m_filter_news)
+		{
+			m_filter_news->SetCheck(true);
+		}
+	}
+	if (m_uiXml.NavigateToNode("filter_talk"))
+	{
+		m_filter_talk = UIHelper::CreateCheck(m_uiXml, "filter_talk", this);
+		if (m_filter_talk)
+		{
+			m_filter_talk->SetCheck(true);
+		}
+	}
+
+	if (m_use_split_lists)
+	{
+		ApplySplitModeUi();
+	}
 
 	if (m_uiXml.NavigateToNode("date_caption"))
 		m_date_caption = UIHelper::CreateStatic(m_uiXml, "date_caption", this);
@@ -175,54 +339,54 @@ void CUILogsWnd::Init()
 	}
 
 	if (m_uiXml.NavigateToNode("period_caption"))
-    {
-        m_period_caption = UIHelper::CreateStatic(m_uiXml, "period_caption", this);
-    }
-    if (m_uiXml.NavigateToNode("period"))
-    {
-        m_period = UIHelper::CreateStatic(m_uiXml, "period", this);
-    }
+	{
+		m_period_caption = UIHelper::CreateStatic(m_uiXml, "period_caption", this);
+	}
+	if (m_uiXml.NavigateToNode("period"))
+	{
+		m_period = UIHelper::CreateStatic(m_uiXml, "period", this);
+	}
 
-    if (m_uiXml.NavigateToNode("btn_prev_period"))
-    {
-        m_prev_period = UIHelper::Create3tButton(m_uiXml, "btn_prev_period", this);
-    }
-    if (m_uiXml.NavigateToNode("btn_next_period"))
-    {
-        m_next_period = UIHelper::Create3tButton(m_uiXml, "btn_next_period", this);
-    }
-    if (m_uiXml.NavigateToNode("btn_calendar"))
-    {
-        m_btn_calendar = UIHelper::Create3tButton(m_uiXml, "btn_calendar", this);
-    }
+	if (m_uiXml.NavigateToNode("btn_prev_period"))
+	{
+		m_prev_period = UIHelper::Create3tButton(m_uiXml, "btn_prev_period", this);
+	}
+	if (m_uiXml.NavigateToNode("btn_next_period"))
+	{
+		m_next_period = UIHelper::Create3tButton(m_uiXml, "btn_next_period", this);
+	}
+	if (m_uiXml.NavigateToNode("btn_calendar"))
+	{
+		m_btn_calendar = UIHelper::Create3tButton(m_uiXml, "btn_calendar", this);
+	}
 
 	m_gamepad_legend = UIHelper::CreateGamepadLegend( m_uiXml, "gamepad_legend", this, false );
 
 	if (m_filter_news)
-    {
-        Register(m_filter_news);
-        AddCallback(m_filter_news, BUTTON_CLICKED, CUIWndCallback::void_function(this, &CUILogsWnd::UpdateChecks));
-    }
-    if (m_filter_talk)
-    {
-        Register(m_filter_talk);
-        AddCallback(m_filter_talk, BUTTON_CLICKED, CUIWndCallback::void_function(this, &CUILogsWnd::UpdateChecks));
-    }
-    if (m_prev_period)
-    {
-        Register(m_prev_period);
-        AddCallback(m_prev_period, BUTTON_CLICKED, CUIWndCallback::void_function(this, &CUILogsWnd::PrevPeriod));
-    }
-    if (m_next_period)
-    {
-        Register(m_next_period);
-        AddCallback(m_next_period, BUTTON_CLICKED, CUIWndCallback::void_function(this, &CUILogsWnd::NextPeriod));
-    }
-    if (m_btn_calendar)
-    {
-        Register(m_btn_calendar);
-        AddCallback(m_btn_calendar, BUTTON_CLICKED, CUIWndCallback::void_function(this, &CUILogsWnd::ToggleCalendarPopup));
-    }
+	{
+		Register(m_filter_news);
+		AddCallback(m_filter_news, BUTTON_CLICKED, CUIWndCallback::void_function(this, &CUILogsWnd::UpdateChecks));
+	}
+	if (m_filter_talk)
+	{
+		Register(m_filter_talk);
+		AddCallback(m_filter_talk, BUTTON_CLICKED, CUIWndCallback::void_function(this, &CUILogsWnd::UpdateChecks));
+	}
+	if (m_prev_period)
+	{
+		Register(m_prev_period);
+		AddCallback(m_prev_period, BUTTON_CLICKED, CUIWndCallback::void_function(this, &CUILogsWnd::PrevPeriod));
+	}
+	if (m_next_period)
+	{
+		Register(m_next_period);
+		AddCallback(m_next_period, BUTTON_CLICKED, CUIWndCallback::void_function(this, &CUILogsWnd::NextPeriod));
+	}
+	if (m_btn_calendar)
+	{
+		Register(m_btn_calendar);
+		AddCallback(m_btn_calendar, BUTTON_CLICKED, CUIWndCallback::void_function(this, &CUILogsWnd::ToggleCalendarPopup));
+	}
 
 	m_start_game_time = Level().GetStartGameTime();
 	m_start_game_time = GetShiftPeriod( m_start_game_time, 0 );
@@ -238,14 +402,11 @@ void CUILogsWnd::Init()
 		xr_delete(m_calendar);
 	}
 }
-void itemToCache(CUIWindow* w)
-{
-	w->SetAutoDelete	(false);
-	w->SetParent		(nullptr);
-}
 
-void CUILogsWnd::ReLoadNews() {
+void CUILogsWnd::ReLoadNews()
+{
 	m_news_in_queue.clear();
+	m_talk_in_queue.clear();
 	CActor* pActor = Actor();
 
 	if(pActor == nullptr) {
@@ -254,71 +415,110 @@ void CUILogsWnd::ReLoadNews() {
 	}
 
 	const char* date_str = InventoryUtilities::GetDateAsString(m_selected_period, InventoryUtilities::edpDateToDay).c_str();
-    if (m_period)
-    {
-        m_period->TextItemControl()->SetText(date_str);
-    }
-    if (m_period && m_period_caption && m_prev_period)
-    {
-        Fvector2 pos = m_period_caption->GetWndPos();
-        pos.x = m_period->GetWndPos().x - m_period_caption->GetWidth() - m_prev_period->GetWidth() - 5.0f;
-        m_period_caption->SetWndPos(pos);
-    }
+	if (m_period)
+	{
+		m_period->TextItemControl()->SetText(date_str);
+	}
+	if (m_period && m_period_caption && m_prev_period)
+	{
+		Fvector2 pos = m_period_caption->GetWndPos();
+		pos.x = m_period->GetWndPos().x - m_period_caption->GetWidth() - m_prev_period->GetWidth() - 5.0f;
+		m_period_caption->SetWndPos(pos);
+	}
 
 	ALife::_TIME_ID end_period = GetShiftPeriod(m_selected_period, 1);
 
 	GAME_NEWS_VECTOR& news_vector = pActor->game_news_registry->registry().objects();
 
-	bool filter_news = m_filter_news ? m_filter_news->GetCheck() : true;
-	bool filter_talk = m_filter_talk ? m_filter_talk->GetCheck() : true;
+	const bool filter_news = m_filter_news ? m_filter_news->GetCheck() : true;
+	const bool filter_talk = m_filter_talk ? m_filter_talk->GetCheck() : true;
 
 	GAME_NEWS_VECTOR::iterator ib = news_vector.begin();
 	GAME_NEWS_VECTOR::iterator ie = news_vector.end();
-	for(u32 idx = 0; ib != ie; ++ib, ++idx) {
+	for(u32 idx = 0; ib != ie; ++ib, ++idx)
+	{
 		bool add = false;
 		GAME_NEWS_DATA& gn = (*ib);
-		if(gn.m_type == GAME_NEWS_DATA::eNews && filter_news) {
+
+		if (m_use_split_lists)
+		{
+			add = gn.m_type == GAME_NEWS_DATA::eNews || gn.m_type == GAME_NEWS_DATA::eTalk;
+		}
+		else if(gn.m_type == GAME_NEWS_DATA::eNews && filter_news)
+		{
 			add = true;
 		}
-		else if(gn.m_type == GAME_NEWS_DATA::eTalk && filter_talk) {
+		else if(gn.m_type == GAME_NEWS_DATA::eTalk && filter_talk)
+		{
 			add = true;
 		}
-		if(gn.receive_time < m_selected_period || end_period < gn.receive_time) {
+
+		if(gn.receive_time < m_selected_period || end_period < gn.receive_time)
+		{
 			add = false;
 		}
 
-		if(add) {
-			m_news_in_queue.push_back(idx);
+		if(add)
+		{
+			if (m_use_split_lists)
+			{
+				if (gn.m_type == GAME_NEWS_DATA::eNews)
+				{
+					m_news_in_queue.push_back(idx);
+				}
+				else
+				{
+					m_talk_in_queue.push_back(idx);
+				}
+			}
+			else
+			{
+				m_news_in_queue.push_back(idx);
+			}
 		}
 	}
 	m_need_reload = false;
 
-	if(!m_list->Empty()) {
-		xrCriticalSectionGuard guard(m_list->csUi);
-
-		m_items_cache.insert(m_items_cache.end(), m_list->Items().begin(), m_list->Items().end());
-		m_list->Items().clear();
-
-		std::for_each(m_items_cache.begin(), m_items_cache.end(), itemToCache);
+	if (m_use_split_lists)
+	{
+		ClearListToCache(m_list_news);
+		ClearListToCache(m_list_dialogs);
+	}
+	else
+	{
+		ClearListToCache(m_list);
 	}
 	PerformWork();
 }
 
+void CUILogsWnd::ProcessIndexQueue(xr_vector<u32>& queue, u32 batchSize)
+{
+	if (queue.empty() || !Actor())
+	{
+		return;
+	}
+
+	const u32 count = std::min(batchSize, (u32)queue.size());
+	GAME_NEWS_VECTOR& news_vector = Actor()->game_news_registry->registry().objects();
+
+	for (u32 i = 0; i < count; ++i)
+	{
+		const u32 idx = queue.back();
+		queue.pop_back();
+		AddNewsItem(news_vector[idx]);
+	}
+}
+
 void CUILogsWnd::PerformWork()
 {
-	if(!m_news_in_queue.empty())
+	if (m_use_split_lists)
 	{
-		u32 count = std::min(30u, (u32)m_news_in_queue.size());
-		for(u32 i=0; i<count;++i)
-		{
-			GAME_NEWS_VECTOR& news_vector = Actor()->game_news_registry->registry().objects();
-			u32 idx						= m_news_in_queue.back();
-			m_news_in_queue.pop_back	();
-			GAME_NEWS_DATA& gn			= news_vector[idx];
-
-			AddNewsItem					( gn );
-		}
+		ProcessIndexQueue(m_news_in_queue, 30);
+		ProcessIndexQueue(m_talk_in_queue, 30);
+		return;
 	}
+
+	ProcessIndexQueue(m_news_in_queue, 30);
 }
 
 CUIWindow*	CUILogsWnd::CreateItem()
@@ -328,13 +528,6 @@ CUIWindow*	CUILogsWnd::CreateItem()
 	itm_res->Init(m_uiXml, "logs_item");
 	return itm_res;
 }
-
-//void CUILogsWnd::ItemToCache(CUIWindow* w)
-//{
-//	CUINewsItemWnd* itm = smart_cast<CUINewsItemWnd*>(w);
-//	VERIFY				(w);
-//	m_items_cache.push_back(itm);
-//}
 
 CUIWindow* CUILogsWnd::ItemFromCache()
 {
@@ -356,11 +549,25 @@ void CUILogsWnd::AddNewsItem(GAME_NEWS_DATA& news_data)
 	CUINewsItemWnd*	news_itm	= smart_cast<CUINewsItemWnd*>(news_itm_w);
 	news_itm->Setup				(news_data);
 
-	m_items_ready.push_back		(news_itm);
+	if (m_use_split_lists)
+	{
+		WINDOW_LIST& ready = news_data.m_type == GAME_NEWS_DATA::eNews ? m_items_ready_news : m_items_ready_talk;
+		ready.push_back(news_itm);
+	}
+	else
+	{
+		m_items_ready.push_back(news_itm);
+	}
 }
 
 void CUILogsWnd::UpdateChecks( CUIWindow* w, void* d )
 {
+	if (m_use_split_lists)
+	{
+		SyncCalendarState();
+		return;
+	}
+
 	m_need_reload = true;
 	SyncCalendarState();
 }
@@ -408,8 +615,8 @@ void CUILogsWnd::SyncCalendarState()
 
 	m_start_game_time = GetShiftPeriod(Level().GetStartGameTime(), 0);
 
-	const bool filterNews = m_filter_news ? m_filter_news->GetCheck() : true;
-	const bool filterTalk = m_filter_talk ? m_filter_talk->GetCheck() : true;
+	const bool filterNews = m_use_split_lists || (m_filter_news ? m_filter_news->GetCheck() : true);
+	const bool filterTalk = m_use_split_lists || (m_filter_talk ? m_filter_talk->GetCheck() : true);
 	m_calendar->UpdateState(m_start_game_time, m_selected_period, filterNews, filterTalk);
 }
 
@@ -479,46 +686,46 @@ bool CUILogsWnd::OnGamepadKeyAction(int key, EUIMessages gamepad_action)
 		{
 			case kPDA_LOG_TO_START:
 			{
-				m_list->ScrollToBegin();
+				ScrollAllListsToBegin();
 				break;
 			}
 			case kPDA_LOG_TO_END:
 			{
-				m_list->ScrollToEnd();
+				ScrollAllListsToEnd();
 				break;
 			}
 			case kPDA_LOG_DATE_PREV:
 			{
-                if (m_prev_period)
-                {
-                    m_prev_period->OnClick();
-                }
+				if (m_prev_period)
+				{
+					m_prev_period->OnClick();
+				}
 				break;
 			}
 			case kPDA_LOG_DATE_NEXT:
 			{
-                if (m_next_period)
-                {
-                    m_next_period->OnClick();
-                }
+				if (m_next_period)
+				{
+					m_next_period->OnClick();
+				}
 				break;
 			}
 			case kPDA_LOG_SHOW_DIALOGS:
 			{
-                if (m_filter_talk)
-                {
-                    m_filter_talk->SetCheck(!m_filter_talk->GetCheck());
-                    m_filter_talk->SendClickCallback();
-                }
+				if (!m_use_split_lists && m_filter_talk)
+				{
+					m_filter_talk->SetCheck(!m_filter_talk->GetCheck());
+					m_filter_talk->SendClickCallback();
+				}
 				break;
 			}
 			case kPDA_LOG_SHOW_NEWS:
 			{
-                if (m_filter_news)
-                {
-                    m_filter_news->SetCheck(!m_filter_news->GetCheck());
-                    m_filter_news->SendClickCallback();
-                }
+				if (!m_use_split_lists && m_filter_news)
+				{
+					m_filter_news->SetCheck(!m_filter_news->GetCheck());
+					m_filter_news->SendClickCallback();
+				}
 				break;
 			}
 			case kPDA_LOG_SCROLL_UP:
@@ -560,44 +767,48 @@ bool CUILogsWnd::OnGamepadKeyHold(int key)
 
 void CUILogsWnd::on_scroll_keys( int dik, int step )
 {
-	VERIFY( m_list && m_list->ScrollBar() );
+	CUIScrollView* list = ActiveScrollList();
+	if (!list || !list->ScrollBar())
+	{
+		return;
+	}
 
 	switch ( dik )
 	{
 	case SDL_SCANCODE_UP:
 		{
-			int orig = m_list->ScrollBar()->GetStepSize();
-			m_list->ScrollBar()->SetStepSize( step );
-			m_list->ScrollBar()->TryScrollDec();
-			m_list->ScrollBar()->SetStepSize( orig );
+			int orig = list->ScrollBar()->GetStepSize();
+			list->ScrollBar()->SetStepSize( step );
+			list->ScrollBar()->TryScrollDec();
+			list->ScrollBar()->SetStepSize( orig );
 			break;
 		}
 	case SDL_SCANCODE_DOWN:
 		{
-			int orig = m_list->ScrollBar()->GetStepSize();
-			m_list->ScrollBar()->SetStepSize( step );
-			m_list->ScrollBar()->TryScrollInc();
-			m_list->ScrollBar()->SetStepSize( orig );
+			int orig = list->ScrollBar()->GetStepSize();
+			list->ScrollBar()->SetStepSize( step );
+			list->ScrollBar()->TryScrollInc();
+			list->ScrollBar()->SetStepSize( orig );
 			break;
 		}
 	case SDL_SCANCODE_PAGEUP:
 		{
 			if ( m_ctrl_press )
 			{
-				m_list->ScrollToBegin();
+				ScrollAllListsToBegin();
 				break;
 			}
-			m_list->ScrollBar()->TryScrollDec();
+			list->ScrollBar()->TryScrollDec();
 			break;
 		}
 	case SDL_SCANCODE_PAGEDOWN:
 		{
 			if ( m_ctrl_press )
 			{
-				m_list->ScrollToEnd();
+				ScrollAllListsToEnd();
 				break;
 			}
-			m_list->ScrollBar()->TryScrollInc();
+			list->ScrollBar()->TryScrollInc();
 			break;
 		}
 	}// switch

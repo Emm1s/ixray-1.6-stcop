@@ -59,18 +59,33 @@ private:
 	CUICalendar*		m_calendar = nullptr;
 	bool				m_ctrl_press;
 
-	CUIScrollView*		m_list;
+	bool				m_use_split_lists = false;
+	CUIScrollView*		m_list = nullptr;
+	CUIScrollView*		m_list_news = nullptr;
+	CUIScrollView*		m_list_dialogs = nullptr;
+
 	u32					m_previous_time;
 	bool				m_need_reload;
 	WINDOW_LIST			m_items_cache;
 	WINDOW_LIST			m_items_ready;
+	WINDOW_LIST			m_items_ready_news;
+	WINDOW_LIST			m_items_ready_talk;
 	xr_vector<u32>		m_news_in_queue;
+	xr_vector<u32>		m_talk_in_queue;
+
+	CUIXml				m_uiXml;
+	CUIGamepadLegend*	m_gamepad_legend = nullptr;
 
 	CUIWindow*			CreateItem			();
 	CUIWindow*			ItemFromCache		();
-//	void				ItemToCache			(CUIWindow* w);
-	CUIXml				m_uiXml;
-	CUIGamepadLegend*	m_gamepad_legend = nullptr;
+	void				InitScrollList		(LPCSTR nodeName, CUIScrollView*& outList);
+	CUIScrollView*		ActiveScrollList	();
+	void				ClearListToCache	(CUIScrollView* list);
+	void				ApplySplitModeUi	();
+	void				FlushReadyItems		(WINDOW_LIST& ready, CUIScrollView* list);
+	void				ScrollAllListsToBegin();
+	void				ScrollAllListsToEnd	();
+	void				ProcessIndexQueue	(xr_vector<u32>& queue, u32 batchSize);
 
 public:
 						CUILogsWnd			();
