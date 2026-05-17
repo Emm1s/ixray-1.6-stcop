@@ -31,6 +31,11 @@ float ClampRatio(float ratio, float maxRatio)
     return clampr(ratio, 1.f, maxRatio);
 }
 
+float MinFloat(float a, float b)
+{
+    return a < b ? a : b;
+}
+
 bool InitTickLabelTemplate(
     CUIXml& xml,
     const char* node,
@@ -51,6 +56,81 @@ bool InitTickLabelTemplate(
     outSize.y = outTemplate->GetHeight();
     return true;
 }
+
+u8 ParseLcrAlignStr(const char* alignStr)
+{
+    if (alignStr == nullptr || alignStr[0] == 0)
+    {
+        return 0;
+    }
+
+    if (_stricmp(alignStr, "c") == 0 || _stricmp(alignStr, "center") == 0)
+    {
+        return 1;
+    }
+    if (_stricmp(alignStr, "r") == 0 || _stricmp(alignStr, "right") == 0)
+    {
+        return 2;
+    }
+    return 0;
+}
+
+const char* ResolveThumbXmlPath(CUIXml& xml)
+{
+    if (xml.NavigateToNode("rail:thumb", 0))
+    {
+        return "rail:thumb";
+    }
+    if (xml.NavigateToNode("thumb", 0))
+    {
+        return "thumb";
+    }
+    return nullptr;
+}
+
+CUIStatic* CreateZoomScaleThumb(CUIXml& xml, CUIWindow* railParent)
+{
+    if (const char* thumbPath = ResolveThumbXmlPath(xml))
+    {
+        return UIHelper::CreateStatic(xml, thumbPath, railParent, false);
+    }
+    return nullptr;
+}
+
+u8 ParseThumbCrossAlign(CUIXml& xml, const char* zoomScalePath)
+{
+    shared_str alignStr;
+
+    if (const char* thumbPath = ResolveThumbXmlPath(xml))
+    {
+        alignStr = xml.ReadAttrib(thumbPath, 0, "thumb_align", nullptr);
+        if (!alignStr.size())
+        {
+            alignStr = xml.ReadAttrib(thumbPath, 0, "align", nullptr);
+        }
+    }
+
+    if (!alignStr.size())
+    {
+        alignStr = xml.ReadAttrib(zoomScalePath, 0, "thumb_align", nullptr);
+    }
+    if (!alignStr.size())
+    {
+        alignStr = xml.ReadAttrib(zoomScalePath, 0, "align", "l");
+    }
+
+    return ParseLcrAlignStr(alignStr.c_str());
+}
+
+u8 ParseRailCrossAlign(CUIXml& xml)
+{
+    shared_str alignStr = xml.ReadAttrib("rail", 0, "rail_align", nullptr);
+    if (!alignStr.size())
+    {
+        alignStr = xml.ReadAttrib("rail", 0, "align", "l");
+    }
+    return ParseLcrAlignStr(alignStr.c_str());
+}
 } // namespace
 
 UIMapZoomScale::~UIMapZoomScale()
@@ -63,63 +143,91 @@ UIMapZoomScale::~UIMapZoomScale()
     xr_delete(_valueLabel);
 }
 
-void UIMapZoomScale::InitFromXml(CUIXml& xml, const char* path)
+void UIMapZoomScale::ReadConfigAttribs(CUIXml& xml, const char* path)
 {
-    CUIXmlInit::InitWindow(xml, path, 0, this);
-
     _inertion = xml.ReadAttribFlt(path, 0, "inertion", 0.85f);
     _smoothingScale = xml.ReadAttribFlt(path, 0, "smoothing_scale", 20.f);
     xr_strcpy(_labelFormat, xml.ReadAttrib(path, 0, "label_format", "x%.1f"));
     _boundLabelsMinMax = (xml.ReadAttribInt(path, 0, "bound_labels", 0) != 0);
     _boundLabelMinId = xml.ReadAttrib(path, 0, "bound_label_min", "ui_map_zoom_min");
     _boundLabelMaxId = xml.ReadAttrib(path, 0, "bound_label_max", "ui_map_zoom_max");
-    // 0: vertical rail (thumb moves along Y, min zoom at bottom). 1: horizontal (thumb along X, min zoom at left).
+    // 0: vertical rail (min zoom at bottom). 1: horizontal (min zoom at left).
     _isHorizontal = (xml.ReadAttribInt(path, 0, "horizontal", 0) != 0);
     _thumbScaleWithZoom = (xml.ReadAttribInt(path, 0, "thumb_scaling", 0) != 0);
+}
 
-    XML_NODE* storedRoot = xml.GetLocalRoot();
-    XML_NODE* nodeRoot = xml.NavigateToNode(path, 0);
-    xml.SetLocalRoot(nodeRoot);
+void UIMapZoomScale::InitRailAndThumb(CUIXml& xml, const char* path)
+{
+    _thumbCrossAlign = (EZoomCrossAlign)ParseThumbCrossAlign(xml, path);
 
     _rail = UIHelper::CreateStatic(xml, "rail", this, false);
     if (_rail)
     {
         _rail->Enable(false);
+        _railCrossAlign = (EZoomCrossAlign)ParseRailCrossAlign(xml);
+        ApplyRailAlignInParent();
     }
 
-    _thumb = UIHelper::CreateStatic(xml, "thumb", this, false);
-    if (_thumb)
+    if (!_rail)
     {
-        _thumb->Enable(false);
-        _thumbBaseSize.set(_thumb->GetWidth(), _thumb->GetHeight());
+        return;
     }
 
+    _thumb = CreateZoomScaleThumb(xml, _rail);
+    if (!_thumb)
+    {
+        return;
+    }
+
+    _thumb->Enable(false);
+    _thumb->Show(true);
+    _thumbBaseSize.set(_thumb->GetWidth(), _thumb->GetHeight());
+    InitThumbOffsetFromXml(xml);
+}
+
+void UIMapZoomScale::InitLabelTemplates(CUIXml& xml)
+{
     const bool hasBoundTemplate = InitTickLabelTemplate(
         xml, "tick_label_bound", _tickLabelBoundTemplate, _boundLabelOffset, _boundLabelSize);
     const bool hasValueTemplate = InitTickLabelTemplate(
         xml, "tick_label_value", _tickLabelValueTemplate, _valueLabelOffset, _valueLabelSize);
 
-    if (xml.NavigateToNode("tick_label", 0))
+    if (!xml.NavigateToNode("tick_label", 0))
     {
-        _tickLabelTemplate = new CUIStatic();
-        CUIXmlInit::InitStatic(xml, "tick_label", 0, _tickLabelTemplate);
-        const Fvector2 legacyOffset = {
-            xml.ReadAttribFlt("tick_label", 0, "x", 0.f),
-            xml.ReadAttribFlt("tick_label", 0, "y", 0.f)};
-        const Fvector2 legacySize = {_tickLabelTemplate->GetWidth(), _tickLabelTemplate->GetHeight()};
-
-        if (!hasBoundTemplate)
-        {
-            _boundLabelOffset = legacyOffset;
-            _boundLabelSize = legacySize;
-        }
-
-        if (!hasValueTemplate)
-        {
-            _valueLabelOffset = legacyOffset;
-            _valueLabelSize = legacySize;
-        }
+        return;
     }
+
+    _tickLabelTemplate = new CUIStatic();
+    CUIXmlInit::InitStatic(xml, "tick_label", 0, _tickLabelTemplate);
+    const Fvector2 legacyOffset = {
+        xml.ReadAttribFlt("tick_label", 0, "x", 0.f),
+        xml.ReadAttribFlt("tick_label", 0, "y", 0.f)};
+    const Fvector2 legacySize = {_tickLabelTemplate->GetWidth(), _tickLabelTemplate->GetHeight()};
+
+    if (!hasBoundTemplate)
+    {
+        _boundLabelOffset = legacyOffset;
+        _boundLabelSize = legacySize;
+    }
+
+    if (!hasValueTemplate)
+    {
+        _valueLabelOffset = legacyOffset;
+        _valueLabelSize = legacySize;
+    }
+}
+
+void UIMapZoomScale::InitFromXml(CUIXml& xml, const char* path)
+{
+    CUIXmlInit::InitWindow(xml, path, 0, this);
+    ReadConfigAttribs(xml, path);
+
+    XML_NODE* storedRoot = xml.GetLocalRoot();
+    XML_NODE* nodeRoot = xml.NavigateToNode(path, 0);
+    xml.SetLocalRoot(nodeRoot);
+
+    InitRailAndThumb(xml, path);
+    InitLabelTemplates(xml);
 
     xml.SetLocalRoot(storedRoot);
 
@@ -130,6 +238,10 @@ void UIMapZoomScale::InitFromXml(CUIXml& xml, const char* path)
     if (_isInitialized)
     {
         EnsureLabels();
+        if (_thumbScaleWithZoom)
+        {
+            UpdateThumbFill();
+        }
     }
 }
 
@@ -152,18 +264,21 @@ void UIMapZoomScale::SyncFromMap(float minZoom, float maxZoom, float currentZoom
         EnsureLabels();
         UpdateBoundLabels();
         _displayRatio = targetRatio;
-        UpdateThumbScale();
     }
 
     _targetRatio = targetRatio;
+
+    if (_thumbScaleWithZoom)
+    {
+        UpdateThumbFill();
+    }
 }
 
 void UIMapZoomScale::Update()
 {
-    inherited::Update();
-
     if (!_isInitialized)
     {
+        inherited::Update();
         return;
     }
 
@@ -182,8 +297,17 @@ void UIMapZoomScale::Update()
         }
     }
 
-    UpdateThumbScale();
-    UpdateThumbPosition();
+    if (_thumbScaleWithZoom)
+    {
+        UpdateThumbFill();
+    }
+    else
+    {
+        UpdateThumbPosition();
+    }
+
+    inherited::Update();
+
     UpdateValueLabel();
 }
 
@@ -218,72 +342,232 @@ float UIMapZoomScale::GetTrackNormalized(float ratio) const
     return trackT;
 }
 
-float UIMapZoomScale::RatioToTrackPos(float ratio) const
+float UIMapZoomScale::GetRailAlongSize() const
 {
     R_ASSERT(_rail);
+    return _isHorizontal ? _rail->GetWidth() : _rail->GetHeight();
+}
 
+float UIMapZoomScale::GetRailCrossSize() const
+{
+    R_ASSERT(_rail);
+    return _isHorizontal ? _rail->GetHeight() : _rail->GetWidth();
+}
+
+float UIMapZoomScale::RatioToAlongLocal(float ratio) const
+{
     const float normalizedTrack = GetTrackNormalized(ratio);
+    const float alongSize = GetRailAlongSize();
+
     if (_isHorizontal)
     {
-        return _rail->GetWndPos().x + normalizedTrack * _rail->GetWidth();
+        return normalizedTrack * alongSize;
     }
 
-    return _rail->GetWndPos().y + (1.f - normalizedTrack) * _rail->GetHeight();
+    return (1.f - normalizedTrack) * alongSize;
 }
 
-void UIMapZoomScale::GetRailRect(Frect& out) const
+float UIMapZoomScale::RatioToAlongParent(float ratio) const
 {
     R_ASSERT(_rail);
-    const Fvector2& pos = _rail->GetWndPos();
-    out.set(pos.x, pos.y, pos.x + _rail->GetWidth(), pos.y + _rail->GetHeight());
+
+    const Fvector2& railPos = _rail->GetWndPos();
+    const float alongOrigin = _isHorizontal ? railPos.x : railPos.y;
+    return alongOrigin + RatioToAlongLocal(ratio);
 }
 
-void UIMapZoomScale::UpdateThumbScale()
+void UIMapZoomScale::GetRailLocalRect(Frect& out) const
 {
-    if (!_thumb || !_thumbScaleWithZoom || !_rail)
+    R_ASSERT(_rail);
+    out.set(0.f, 0.f, _rail->GetWidth(), _rail->GetHeight());
+}
+
+void UIMapZoomScale::ApplyCrossAlignToCoord(
+    float& crossPos,
+    float crossSize,
+    float parentCrossSize,
+    EZoomCrossAlign align)
+{
+    switch (align)
+    {
+    case EZoomCrossAlign::Center:
+        crossPos = (parentCrossSize - crossSize) * 0.5f;
+        break;
+
+    case EZoomCrossAlign::Right:
+        crossPos = parentCrossSize - crossSize;
+        break;
+
+    case EZoomCrossAlign::Left:
+    default:
+        break;
+    }
+}
+
+void UIMapZoomScale::ClampThumbToRail(Fvector2& thumbPos, Fvector2& size) const
+{
+    Frect railRect;
+    GetRailLocalRect(railRect);
+
+    const float railWidth = railRect.width();
+    const float railHeight = railRect.height();
+
+    if (railWidth > 0.f)
+    {
+        size.x = clampr(size.x, 0.f, railWidth);
+    }
+    if (railHeight > 0.f)
+    {
+        size.y = clampr(size.y, 0.f, railHeight);
+    }
+
+    thumbPos.x = clampr(thumbPos.x, railRect.x1, railRect.x2 - size.x);
+    thumbPos.y = clampr(thumbPos.y, railRect.y1, railRect.y2 - size.y);
+}
+
+void UIMapZoomScale::ApplyRailAlignInParent()
+{
+    if (!_rail)
     {
         return;
     }
 
-    const float trackT = GetTrackNormalized(_displayRatio);
-    Fvector2 size = _thumbBaseSize;
+    Fvector2 pos = _rail->GetWndPos();
+    const Fvector2 size = _rail->GetWndSize();
 
     if (_isHorizontal)
     {
-        const float railLen = _rail->GetWidth();
-        size.x = size.x + trackT * (railLen - size.x);
+        ApplyCrossAlignToCoord(pos.y, size.y, GetHeight(), _railCrossAlign);
     }
     else
     {
-        const float railLen = _rail->GetHeight();
-        size.y = size.y + trackT * (railLen - size.y);
+        ApplyCrossAlignToCoord(pos.x, size.x, GetWidth(), _railCrossAlign);
     }
 
-    _thumb->SetWndSize(size);
+    _rail->SetWndPos(pos);
 }
 
-void UIMapZoomScale::UpdateThumbPosition()
+void UIMapZoomScale::ApplyCrossAlignThumb(
+    Fvector2& thumbPos,
+    const Fvector2& size,
+    const Frect& railLocalRect) const
+{
+    const float crossSize = _isHorizontal ? size.y : size.x;
+    const float parentCrossSize = _isHorizontal ? railLocalRect.height() : railLocalRect.width();
+    float& crossPos = _isHorizontal ? thumbPos.y : thumbPos.x;
+
+    ApplyCrossAlignToCoord(crossPos, crossSize, parentCrossSize, _thumbCrossAlign);
+}
+
+void UIMapZoomScale::InitThumbOffsetFromXml(CUIXml& xml)
+{
+    _thumbOffset.set(0.f, 0.f);
+
+    if (const char* thumbPath = ResolveThumbXmlPath(xml))
+    {
+        _thumbOffset.x = xml.ReadAttribFlt(thumbPath, 0, "x", 0.f);
+        _thumbOffset.y = xml.ReadAttribFlt(thumbPath, 0, "y", 0.f);
+    }
+}
+
+void UIMapZoomScale::ApplyThumbOffset(Fvector2& thumbPos) const
+{
+    thumbPos.x += _thumbOffset.x;
+    thumbPos.y += _thumbOffset.y;
+}
+
+UIMapZoomScale::ThumbLayout UIMapZoomScale::ComputeThumbFillLayout(float displayRatio) const
+{
+    ThumbLayout layout;
+    layout.size = _thumbBaseSize;
+    layout.pos = _thumb->GetWndPos();
+
+    const float trackPos = RatioToAlongLocal(displayRatio);
+    const float alongSize = GetRailAlongSize();
+    const float crossSize = GetRailCrossSize();
+
+    if (_isHorizontal)
+    {
+        const float fillLen = clampr(trackPos, 0.f, alongSize);
+        layout.pos.x = 0.f;
+        layout.size.x = (fillLen >= _thumbBaseSize.x) ? fillLen : _thumbBaseSize.x;
+        layout.size.y = MinFloat(_thumbBaseSize.y, crossSize > 0.f ? crossSize : _thumbBaseSize.y);
+    }
+    else
+    {
+        const float fillLen = clampr(alongSize - trackPos, 0.f, alongSize);
+        layout.size.x = MinFloat(_thumbBaseSize.x, crossSize > 0.f ? crossSize : _thumbBaseSize.x);
+        if (fillLen >= _thumbBaseSize.y)
+        {
+            layout.size.y = fillLen;
+            layout.pos.y = trackPos;
+        }
+        else
+        {
+            layout.size.y = _thumbBaseSize.y;
+            layout.pos.y = alongSize - layout.size.y;
+        }
+    }
+
+    return layout;
+}
+
+UIMapZoomScale::ThumbLayout UIMapZoomScale::ComputeThumbMarkerLayout(float displayRatio) const
+{
+    ThumbLayout layout;
+    layout.pos = _thumb->GetWndPos();
+    layout.size = _thumb->GetWndSize();
+
+    const float alongLocal = RatioToAlongLocal(displayRatio);
+    const float halfAlong = _isHorizontal ? layout.size.x * 0.5f : layout.size.y * 0.5f;
+
+    if (_isHorizontal)
+    {
+        layout.pos.x = alongLocal - halfAlong;
+    }
+    else
+    {
+        layout.pos.y = alongLocal - halfAlong;
+    }
+
+    return layout;
+}
+
+void UIMapZoomScale::ApplyThumbLayout(const ThumbLayout& layout)
+{
+    Fvector2 thumbPos = layout.pos;
+    Fvector2 size = layout.size;
+
+    Frect railLocalRect;
+    GetRailLocalRect(railLocalRect);
+
+    ApplyCrossAlignThumb(thumbPos, size, railLocalRect);
+    ApplyThumbOffset(thumbPos);
+    ClampThumbToRail(thumbPos, size);
+
+    _thumb->SetWndSize(size);
+    _thumb->SetWndPos(thumbPos);
+}
+
+void UIMapZoomScale::UpdateThumbFill()
 {
     if (!_thumb || !_rail)
     {
         return;
     }
 
-    Frect railRect;
-    GetRailRect(railRect);
+    _thumb->SetStretchTexture(true);
+    ApplyThumbLayout(ComputeThumbFillLayout(_displayRatio));
+}
 
-    Fvector2 thumbPos = _thumb->GetWndPos();
-    if (_isHorizontal)
+void UIMapZoomScale::UpdateThumbPosition()
+{
+    if (!_thumb || !_rail || _thumbScaleWithZoom)
     {
-        thumbPos.x = RatioToTrackPos(_displayRatio) - _thumb->GetWidth() * 0.5f;
-        thumbPos.x = clampr(thumbPos.x, railRect.x1, railRect.x2 - _thumb->GetWidth());
+        return;
     }
-    else
-    {
-        thumbPos.y = RatioToTrackPos(_displayRatio) - _thumb->GetHeight() * 0.5f;
-        thumbPos.y = clampr(thumbPos.y, railRect.y1, railRect.y2 - _thumb->GetHeight());
-    }
-    _thumb->SetWndPos(thumbPos);
+
+    ApplyThumbLayout(ComputeThumbMarkerLayout(_displayRatio));
 }
 
 CUIStatic* UIMapZoomScale::GetBoundLabelStyleTemplate() const
@@ -348,6 +632,29 @@ void UIMapZoomScale::FormatRatioLabel(string32& buffer, float ratio) const
     xr_sprintf(buffer, _labelFormat, ratio);
 }
 
+float UIMapZoomScale::GetLabelAlongHalfExtent(const CUIStatic* label) const
+{
+    return _isHorizontal ? label->GetWidth() * 0.5f : label->GetHeight() * 0.5f;
+}
+
+void UIMapZoomScale::PlaceLabelAtRatio(
+    CUIStatic* label,
+    float ratio,
+    const Fvector2& crossOffset) const
+{
+    const Fvector2& railPos = _rail->GetWndPos();
+    const float alongCenter = RatioToAlongParent(ratio) - GetLabelAlongHalfExtent(label);
+
+    if (_isHorizontal)
+    {
+        label->SetWndPos(Fvector2().set(alongCenter, railPos.y + crossOffset.y));
+    }
+    else
+    {
+        label->SetWndPos(Fvector2().set(railPos.x + crossOffset.x, alongCenter));
+    }
+}
+
 void UIMapZoomScale::UpdateBoundLabels()
 {
     if (!_rail || !_minLabel || !_maxLabel)
@@ -372,22 +679,8 @@ void UIMapZoomScale::UpdateBoundLabels()
         _maxLabel->SetText(labelText);
     }
 
-    if (_isHorizontal)
-    {
-        const float labelY = _rail->GetWndPos().y + _boundLabelOffset.y;
-        _minLabel->SetWndPos(
-            Fvector2().set(RatioToTrackPos(1.f) - _minLabel->GetWidth() * 0.5f, labelY));
-        _maxLabel->SetWndPos(
-            Fvector2().set(RatioToTrackPos(maxRatio) - _maxLabel->GetWidth() * 0.5f, labelY));
-    }
-    else
-    {
-        const float labelX = _rail->GetWndPos().x + _boundLabelOffset.x;
-        _minLabel->SetWndPos(
-            Fvector2().set(labelX, RatioToTrackPos(1.f) - _minLabel->GetHeight() * 0.5f));
-        _maxLabel->SetWndPos(
-            Fvector2().set(labelX, RatioToTrackPos(maxRatio) - _maxLabel->GetHeight() * 0.5f));
-    }
+    PlaceLabelAtRatio(_minLabel, 1.f, _boundLabelOffset);
+    PlaceLabelAtRatio(_maxLabel, maxRatio, _boundLabelOffset);
 }
 
 void UIMapZoomScale::UpdateValueLabel()
@@ -401,16 +694,5 @@ void UIMapZoomScale::UpdateValueLabel()
     FormatRatioLabel(labelText, _displayRatio);
     _valueLabel->SetText(labelText);
 
-    if (_isHorizontal)
-    {
-        const float labelY = _rail->GetWndPos().y + _valueLabelOffset.y;
-        _valueLabel->SetWndPos(Fvector2().set(
-            RatioToTrackPos(_displayRatio) - _valueLabel->GetWidth() * 0.5f, labelY));
-    }
-    else
-    {
-        const float labelX = _rail->GetWndPos().x + _valueLabelOffset.x;
-        const float labelY = RatioToTrackPos(_displayRatio) - _valueLabel->GetHeight() * 0.5f;
-        _valueLabel->SetWndPos(Fvector2().set(labelX, labelY));
-    }
+    PlaceLabelAtRatio(_valueLabel, _displayRatio, _valueLabelOffset);
 }
