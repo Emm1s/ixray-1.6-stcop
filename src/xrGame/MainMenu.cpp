@@ -31,6 +31,10 @@
 #include "../xrCore/git_version.h"
 #include "ImUtils/ImUtils.h"
 
+#ifdef XR_MP_BUILD
+#	include <shellapi.h>
+#endif
+
 //#define DEMO_BUILD
 
 string128	ErrMsgBoxTemplate	[]	= {
