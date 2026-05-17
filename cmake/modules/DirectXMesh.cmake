@@ -77,7 +77,7 @@ else()
     set(CMAKE_SKIP_INSTALL_RULES ON)
 
     FetchContent_MakeAvailable(DirectXMesh)
-    target_include_directories(DirectXMesh PUBLIC ${CMAKE_SOURCE_DIR}/linux)
+    target_include_directories(DirectXMesh PUBLIC ${CMAKE_BINARY_DIR}/linux)
     
     if(TARGET DirectXMesh AND NOT TARGET DirectX::Mesh)
         add_library(DirectX::Mesh ALIAS DirectXMesh)
