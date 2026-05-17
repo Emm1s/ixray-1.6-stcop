@@ -888,10 +888,10 @@ HRESULT	CRender::shader_compile			(
 		else
 		{
 			Msg("! %s", file_name);
-			if ( !pErrorBuf.empty() )
-				Msg("! error: %s",(LPCSTR)pErrorBuf.data());
+			if (!pErrorBuf.empty())
+				Msg("! error: %s", (LPCSTR)pErrorBuf.data());
 			else
-				Msg					("Can't compile shader hr=0x%08x", _result);
+				Msg("Can't compile shader hr=0x%08x", _result);
 		}
 	}
 
