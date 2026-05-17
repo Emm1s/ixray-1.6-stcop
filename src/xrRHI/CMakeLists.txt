@@ -49,7 +49,7 @@ target_compile_definitions(xrRHI PRIVATE "$<$<CONFIG:Debug>:DEBUG>")
 # Linux + DXVK Native поддержка
 # -----------------------------------------------------------------------------
 if(UNIX AND NOT APPLE)
-    target_include_directories(xrRHI PRIVATE ${DXVK_INCLUDE_DIRS})
+    target_include_directories(xrRHI PUBLIC ${DXVK_INCLUDE_DIRS})
     target_compile_definitions(xrRHI PRIVATE XR_USE_DXVK_NATIVE=1 DXVK_WSI_DRIVER_SDL3=1)
     target_link_libraries(xrRHI PUBLIC ${DXVK_LIBRARIES} Vulkan::Vulkan pthread dl)
 elseif(WIN32)
