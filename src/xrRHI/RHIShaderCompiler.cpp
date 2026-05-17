@@ -47,6 +47,7 @@ HRESULT CRHIShaderCompilerShell::Build(const void* srcData, size_t srcSize, cons
 			errors.resize(size);
 			memcpy(errors.data(), errors_blob->GetBufferPointer(), size);
 			errors_blob->Release();
+			errors.push_back('\0');
 		}
 	}
 
