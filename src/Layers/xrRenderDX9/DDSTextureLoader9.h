@@ -32,9 +32,11 @@
 #include <memory>
 #include <new>
 
+#ifdef IXR_WINDOWS
 #include <wrl/client.h>
 
 using Microsoft::WRL::ComPtr;
+#endif
 
 //--------------------------------------------------------------------------------------
 // Macros
