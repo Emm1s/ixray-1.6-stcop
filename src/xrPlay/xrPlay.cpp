@@ -97,7 +97,7 @@ int main(int argc, char* argv[])
 
 	{
 	PROF_EVENT("START_ENGINE");
-	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD | SDL_INIT_EVENTS))
+	if (!SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_GAMEPAD | SDL_INIT_EVENTS))
 	{
 		return -1;
 	}
