@@ -5,6 +5,9 @@
 
 class PdaScriptBridge final
 {
+private:
+    PdaScriptBridge() = delete;
+
 public:
     template <typename TValue>
     static bool TryCall(const char* functorName, TValue& value)

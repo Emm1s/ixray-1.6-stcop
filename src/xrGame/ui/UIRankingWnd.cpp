@@ -16,6 +16,8 @@
 #include "../../xrUI/Widgets/UIScrollView.h"
 #include "../../xrUI/UIHelper.h"
 #include "UIInventoryUtilities.h"
+#include "PdaConstants.h"
+#include "PdaScriptBridge.h"
 
 #include "../Actor.h"
 #include "../ai_space.h"
@@ -28,8 +30,6 @@
 #include "../../xrEngine/string_table.h"
 #include "UICharacterInfo.h"
 #include "../../xrUI/ui_base.h"
-#include "PdaConstants.h"
-#include "PdaScriptBridge.h"
 
 using namespace luabind;
 

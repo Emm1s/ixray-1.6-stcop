@@ -112,9 +112,9 @@ constexpr const char* TaskItemTaskFocus = "second_task_wnd:task_item:btn_task_fo
 
 struct STaskWndFeatures
 {
-	bool panelStoryline = false;
-	bool filterTabs = false;
-	bool legacyHeader = false;
+    bool panelStoryline = false;
+    bool filterTabs = false;
+    bool legacyHeader = false;
 };
 
 STaskWndFeatures DetectTaskWndFeatures(CUIXml& xml);

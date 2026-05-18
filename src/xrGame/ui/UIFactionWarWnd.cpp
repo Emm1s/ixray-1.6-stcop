@@ -17,12 +17,12 @@
 #include "FactionState.h"
 #include "UIPdaWnd.h"
 #include "UICharacterInfo.h"
+#include "PdaConstants.h"
+#include "PdaScriptBridge.h"
 
 #include "../Actor.h"
 #include "../ai_space.h"
 #include "../../xrScripts/script_engine.h"
-#include "PdaConstants.h"
-#include "PdaScriptBridge.h"
 
 CUIFactionWarWnd::CUIFactionWarWnd()
 {
