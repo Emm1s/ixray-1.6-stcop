@@ -15,6 +15,7 @@
 #include "../../xrUI/Widgets/UIFrameLineWnd.h"
 #include "../../xrUI/Widgets/UIScrollView.h"
 #include "../../xrUI/UIHelper.h"
+#include "../../xrUI/Widgets/UIStackPanel.h"
 #include "UIInventoryUtilities.h"
 #include "PdaConstants.h"
 #include "PdaScriptBridge.h"
@@ -234,6 +235,7 @@ void CUIRankingWnd::Init()
 	xml.Load( CONFIG_PATH, UI_PATH, PdaXml::Ranking );
 
 	CUIXmlInit::InitWindow( xml, "main_wnd", 0, this );
+	XML_NODE* stored_root = xml.GetLocalRoot();
 	m_delay				= (u32)xml.ReadAttribInt( "main_wnd", 0, "delay",	3000 );
 
     m_background = UIHelper::CreateFrameWindow(xml, "background", this, false);
@@ -281,54 +283,8 @@ void CUIRankingWnd::Init()
 		m_faction_line2 = UIHelper::CreateFrameLine(xml, "fraction_line2", this, false);
 
 	}
-	
-	XML_NODE* stored_root = xml.GetLocalRoot();
-	XML_NODE* node = xml.NavigateToNode( "stat_info", 0 );
-	xml.SetLocalRoot( node );
 
-	m_stat_count = (u32)xml.GetNodesNum( node, "stat" );
-	u32 value_color = CUIXmlInit::GetColor( xml, "value", 0, 0xFFffffff );
-	m_stat_items.clear();
-	m_stat_items.reserve(m_stat_count);
-
-	for ( u8 i = 0; i < m_stat_count; ++i )
-	{
-		StatItem item = {};
-		item.caption = new CUIStatic();
-		AttachChild(item.caption);
-		item.caption->SetAutoDelete(true);
-
-		if (CUIXmlInit::InitStatic(xml, "stat", i, item.caption))
-		{
-			item.caption->AdjustWidthToText();
-
-			item.value = new CUIStatic();
-			AttachChild(item.value);
-			item.value->SetAutoDelete(true);
-			CUIXmlInit::InitStatic(xml, "stat", i, item.value);
-
-			item.value->SetTextColor(value_color);
-
-			pos.y = item.caption->GetWndPos().y;
-			pos.x = item.caption->GetWndPos().x + item.caption->GetWndSize().x + 5.0f;
-			item.value->SetWndPos(pos);
-
-			XML_NODE* statNode = xml.NavigateToNode(node, "stat", i);
-			if (statNode)
-			{
-				item.statId = xml.ReadAttrib(statNode, "id", "");
-			}
-
-			m_stat_items.push_back(item);
-		}
-		else
-		{
-			xr_delete(item.caption);
-			xr_delete(item.value);
-		}
-	}
-	m_stat_count = (u32)m_stat_items.size();
-	xml.SetLocalRoot( stored_root );
+	InitStatInfo(xml);
 
 	if (m_center_caption)
 	{
@@ -351,14 +307,13 @@ void CUIRankingWnd::Init()
 
 		if (pSettings->section_exist(fract_section))
 		{
-			node = xml.NavigateToNode("fraction_list", 0);
+			XML_NODE* node = xml.NavigateToNode("fraction_list", 0);
 			xml.SetLocalRoot(node);
 			CInifile::Sect& faction_section = pSettings->r_section(fract_section);
 			for (const auto& item : faction_section.Data)
 			{
 				add_faction(xml, item.first);
 			}
-			node = xml.NavigateToNode("fraction_list", 0);
 			xml.SetLocalRoot(stored_root);
 		}
 	}
@@ -540,6 +495,308 @@ void CUIRankingWnd::update_info()
     }
 
     m_factions_list->ForceUpdate();
+}
+
+void CUIRankingWnd::InitStatInfo(CUIXml& xml)
+{
+	XML_NODE* storedRoot = xml.GetLocalRoot();
+	XML_NODE* statInfoNode = xml.NavigateToNode("stat_info", 0);
+	if (!statInfoNode)
+	{
+		return;
+	}
+
+	xml.SetLocalRoot(statInfoNode);
+
+	const u32 valueColor = CUIXmlInit::GetColor(xml, "value", 0, 0xFFffffff);
+	const u32 legacyCount = (u32)xml.GetNodesNum(statInfoNode, "stat");
+	const u32 rowCount = (u32)xml.GetNodesNum(statInfoNode, "stat_row");
+
+	const bool hasStatColumns = xml.NavigateToNode(statInfoNode, "stat_columns", 0) != nullptr;
+	const char* captionsStackPath = hasStatColumns ? "stat_columns:stat_captions_stack" : "stat_captions_stack";
+	const char* valuesStackPath = hasStatColumns ? "stat_columns:stat_values_stack" : "stat_values_stack";
+
+	XML_NODE* captionsStackNode = xml.NavigateToNode(statInfoNode, captionsStackPath, 0);
+	XML_NODE* valuesStackNode = xml.NavigateToNode(statInfoNode, valuesStackPath, 0);
+	const bool hasCaptionsStack = captionsStackNode != nullptr;
+	const bool hasValuesStack = valuesStackNode != nullptr;
+
+	u32 splitCount = 0;
+	if (hasCaptionsStack && hasValuesStack)
+	{
+		u32 captionCount = (u32)xml.GetNodesNum(captionsStackNode, "stat_caption");
+		u32 valueCount = (u32)xml.GetNodesNum(valuesStackNode, "stat_value");
+		if (captionCount == 0)
+		{
+			captionCount = (u32)xml.GetNodesNum(statInfoNode, "stat_caption");
+		}
+		if (valueCount == 0)
+		{
+			valueCount = (u32)xml.GetNodesNum(statInfoNode, "stat_value");
+		}
+		if (captionCount == valueCount)
+		{
+			splitCount = captionCount;
+		}
+	}
+	else if (hasCaptionsStack != hasValuesStack)
+	{
+		VERIFY2(false, "stat_info: stat_captions_stack and stat_values_stack must both be present");
+	}
+
+	m_stat_items.clear();
+	m_stat_items.reserve(legacyCount + splitCount + rowCount);
+
+	if (xml.NavigateToNode("stat_list", 0))
+	{
+		_statList = UIHelper::CreateStackPanel(xml, "stat_list", this, false);
+	}
+
+	for (u32 i = 0; i < legacyCount; ++i)
+	{
+		InitLegacyStat(xml, statInfoNode, i, valueColor);
+	}
+
+	if (hasCaptionsStack && hasValuesStack)
+	{
+		InitSplitStatColumns(xml, statInfoNode, valueColor);
+	}
+
+	for (u32 i = 0; i < rowCount; ++i)
+	{
+		InitStackedStatRow(xml, statInfoNode, i, valueColor);
+	}
+
+	m_stat_count = (u32)m_stat_items.size();
+	xml.SetLocalRoot(storedRoot);
+}
+
+bool CUIRankingWnd::InitLegacyStat(CUIXml& xml, XML_NODE* statInfoNode, const u32 index, const u32 valueColor)
+{
+	Fvector2 pos;
+	StatItem item = {};
+	item.layout = StatItem::ELayout::Legacy;
+	item.caption = new CUIStatic();
+	AttachChild(item.caption);
+	item.caption->SetAutoDelete(true);
+
+	if (!CUIXmlInit::InitStatic(xml, "stat", (int)index, item.caption))
+	{
+		xr_delete(item.caption);
+		return false;
+	}
+
+	item.caption->AdjustWidthToText();
+
+	item.value = new CUIStatic();
+	AttachChild(item.value);
+	item.value->SetAutoDelete(true);
+	CUIXmlInit::InitStatic(xml, "stat", (int)index, item.value);
+
+	item.value->SetTextColor(valueColor);
+
+	pos.y = item.caption->GetWndPos().y;
+	pos.x = item.caption->GetWndPos().x + item.caption->GetWndSize().x + 5.0f;
+	item.value->SetWndPos(pos);
+
+	XML_NODE* statNode = xml.NavigateToNode(statInfoNode, "stat", index);
+	if (statNode)
+	{
+		item.statId = xml.ReadAttrib(statNode, "id", "");
+	}
+
+	m_stat_items.push_back(item);
+	return true;
+}
+
+bool CUIRankingWnd::InitSplitStatColumns(CUIXml& xml, XML_NODE* statInfoNode, const u32 valueColor)
+{
+	const bool hasStatColumns = xml.NavigateToNode(statInfoNode, "stat_columns", 0) != nullptr;
+	const char* captionsStackPath = hasStatColumns ? "stat_columns:stat_captions_stack" : "stat_captions_stack";
+	const char* valuesStackPath = hasStatColumns ? "stat_columns:stat_values_stack" : "stat_values_stack";
+
+	XML_NODE* captionsStackNode = xml.NavigateToNode(statInfoNode, captionsStackPath, 0);
+	XML_NODE* valuesStackNode = xml.NavigateToNode(statInfoNode, valuesStackPath, 0);
+	if (!captionsStackNode || !valuesStackNode)
+	{
+		return false;
+	}
+
+	u32 captionCount = (u32)xml.GetNodesNum(captionsStackNode, "stat_caption");
+	u32 valueCount = (u32)xml.GetNodesNum(valuesStackNode, "stat_value");
+	const bool flatCaptions = captionCount == 0;
+	const bool flatValues = valueCount == 0;
+	if (flatCaptions)
+	{
+		captionCount = (u32)xml.GetNodesNum(statInfoNode, "stat_caption");
+	}
+	if (flatValues)
+	{
+		valueCount = (u32)xml.GetNodesNum(statInfoNode, "stat_value");
+	}
+	if (captionCount != valueCount)
+	{
+		VERIFY2(false, make_string<const char*>(
+			"stat_info: stat_caption count (%u) != stat_value count (%u)",
+			captionCount,
+			valueCount));
+		return false;
+	}
+
+	if (captionCount == 0)
+	{
+		return true;
+	}
+
+	XML_NODE* const captionInitRoot = flatCaptions ? statInfoNode : captionsStackNode;
+	XML_NODE* const valueInitRoot = flatValues ? statInfoNode : valuesStackNode;
+
+	CUIWindow* layoutParent = this;
+	if (hasStatColumns)
+	{
+		_statColumns = new CUIWindow();
+		_statColumns->SetAutoDelete(true);
+		AttachChild(_statColumns);
+		if (!CUIXmlInit::InitWindow(xml, "stat_columns", 0, _statColumns, false))
+		{
+			return false;
+		}
+		layoutParent = _statColumns;
+	}
+
+	_statCaptionsStack = UIHelper::CreateStackPanel(xml, captionsStackPath, layoutParent, false);
+	_statValuesStack = UIHelper::CreateStackPanel(xml, valuesStackPath, layoutParent, false);
+	if (!_statCaptionsStack || !_statValuesStack)
+	{
+		return false;
+	}
+
+	for (u32 i = 0; i < captionCount; ++i)
+	{
+		StatItem item = {};
+		item.layout = StatItem::ELayout::SplitColumns;
+
+		xml.SetLocalRoot(captionInitRoot);
+		item.caption = new CUIStatic();
+		item.caption->SetAutoDelete(true);
+		if (!CUIXmlInit::InitStatic(xml, "stat_caption", (int)i, item.caption))
+		{
+			VERIFY2(false, make_string<const char*>("stat_caption[%u]: init failed", i));
+			xml.SetLocalRoot(statInfoNode);
+			return false;
+		}
+
+		const float captionWidth = xml.ReadAttribFlt("stat_caption", (int)i, "width", 0.f);
+		if (captionWidth <= 0.f)
+		{
+			item.caption->AdjustWidthToText();
+		}
+		_statCaptionsStack->AttachChild(item.caption);
+
+		XML_NODE* captionNode = xml.NavigateToNode(captionInitRoot, "stat_caption", i);
+		if (captionNode)
+		{
+			item.statId = xml.ReadAttrib(captionNode, "id", "");
+		}
+
+		xml.SetLocalRoot(valueInitRoot);
+		item.value = new CUIStatic();
+		item.value->SetAutoDelete(true);
+		if (!CUIXmlInit::InitStatic(xml, "stat_value", (int)i, item.value))
+		{
+			VERIFY2(false, make_string<const char*>("stat_value[%u]: init failed", i));
+			xml.SetLocalRoot(statInfoNode);
+			return false;
+		}
+		item.value->SetTextColor(valueColor);
+		_statValuesStack->AttachChild(item.value);
+
+		m_stat_items.push_back(item);
+	}
+
+	xml.SetLocalRoot(statInfoNode);
+	return true;
+}
+
+bool CUIRankingWnd::InitStackedStatRow(CUIXml& xml, XML_NODE* statInfoNode, const u32 index, const u32 valueColor)
+{
+	XML_NODE* statRowNode = xml.NavigateToNode(statInfoNode, "stat_row", index);
+	if (!statRowNode)
+	{
+		return false;
+	}
+
+	xml.SetLocalRoot(statRowNode);
+	if (!xml.NavigateToNode("stack_panel", 0))
+	{
+		VERIFY2(false, make_string<const char*>("stat_row[%u]: missing stack_panel", index));
+		xml.SetLocalRoot(statInfoNode);
+		return false;
+	}
+
+	CUIWindow* rowParent = this;
+	if (_statList)
+	{
+		rowParent = _statList;
+	}
+	CUIWindow* stackParent = rowParent;
+
+	StatItem item = {};
+	item.layout = StatItem::ELayout::StackedRow;
+
+	if (!_statList)
+	{
+		item.rowRoot = new CUIWindow();
+		item.rowRoot->SetAutoDelete(true);
+		rowParent->AttachChild(item.rowRoot);
+
+		const float rowX = xml.ReadAttribFlt(statRowNode, "x", 0.f);
+		const float rowY = xml.ReadAttribFlt(statRowNode, "y", 0.f);
+		const float rowW = xml.ReadAttribFlt(statRowNode, "width", 0.f);
+		const float rowH = xml.ReadAttribFlt(statRowNode, "height", 0.f);
+		item.rowRoot->SetWndPos(Fvector2().set(rowX, rowY));
+		if (rowW > 0.f && rowH > 0.f)
+		{
+			item.rowRoot->SetWndSize(Fvector2().set(rowW, rowH));
+		}
+
+		stackParent = item.rowRoot;
+	}
+
+	item.rowStack = UIHelper::CreateStackPanel(xml, "stack_panel", stackParent, false);
+	if (!item.rowStack)
+	{
+		xml.SetLocalRoot(statInfoNode);
+		return false;
+	}
+
+	item.caption = new CUIStatic();
+	item.caption->SetAutoDelete(true);
+	if (!CUIXmlInit::InitStatic(xml, "stat_caption", 0, item.caption))
+	{
+		VERIFY2(false, make_string<const char*>("stat_row[%u]: failed to init stat_caption", index));
+		xml.SetLocalRoot(statInfoNode);
+		return false;
+	}
+	item.caption->AdjustWidthToText();
+	item.rowStack->AttachChild(item.caption);
+
+	item.value = new CUIStatic();
+	item.value->SetAutoDelete(true);
+	if (!CUIXmlInit::InitStatic(xml, "stat_value", 0, item.value))
+	{
+		VERIFY2(false, make_string<const char*>("stat_row[%u]: failed to init stat_value", index));
+		xml.SetLocalRoot(statInfoNode);
+		return false;
+	}
+	item.value->SetTextColor(valueColor);
+	item.rowStack->AttachChild(item.value);
+
+	item.statId = xml.ReadAttrib(statRowNode, "id", "");
+
+	m_stat_items.push_back(item);
+	xml.SetLocalRoot(statInfoNode);
+	return true;
 }
 
 void CUIRankingWnd::DrawHint()

@@ -13,6 +13,8 @@
 #include "UIRankingsCoC.h"
 
 class CUIStatic;
+class CUIStackPanel;
+class CUIWindow;
 class CUIXml;
 class CUIProgressBar;
 class CUIFrameLineWnd;
@@ -81,12 +83,26 @@ private:
 
 	struct StatItem final
 	{
+		enum class ELayout : u8
+		{
+			Legacy = 0,
+			StackedRow = 1,
+			SplitColumns = 2,
+		};
+
+		ELayout layout = ELayout::Legacy;
 		shared_str statId;
+		CUIStackPanel* rowStack = nullptr;
+		CUIWindow* rowRoot = nullptr;
 		CUIStatic* caption = nullptr;
 		CUIStatic* value = nullptr;
 	};
 
 	xr_vector<StatItem> m_stat_items;
+	CUIStackPanel* _statList = nullptr;
+	CUIWindow* _statColumns = nullptr;
+	CUIStackPanel* _statCaptionsStack = nullptr;
+	CUIStackPanel* _statValuesStack = nullptr;
 
 	u32					m_delay;
 	u32					m_previous_time;
@@ -124,6 +140,10 @@ protected:
 			void		clear_all_factions		();
 			bool		SortingLessFunction		(CUIWindow* left, CUIWindow* right);
 			void		RefreshStatItems		();
+			void		InitStatInfo			(CUIXml& xml);
+			bool		InitLegacyStat			(CUIXml& xml, XML_NODE* statInfoNode, u32 index, u32 valueColor);
+			bool		InitSplitStatColumns		(CUIXml& xml, XML_NODE* statInfoNode, u32 valueColor);
+			bool		InitStackedStatRow		(CUIXml& xml, XML_NODE* statInfoNode, u32 index, u32 valueColor);
 
 			void		add_achievement			(CUIXml& xml, shared_str const& faction_id);
 			void		get_best_monster		();
