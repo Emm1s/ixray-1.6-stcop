@@ -454,13 +454,6 @@ void CUIRankingWnd::DrawHint()
 
 void CUIRankingWnd::get_statistic()
 {
-	/*
-	string128 buf;
-	InventoryUtilities::GetTimePeriodAsString(buf, sizeof(buf), Level().GetStartGameTime(), Level().GetGameTime());
-	m_stat_info[0]->SetTextColor(color_rgba(170,170,170,255));
-	m_stat_info[0]->SetText(buf);
-	*/
-
 	for (u32 i = 0; i < m_stat_count; ++i)
 	{
 		StatItem& item = m_stat_items[i];

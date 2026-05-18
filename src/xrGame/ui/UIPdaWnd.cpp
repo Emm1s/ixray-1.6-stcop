@@ -888,9 +888,6 @@ void CUIPdaWnd::DrawHint()
 	{
 		pUIRankingWnd->DrawHint();
 	}
-	else if (PdaSectionId::Equals(m_sActiveSection, PdaSectionId::Logs))
-	{
-	}
 	else if (PdaSectionId::Equals(m_sActiveSection, PdaSectionId::Contacts))
 	{
 		UIPdaContactsWnd->DrawHint();
@@ -1262,21 +1259,6 @@ bool CUIPdaWnd::OnGamepadKeyHold(int key)
 
 	return inherited::OnGamepadKeyHold(key);
 }
-
-//void CUIPdaWnd::Enable(bool status)
-//{
-//	if (status)
-//		ResetCursor();
-//	else
-//	{
-//		g_player_hud->reset_thumb(false);
-//		ResetJoystick(false);
-//		bButtonL = false;
-//		bButtonR = false;
-//	}
-//
-//	inherited::Enable(status);
-//}
 
 void CUIPdaWnd::HideDialog()
 {
