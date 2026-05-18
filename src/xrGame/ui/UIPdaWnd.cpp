@@ -430,9 +430,14 @@ void CUIPdaWnd::Init()
 	if (shouldRearrangeButtons)
 	{
 		if (m_updatedSectionImage && m_oldSectionImage)
+		{
 			RearrangeTabButtonsLegacy(UITabControl, m_sign_places_main);
+			BuildUpdateBadgeSections();
+		}
 		else
-			RearrangeTabButtons		(UITabControl);
+		{
+			RearrangeTabButtons(UITabControl);
+		}
 	}
 }
 
@@ -593,92 +598,108 @@ void CUIPdaWnd::Update()
 		m_clock->SetText(InventoryUtilities::GetGameTimeAsString(InventoryUtilities::etpTimeToMinutes).c_str());
 	UpdateDateTime();
 
-	if (pUILogsWnd)
+	if (pUILogsWnd && IsShown())
+	{
 		Device.seqParallel.push_back(xr_make_delegate(pUILogsWnd, &CUILogsWnd::PerformWork));
+	}
+}
+
+CUIWindow* CUIPdaWnd::ResolveNativeSubdialog(const shared_str& resolvedSection)
+{
+	if (PdaSectionId::Equals(resolvedSection, PdaSectionId::Tasks)
+		|| PdaSectionId::Equals(resolvedSection, PdaSectionId::TaskList))
+	{
+		return pUITaskWnd;
+	}
+	if (PdaSectionId::Equals(resolvedSection, PdaSectionId::Quests))
+	{
+		return pUIEventsWnd;
+	}
+	if (PdaSectionId::Equals(resolvedSection, PdaSectionId::FractionWar))
+	{
+		return pUIFactionWarWnd;
+	}
+	if (PdaSectionId::Equals(resolvedSection, PdaSectionId::Contacts))
+	{
+		return UIPdaContactsWnd ? static_cast<CUIWindow*>(UIPdaContactsWnd) : static_cast<CUIWindow*>(pUITaskWnd);
+	}
+	if (PdaSectionId::Equals(resolvedSection, PdaSectionId::Ranking))
+	{
+		return IsGameTypeSingle() ? static_cast<CUIWindow*>(pUIRankingWnd) : nullptr;
+	}
+	if (PdaSectionId::Equals(resolvedSection, PdaSectionId::RankingGlobal))
+	{
+		return pUIStalkersRankingWnd;
+	}
+	if (PdaSectionId::Equals(resolvedSection, PdaSectionId::Logs))
+	{
+		return pUILogsWnd;
+	}
+	if (PdaSectionId::Equals(resolvedSection, PdaSectionId::Encyclopedia))
+	{
+		return pUIEncyclopediaWnd;
+	}
+	if (PdaSectionId::Equals(resolvedSection, PdaSectionId::ActorStatistic))
+	{
+		return pUIActorInfoWnd;
+	}
+	if (PdaSectionId::Equals(resolvedSection, PdaSectionId::Diary))
+	{
+		return pUIDiaryWnd;
+	}
+	if (PdaSectionId::Equals(resolvedSection, PdaSectionId::Map))
+	{
+		return pUIMapWnd ? static_cast<CUIWindow*>(pUIMapWnd) : static_cast<CUIWindow*>(pUITaskWnd);
+	}
+
+	return nullptr;
+}
+
+void CUIPdaWnd::ApplyActiveSubdialog(const shared_str& tabButtonSection, const shared_str& resolvedSection)
+{
+	if (m_pActiveDialog && !UIMainPdaFrame->IsChild(m_pActiveDialog))
+	{
+		UIMainPdaFrame->AttachChild(m_pActiveDialog);
+	}
+	if (m_pActiveDialog)
+	{
+		m_pActiveDialog->Show(true);
+	}
+
+	if (UITabControl->GetActiveId() != tabButtonSection)
+	{
+		UITabControl->SetActiveTab(resolvedSection);
+	}
+
+	m_sActiveSection = resolvedSection;
+	SetActiveTabBackground(m_sActiveSection);
+	SetActiveCaption();
+
+	// "Task list" tab is a thin alias for the Tasks subdialog that immediately surfaces the task list side panel.
+	if (pUITaskWnd && m_pActiveDialog == pUITaskWnd
+		&& PdaSectionId::Equals(resolvedSection, PdaSectionId::TaskList))
+	{
+		pUITaskWnd->Show_TaskListWnd(true);
+	}
 }
 
 void CUIPdaWnd::SetActiveSubdialog(const shared_str& section)
 {
 	const shared_str resolvedSection = ResolveKnownTabId(section);
 
-	if ( m_pActiveDialog )
+	if (m_pActiveDialog)
 	{
 		if (UIMainPdaFrame->IsChild(m_pActiveDialog))
 		{
-			UIMainPdaFrame->DetachChild( m_pActiveDialog );
+			UIMainPdaFrame->DetachChild(m_pActiveDialog);
 		}
-		m_pActiveDialog->Show( false );
+		m_pActiveDialog->Show(false);
 	}
 
 	pda_section::part updateSection = pda_section::quests;
 	const bool hasUpdateSection = TryGetPdaUpdateSection(resolvedSection, updateSection);
 
-	m_pActiveDialog = nullptr;
-	if (PdaSectionId::Equals(resolvedSection, PdaSectionId::Tasks))
-	{
-		m_pActiveDialog = pUITaskWnd;
-	}
-	else if (PdaSectionId::Equals(resolvedSection, PdaSectionId::TaskList))
-	{
-		m_pActiveDialog = pUITaskWnd;
-	}
-	else if (PdaSectionId::Equals(resolvedSection, PdaSectionId::Quests))
-	{
-		m_pActiveDialog = pUIEventsWnd;
-	}
-	else if (PdaSectionId::Equals(resolvedSection, PdaSectionId::FractionWar))
-	{
-		m_pActiveDialog = pUIFactionWarWnd;
-	}
-	else if (PdaSectionId::Equals(resolvedSection, PdaSectionId::Contacts))
-	{
-		if (UIPdaContactsWnd)
-		{
-			m_pActiveDialog = UIPdaContactsWnd;
-		}
-		else
-		{
-			m_pActiveDialog = pUITaskWnd;
-		}
-	}
-	else if (PdaSectionId::Equals(resolvedSection, PdaSectionId::Ranking))
-	{
-		if (IsGameTypeSingle())
-		{
-			m_pActiveDialog = pUIRankingWnd;
-		}
-	}
-	else if (PdaSectionId::Equals(resolvedSection, PdaSectionId::RankingGlobal))
-	{
-		m_pActiveDialog = pUIStalkersRankingWnd;
-	}
-	else if (PdaSectionId::Equals(resolvedSection, PdaSectionId::Logs))
-	{
-		m_pActiveDialog = pUILogsWnd;
-	}
-	else if (PdaSectionId::Equals(resolvedSection, PdaSectionId::Encyclopedia))
-	{
-		m_pActiveDialog = pUIEncyclopediaWnd;
-	}
-	else if (PdaSectionId::Equals(resolvedSection, PdaSectionId::ActorStatistic))
-	{
-		m_pActiveDialog = pUIActorInfoWnd;
-	}
-	else if (PdaSectionId::Equals(resolvedSection, PdaSectionId::Diary))
-	{
-		m_pActiveDialog = pUIDiaryWnd;
-	}
-	else if (PdaSectionId::Equals(resolvedSection, PdaSectionId::Map))
-	{
-		if (pUIMapWnd)
-		{
-			m_pActiveDialog = pUIMapWnd;
-		}
-		else
-		{
-			m_pActiveDialog = pUITaskWnd;
-		}
-	}
+	m_pActiveDialog = ResolveNativeSubdialog(resolvedSection);
 
 	if (hasUpdateSection)
 	{
@@ -694,51 +715,41 @@ void CUIPdaWnd::SetActiveSubdialog(const shared_str& section)
 		{
 			m_pActiveDialog = pScriptWnd;
 		}
-
-		if (m_pActiveDialog)
-		{
-			if (!UIMainPdaFrame->IsChild(m_pActiveDialog))
-			{
-				UIMainPdaFrame->AttachChild(m_pActiveDialog);
-			}
-			m_pActiveDialog->Show(true);
-			m_sActiveSection = resolvedSection;
-			SetActiveTabBackground(m_sActiveSection);
-			SetActiveCaption();
-		}
-		else
-		{
-			m_sActiveSection = "";
-			SetActiveTabBackground(m_sActiveSection);
-		}
 	}
-	else
+
+	if (!m_pActiveDialog)
 	{
-		if (m_pActiveDialog && !UIMainPdaFrame->IsChild(m_pActiveDialog))
-		{
-			UIMainPdaFrame->AttachChild(m_pActiveDialog);
-		}
-		if (m_pActiveDialog)
-		{
-			m_pActiveDialog->Show(true);
-		}
-
-		if (UITabControl->GetActiveId() != section)
-		{
-			UITabControl->SetActiveTab(resolvedSection);
-		}
-		m_sActiveSection = resolvedSection;
+		m_sActiveSection = "";
 		SetActiveTabBackground(m_sActiveSection);
-		SetActiveCaption();
-
-		// "Task list" tab is a thin alias for the Tasks subdialog that immediately surfaces the task list side panel.
-		if (pUITaskWnd && m_pActiveDialog == pUITaskWnd
-			&& PdaSectionId::Equals(resolvedSection, PdaSectionId::TaskList))
-		{
-			pUITaskWnd->Show_TaskListWnd(true);
-		}
+		return;
 	}
 
+	ApplyActiveSubdialog(section, resolvedSection);
+}
+
+void CUIPdaWnd::BuildUpdateBadgeSections()
+{
+	m_updateBadgeSections.clear();
+	if (!UITabControl)
+	{
+		return;
+	}
+
+	TABS_VECTOR* btnVec = UITabControl->GetButtonsVector();
+	for (CUITabButton* btn : *btnVec)
+	{
+		if (!btn)
+		{
+			continue;
+		}
+
+		pda_section::part updateSection = pda_section::quests;
+		const shared_str tabId = ResolveKnownTabId(btn->m_btn_id);
+		if (TryGetPdaUpdateSection(tabId, updateSection))
+		{
+			m_updateBadgeSections.push_back(updateSection);
+		}
+	}
 }
 
 void CUIPdaWnd::InitTabBackgrounds(CUIXml& xml)
@@ -802,6 +813,7 @@ void CUIPdaWnd::SetActiveTabBackground(const shared_str& sectionId)
 
 void CUIPdaWnd::SetActiveCaption()
 {
+	// With game_datetime on caption_static and no caption_date_static, caption shows only game time (no tab suffix).
 	if (m_captionGameDateTime && !m_captionDate)
 	{
 		return;
@@ -812,7 +824,7 @@ void CUIPdaWnd::SetActiveCaption()
 	TABS_VECTOR::iterator it_e	= btn_vec->end();
 	for ( ; it_b != it_e; ++it_b )
 	{
-		if ( (*it_b)->m_btn_id == m_sActiveSection )
+		if (ResolveKnownTabId((*it_b)->m_btn_id) == m_sActiveSection)
 		{
 			const char* cur = (*it_b)->TextItemControl()->GetText();
 			string256 buf;
@@ -928,10 +940,17 @@ void CUIPdaWnd::PdaContentsChanged	(pda_section::part type)
 	{
 		pUIEncyclopediaWnd->ReloadArticles	();
 	}
-	else if (type == pda_section::news && pUIDiaryWnd)
+	else if (type == pda_section::news)
 	{
-		pUIDiaryWnd->AddNews();
-		pUIDiaryWnd->MarkNewsAsRead(pUIDiaryWnd->IsShown());
+		if (pUILogsWnd)
+		{
+			pUILogsWnd->UpdateNews();
+		}
+		if (pUIDiaryWnd)
+		{
+			pUIDiaryWnd->AddNews();
+			pUIDiaryWnd->MarkNewsAsRead(pUIDiaryWnd->IsShown());
+		}
 	}
 	else if (type == pda_section::quests && pUIEventsWnd)
 	{
@@ -961,71 +980,61 @@ void draw_sign		(CUIStatic* s, Fvector2& pos)
 	s->Draw				();
 }
 
-void CUIPdaWnd::DrawUpdatedSections				()
+void CUIPdaWnd::DrawUpdatedSections()
 {
 	if (!m_updatedSectionImage || !m_oldSectionImage)
+	{
 		return;
+	}
 
-	m_updatedSectionImage->Update				();
-	m_oldSectionImage->Update					();
-	
-	Fvector2									tab_pos;
-	UITabControl->GetAbsolutePos				(tab_pos);
+	m_updatedSectionImage->Update();
+	m_oldSectionImage->Update();
 
-	Fvector2 pos;
+	Fvector2 tabPos;
+	UITabControl->GetAbsolutePos(tabPos);
 
+	auto drawBadgeAt = [&](const u32 slotIndex, const pda_section::part section)
+	{
+		if (slotIndex >= m_sign_places_main.size())
+		{
+			return;
+		}
+
+		Fvector2 pos = m_sign_places_main[slotIndex];
+		pos.add(tabPos);
+		if (PdaState::HasUpdates(section))
+		{
+			draw_sign(m_updatedSectionImage, pos);
+		}
+		else
+		{
+			draw_sign(m_oldSectionImage, pos);
+		}
+	};
+
+	if (!m_updateBadgeSections.empty())
+	{
+		const u32 badgeCount = std::min((u32)m_updateBadgeSections.size(), (u32)m_sign_places_main.size());
+		for (u32 i = 0; i < badgeCount; ++i)
+		{
+			drawBadgeAt(i, m_updateBadgeSections[i]);
+		}
+		return;
+	}
+
+	// Legacy CoP layout: fixed slot order when badge metadata was not built from tab XML.
 	if (m_sign_places_main.size() < 7)
+	{
 		return;
+	}
 
-	pos = m_sign_places_main[0];
-	pos.add(tab_pos);
-	if (PdaState::HasUpdates(pda_section::quests))
-		draw_sign								(m_updatedSectionImage, pos);
-	else
-		draw_sign								(m_oldSectionImage, pos);
-
-	pos = m_sign_places_main[1];
-	pos.add(tab_pos);
-	if (PdaState::HasUpdates(pda_section::map))
-		draw_sign								(m_updatedSectionImage, pos);
-	else
-		draw_sign								(m_oldSectionImage, pos);
-
-	pos = m_sign_places_main[2];
-	pos.add(tab_pos);
-	if (PdaState::HasUpdates(pda_section::diary))
-		draw_sign								(m_updatedSectionImage, pos);
-	else
-		draw_sign								(m_oldSectionImage, pos);
-
-	pos = m_sign_places_main[3];
-	pos.add(tab_pos);
-	if (PdaState::HasUpdates(pda_section::contacts))
-		draw_sign								(m_updatedSectionImage, pos);
-	else
-		draw_sign								(m_oldSectionImage, pos);
-
-	pos = m_sign_places_main[4];
-	pos.add(tab_pos);
-	if (PdaState::HasUpdates(pda_section::ranking))
-		draw_sign								(m_updatedSectionImage, pos);
-	else
-		draw_sign								(m_oldSectionImage, pos);
-
-	pos = m_sign_places_main[5];
-	pos.add(tab_pos);
-	if (PdaState::HasUpdates(pda_section::statistics))
-		draw_sign								(m_updatedSectionImage, pos);
-	else
-		draw_sign								(m_oldSectionImage, pos);
-
-	pos = m_sign_places_main[6];
-	pos.add(tab_pos);
-	if (PdaState::HasUpdates(pda_section::encyclopedia))
-		draw_sign								(m_updatedSectionImage, pos);
-	else
-		draw_sign								(m_oldSectionImage, pos);
-	
+	drawBadgeAt(0, pda_section::quests);
+	drawBadgeAt(1, pda_section::map);
+	drawBadgeAt(2, pUILogsWnd ? pda_section::news : pda_section::diary);
+	drawBadgeAt(3, pda_section::contacts);
+	drawBadgeAt(4, pda_section::ranking);
+	drawBadgeAt(5, pda_section::statistics);
+	drawBadgeAt(6, pda_section::encyclopedia);
 }
 
 void CUIPdaWnd::Reset()

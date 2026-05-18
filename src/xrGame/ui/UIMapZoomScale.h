@@ -5,6 +5,7 @@
 class CUIXml;
 class CUIStatic;
 
+// Map zoom slider widget; owned by CUIMapWnd when zoom_scale is present in map XML.
 class UIMapZoomScale final : public CUIWindow
 {
 private:

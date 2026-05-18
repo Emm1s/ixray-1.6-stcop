@@ -56,6 +56,7 @@ protected:
 	CUIWindow*				m_pActiveDialog;
 	shared_str				m_sActiveSection;
 	xr_vector<Fvector2>		m_sign_places_main;
+	xr_vector<pda_section::part> m_updateBadgeSections;
 
 	UIHint*					m_hint_wnd;
 
@@ -68,8 +69,11 @@ protected:
 	void					UpdateLocationName				();
 	void					SetCaptionWithOptionalLocation	(const char* baseText);
 	void					DrawUpdatedSections				();
+	void					BuildUpdateBadgeSections		();
 	void					InitTabBackgrounds				(CUIXml& xml);
 	void					SetActiveTabBackground			(const shared_str& sectionId);
+	CUIWindow*				ResolveNativeSubdialog			(const shared_str& resolvedSection);
+	void					ApplyActiveSubdialog			(const shared_str& tabButtonSection, const shared_str& resolvedSection);
 	void					PlayKeyTabSound					();
 	void					PlayKeyCloseSound				();
 private:

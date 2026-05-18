@@ -60,11 +60,27 @@ namespace PdaScript
 {
 constexpr const char* OnSetActiveSubdialog = "OnSetActiveSubdialog";
 constexpr const char* OnGetRankingsArraySize = "OnGetRankingsArraySize";
+constexpr const char* OnGetPdaStatById = "OnGetPdaStatById";
+constexpr const char* GetStatById = "pda.get_stat_by_id";
+constexpr const char* GetStat = "pda.get_stat";
 constexpr const char* GetMaxMemberCount = "pda.get_max_member_count";
 constexpr const char* GetMaxResource = "pda.get_max_resource";
 constexpr const char* GetMaxPower = "pda.get_max_power";
 constexpr const char* GetValuableArtifactIcon = "pda.get_valuable_artifact_icon";
+constexpr const char* GetMonsterBack = "pda.get_monster_back";
+constexpr const char* GetMonsterIcon = "pda.get_monster_icon";
+constexpr const char* GetFavoriteWeapon = "pda.get_favorite_weapon";
 } // namespace PdaScript
+
+namespace PdaRankingStatId
+{
+constexpr const char* MoneyEarned = "money_earned";
+constexpr const char* MoneySpent = "money_spent";
+constexpr const char* HelpWounded = "help_wounded";
+constexpr const char* Headshots = "headshots";
+constexpr const char* Deaths = "deaths";
+constexpr const char* Distance = "distance";
+} // namespace PdaRankingStatId
 
 namespace PdaNavButton
 {

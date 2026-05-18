@@ -9,6 +9,7 @@ class CUIXml;
 class CUI3tButton;
 class CUIStatic;
 
+// Standalone calendar popup widget; owned and driven by CUILogsWnd.
 class CUICalendar final :
     public CUIWindow,
     public CUIWndCallback

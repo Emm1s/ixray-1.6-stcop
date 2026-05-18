@@ -52,7 +52,7 @@ CUIRankingWnd::CUIRankingWnd()
 	m_last_monster_icon			= "";
 	m_last_weapon_icon			= "";
 	LoadCallbackGlobals(m_isGetRankingsArraySize, m_onGetRankingsArraySize, PdaScript::OnGetRankingsArraySize);
-	LoadCallbackGlobals(m_isGetPdaStatById, m_onGetPdaStatById, "OnGetPdaStatById");
+	LoadCallbackGlobals(m_isGetPdaStatById, m_onGetPdaStatById, PdaScript::OnGetPdaStatById);
 }
 
 CUIRankingWnd::~CUIRankingWnd()
@@ -104,7 +104,12 @@ void CUIRankingWnd::Show( bool status )
 void CUIRankingWnd::Update()
 {
 	inherited::Update();
-	if ( Device.dwTimeGlobal - m_previous_time > m_delay )
+	if (!IsShown())
+	{
+		return;
+	}
+
+	if (Device.dwTimeGlobal - m_previous_time > m_delay)
 	{
 		m_previous_time = Device.dwTimeGlobal;
 		update_info();
@@ -391,7 +396,7 @@ void CUIRankingWnd::update_info()
 		m_coc_ranking_actor->Update();
 		//-Alundaio
 	}
-	get_statistic();
+	RefreshStatItems();
 	get_best_monster();
 	get_favorite_weapon();
 	get_valuable_artifact_icon();
@@ -424,7 +429,6 @@ void CUIRankingWnd::update_info()
     }
 
     m_factions_list->ForceUpdate();
-    get_value_from_script();
 }
 
 void CUIRankingWnd::DrawHint()
@@ -452,78 +456,84 @@ void CUIRankingWnd::DrawHint()
 	//-Alundaio
 }
 
-void CUIRankingWnd::get_statistic()
+void CUIRankingWnd::RefreshStatItems()
 {
-	for (u32 i = 0; i < m_stat_count; ++i)
+	if (m_stat_items.empty())
 	{
-		StatItem& item = m_stat_items[i];
-		if (item.value)
-		{
-			const char* statValue = GetStatValue(item, i);
-			item.value->TextItemControl()->SetColoringMode(true);
-			if (!statValue || !statValue[0])
-			{
-				item.value->SetText("");
-				continue;
-			}
-
-			item.value->SetText(statValue);
-		}
+		return;
 	}
 
+	string128 timeBuf;
+	InventoryUtilities::GetTimePeriodAsString(timeBuf, sizeof(timeBuf), Level().GetStartGameTime(), Level().GetGameTime());
+	if (m_stat_items[0].value)
+	{
+		m_stat_items[0].value->SetText(timeBuf);
+	}
+
+	for (u32 i = 1; i < m_stat_count; ++i)
+	{
+		StatItem& item = m_stat_items[i];
+		if (!item.value)
+		{
+			continue;
+		}
+
+		item.value->TextItemControl()->SetColoringMode(true);
+		const char* statValue = GetStatValue(item, i);
+		if (!statValue || !statValue[0])
+		{
+			item.value->SetText("");
+			continue;
+		}
+
+		item.value->SetText(statValue);
+	}
 }
 
 void CUIRankingWnd::get_best_monster()
 {
-	const char* str;
-	luabind::functor<const char*> functor;
+	const char* str = nullptr;
 
-	if (ai().script_engine().functor("pda.get_monster_back", functor))
+	if (!PdaScriptBridge::TryCall(PdaScript::GetMonsterBack, str) || !str || !str[0])
 	{
-		str = functor();
-		if (!xr_strcmp(str, ""))
-			return;
-
-		if (xr_strcmp(str, m_last_monster_icon_back))
-		{
-			if (m_monster_icon_back)
-			{
-				m_monster_icon_back->TextureOn();
-				m_monster_icon_back->InitTexture(str);
-			}
-			m_last_monster_icon_back = str;
-		}
+		return;
 	}
 
-	if (ai().script_engine().functor("pda.get_monster_icon", functor))
+	if (xr_strcmp(str, m_last_monster_icon_back))
 	{
-		str = functor();
-		if (!xr_strcmp(str, ""))
-			return;
-
-		if (xr_strcmp(str, m_last_monster_icon))
+		if (m_monster_icon_back)
 		{
-			if (m_monster_icon)
-			{
-				m_monster_icon->TextureOn();
-				m_monster_icon->InitTexture(str);
-			}
-			m_last_monster_icon = str;
+			m_monster_icon_back->TextureOn();
+			m_monster_icon_back->InitTexture(str);
 		}
+		m_last_monster_icon_back = str;
+	}
+
+	if (!PdaScriptBridge::TryCall(PdaScript::GetMonsterIcon, str) || !str || !str[0])
+	{
+		return;
+	}
+
+	if (xr_strcmp(str, m_last_monster_icon))
+	{
+		if (m_monster_icon)
+		{
+			m_monster_icon->TextureOn();
+			m_monster_icon->InitTexture(str);
+		}
+		m_last_monster_icon = str;
 	}
 }
 
 void CUIRankingWnd::get_favorite_weapon()
 {
-	luabind::functor<const char*> functor;
-	if (!ai().script_engine().functor("pda.get_favorite_weapon", functor))
+	const char* str = nullptr;
+	if (!PdaScriptBridge::TryCall(PdaScript::GetFavoriteWeapon, str) || !str || !str[0])
+	{
 		return;
-	const char* str = functor();
+	}
 
-	if(!xr_strcmp(str, ""))
-		return;
-
-	if(m_favorite_weapon_icon && xr_strcmp(str, m_last_weapon_icon))
+	if (m_favorite_weapon_icon && xr_strcmp(str, m_last_weapon_icon))
 	{
 		if(pSettings->section_exist(str) && pSettings->line_exist(str, "upgr_icon_x"))
 		{
@@ -555,13 +565,11 @@ void CUIRankingWnd::get_valuable_artifact_icon()
 		return;
 	}
 
-	luabind::functor<const char*> functor;
-	if (!ai().script_engine().functor(PdaScript::GetValuableArtifactIcon, functor))
+	const char* str = nullptr;
+	if (!PdaScriptBridge::TryCall(PdaScript::GetValuableArtifactIcon, str))
 	{
 		return;
 	}
-
-	const char* str = functor();
 	if (!str || !xr_strcmp(str, ""))
 	{
 		m_valuable_artifact_icon->TextureOff();
@@ -585,32 +593,6 @@ bool CUIRankingWnd::SortingLessFunction(CUIWindow* left, CUIWindow* right)
 	return (lpi->get_faction_power() > rpi->get_faction_power());
 }
 
-void CUIRankingWnd::get_value_from_script()
-{
-	string128 buf;
-	InventoryUtilities::GetTimePeriodAsString(buf, sizeof(buf), Level().GetStartGameTime(), Level().GetGameTime());
-	if (!m_stat_items.empty() && m_stat_items[0].value)
-	{
-		m_stat_items[0].value->SetText(buf);
-	}
-
-	for (u32 i = 1; i < m_stat_count; ++i)
-	{
-		StatItem& item = m_stat_items[i];
-		if (item.value)
-		{
-			const char* statValue = GetStatValue(item, i);
-			if (!statValue || !statValue[0])
-			{
-				item.value->SetText("");
-				continue;
-			}
-
-			item.value->SetText(statValue);
-		}
-	}
-}
-
 const char* CUIRankingWnd::GetStatValue(const StatItem& item, const u32 index) const
 {
 	static string64 actorStatBuffer = {};
@@ -619,29 +601,55 @@ const char* CUIRankingWnd::GetStatValue(const StatItem& item, const u32 index) c
 	{
 		if (m_isGetPdaStatById)
 		{
-			luabind::functor<const char*> functor;
-			if (ai().script_engine().functor(m_onGetPdaStatById, functor))
-			{
-				const char* value = functor(item.statId.c_str());
-				if (value && value[0])
-				{
-					return value;
-				}
-			}
-		}
-
-		luabind::functor<const char*> byIdFunctor;
-		if (ai().script_engine().functor("pda.get_stat_by_id", byIdFunctor))
-		{
-			const char* value = byIdFunctor(item.statId.c_str());
-			if (value && value[0])
+			const char* value = nullptr;
+			if (PdaScriptBridge::TryCall(m_onGetPdaStatById, item.statId.c_str(), value) && value && value[0])
 			{
 				return value;
 			}
 		}
+
+		const char* value = nullptr;
+		if (PdaScriptBridge::TryCall(PdaScript::GetStatById, item.statId.c_str(), value) && value && value[0])
+		{
+			return value;
+		}
+
+		if (Actor())
+		{
+			if (item.statId == PdaRankingStatId::MoneyEarned)
+			{
+				xr_sprintf(actorStatBuffer, sizeof(actorStatBuffer), "%u", Actor()->GetStatMoneyEarned());
+				return actorStatBuffer;
+			}
+			if (item.statId == PdaRankingStatId::MoneySpent)
+			{
+				xr_sprintf(actorStatBuffer, sizeof(actorStatBuffer), "%u", Actor()->GetStatMoneySpent());
+				return actorStatBuffer;
+			}
+			if (item.statId == PdaRankingStatId::HelpWounded)
+			{
+				xr_sprintf(actorStatBuffer, sizeof(actorStatBuffer), "%u", Actor()->GetStatHelpWounded());
+				return actorStatBuffer;
+			}
+			if (item.statId == PdaRankingStatId::Headshots)
+			{
+				xr_sprintf(actorStatBuffer, sizeof(actorStatBuffer), "%u", Actor()->GetStatHeadshots());
+				return actorStatBuffer;
+			}
+			if (item.statId == PdaRankingStatId::Deaths)
+			{
+				xr_sprintf(actorStatBuffer, sizeof(actorStatBuffer), "%u", Actor()->GetStatDeaths());
+				return actorStatBuffer;
+			}
+			if (item.statId == PdaRankingStatId::Distance)
+			{
+				xr_sprintf(actorStatBuffer, sizeof(actorStatBuffer), "%.2f km", Actor()->GetStatDistanceMeters() / 1000.0f);
+				return actorStatBuffer;
+			}
+		}
 	}
 
-	if (Actor())
+	if (item.statId.size() == 0 && Actor())
 	{
 		switch (index)
 		{
@@ -668,10 +676,10 @@ const char* CUIRankingWnd::GetStatValue(const StatItem& item, const u32 index) c
 		}
 	}
 
-	luabind::functor<const char*> indexFunctor;
-	if (ai().script_engine().functor("pda.get_stat", indexFunctor))
+	const char* indexValue = nullptr;
+	if (PdaScriptBridge::TryCall(PdaScript::GetStat, index, indexValue))
 	{
-		return indexFunctor(index);
+		return indexValue;
 	}
 
 	return "";
