@@ -41,7 +41,118 @@ constexpr u32 rankingStatActorHelpWoundedIndex = 9;
 constexpr u32 rankingStatActorHeadshotsIndex = 10;
 constexpr u32 rankingStatActorDeathsIndex = 11;
 constexpr u32 rankingStatActorDistanceIndex = 12;
+constexpr u32 rankingStatLegacyScriptMaxIndex = 6;
+
+bool RankingStatIdMatches(const shared_str& statId, const char* canonicalId)
+{
+	if (statId.size() == 0)
+	{
+		return false;
+	}
+
+	if (statId == canonicalId)
+	{
+		return true;
+	}
+
+	if (xr_strcmp(canonicalId, PdaRankingStatId::HelpWounded) == 0)
+	{
+		return xr_strcmp(statId.c_str(), "help_stalkers") == 0;
+	}
+
+	if (xr_strcmp(canonicalId, PdaRankingStatId::Deaths) == 0)
+	{
+		return xr_strcmp(statId.c_str(), "death") == 0
+			|| xr_strcmp(statId.c_str(), "player_deaths") == 0
+			|| xr_strcmp(statId.c_str(), "actor_deaths") == 0
+			|| xr_strcmp(statId.c_str(), "pda_stat_11") == 0;
+	}
+
+	if (xr_strcmp(canonicalId, PdaRankingStatId::Distance) == 0)
+	{
+		return xr_strcmp(statId.c_str(), "distance_km") == 0
+			|| xr_strcmp(statId.c_str(), "km") == 0
+			|| xr_strcmp(statId.c_str(), "traveled_km") == 0
+			|| xr_strcmp(statId.c_str(), "player_distance") == 0
+			|| xr_strcmp(statId.c_str(), "pda_stat_12") == 0;
+	}
+
+	return false;
 }
+
+bool TryFormatActorStatByIndex(CActor* actor, const u32 index, string64& buffer)
+{
+	if (!actor)
+	{
+		return false;
+	}
+
+	switch (index)
+	{
+	case rankingStatActorMoneyEarnedIndex:
+		xr_sprintf(buffer, sizeof(buffer), "%u", actor->GetStatMoneyEarned());
+		return true;
+	case rankingStatActorMoneySpentIndex:
+		xr_sprintf(buffer, sizeof(buffer), "%u", actor->GetStatMoneySpent());
+		return true;
+	case rankingStatActorHelpWoundedIndex:
+		xr_sprintf(buffer, sizeof(buffer), "%u", actor->GetStatHelpWounded());
+		return true;
+	case rankingStatActorHeadshotsIndex:
+		xr_sprintf(buffer, sizeof(buffer), "%u", actor->GetStatHeadshots());
+		return true;
+	case rankingStatActorDeathsIndex:
+		xr_sprintf(buffer, sizeof(buffer), "%u", actor->GetStatDeaths());
+		return true;
+	case rankingStatActorDistanceIndex:
+		xr_sprintf(buffer, sizeof(buffer), "%.2f km", actor->GetStatDistanceMeters() / 1000.0f);
+		return true;
+	default:
+		return false;
+	}
+}
+
+bool TryFormatActorStatById(CActor* actor, const shared_str& statId, string64& buffer)
+{
+	if (!actor || statId.size() == 0)
+	{
+		return false;
+	}
+
+	if (RankingStatIdMatches(statId, PdaRankingStatId::MoneyEarned))
+	{
+		xr_sprintf(buffer, sizeof(buffer), "%u", actor->GetStatMoneyEarned());
+		return true;
+	}
+	if (RankingStatIdMatches(statId, PdaRankingStatId::MoneySpent))
+	{
+		xr_sprintf(buffer, sizeof(buffer), "%u", actor->GetStatMoneySpent());
+		return true;
+	}
+	if (RankingStatIdMatches(statId, PdaRankingStatId::HelpWounded))
+	{
+		xr_sprintf(buffer, sizeof(buffer), "%u", actor->GetStatHelpWounded());
+		return true;
+	}
+	if (RankingStatIdMatches(statId, PdaRankingStatId::Headshots))
+	{
+		xr_sprintf(buffer, sizeof(buffer), "%u", actor->GetStatHeadshots());
+		return true;
+	}
+	if (RankingStatIdMatches(statId, PdaRankingStatId::Deaths))
+	{
+		xr_sprintf(buffer, sizeof(buffer), "%u", actor->GetStatDeaths());
+		return true;
+	}
+	if (RankingStatIdMatches(statId, PdaRankingStatId::Distance))
+	{
+		xr_sprintf(buffer, sizeof(buffer), "%.2f km", actor->GetStatDistanceMeters() / 1000.0f);
+		return true;
+	}
+
+	return false;
+}
+} // namespace
 
 CUIRankingWnd::CUIRankingWnd()
 {
@@ -596,6 +707,7 @@ bool CUIRankingWnd::SortingLessFunction(CUIWindow* left, CUIWindow* right)
 const char* CUIRankingWnd::GetStatValue(const StatItem& item, const u32 index) const
 {
 	static string64 actorStatBuffer = {};
+	CActor* actor = Actor();
 
 	if (item.statId.size() != 0)
 	{
@@ -614,72 +726,24 @@ const char* CUIRankingWnd::GetStatValue(const StatItem& item, const u32 index) c
 			return value;
 		}
 
-		if (Actor())
+		if (TryFormatActorStatById(actor, item.statId, actorStatBuffer))
 		{
-			if (item.statId == PdaRankingStatId::MoneyEarned)
-			{
-				xr_sprintf(actorStatBuffer, sizeof(actorStatBuffer), "%u", Actor()->GetStatMoneyEarned());
-				return actorStatBuffer;
-			}
-			if (item.statId == PdaRankingStatId::MoneySpent)
-			{
-				xr_sprintf(actorStatBuffer, sizeof(actorStatBuffer), "%u", Actor()->GetStatMoneySpent());
-				return actorStatBuffer;
-			}
-			if (item.statId == PdaRankingStatId::HelpWounded)
-			{
-				xr_sprintf(actorStatBuffer, sizeof(actorStatBuffer), "%u", Actor()->GetStatHelpWounded());
-				return actorStatBuffer;
-			}
-			if (item.statId == PdaRankingStatId::Headshots)
-			{
-				xr_sprintf(actorStatBuffer, sizeof(actorStatBuffer), "%u", Actor()->GetStatHeadshots());
-				return actorStatBuffer;
-			}
-			if (item.statId == PdaRankingStatId::Deaths)
-			{
-				xr_sprintf(actorStatBuffer, sizeof(actorStatBuffer), "%u", Actor()->GetStatDeaths());
-				return actorStatBuffer;
-			}
-			if (item.statId == PdaRankingStatId::Distance)
-			{
-				xr_sprintf(actorStatBuffer, sizeof(actorStatBuffer), "%.2f km", Actor()->GetStatDistanceMeters() / 1000.0f);
-				return actorStatBuffer;
-			}
+			return actorStatBuffer;
 		}
 	}
 
-	if (item.statId.size() == 0 && Actor())
+	if (TryFormatActorStatByIndex(actor, index, actorStatBuffer))
 	{
-		switch (index)
-		{
-		case rankingStatActorMoneyEarnedIndex:
-			xr_sprintf(actorStatBuffer, sizeof(actorStatBuffer), "%u", Actor()->GetStatMoneyEarned());
-			return actorStatBuffer;
-		case rankingStatActorMoneySpentIndex:
-			xr_sprintf(actorStatBuffer, sizeof(actorStatBuffer), "%u", Actor()->GetStatMoneySpent());
-			return actorStatBuffer;
-		case rankingStatActorHelpWoundedIndex:
-			xr_sprintf(actorStatBuffer, sizeof(actorStatBuffer), "%u", Actor()->GetStatHelpWounded());
-			return actorStatBuffer;
-		case rankingStatActorHeadshotsIndex:
-			xr_sprintf(actorStatBuffer, sizeof(actorStatBuffer), "%u", Actor()->GetStatHeadshots());
-			return actorStatBuffer;
-		case rankingStatActorDeathsIndex:
-			xr_sprintf(actorStatBuffer, sizeof(actorStatBuffer), "%u", Actor()->GetStatDeaths());
-			return actorStatBuffer;
-		case rankingStatActorDistanceIndex:
-			xr_sprintf(actorStatBuffer, sizeof(actorStatBuffer), "%.2f km", Actor()->GetStatDistanceMeters() / 1000.0f);
-			return actorStatBuffer;
-		default:
-			break;
-		}
+		return actorStatBuffer;
 	}
 
-	const char* indexValue = nullptr;
-	if (PdaScriptBridge::TryCall(PdaScript::GetStat, index, indexValue))
+	if (index <= rankingStatLegacyScriptMaxIndex)
 	{
-		return indexValue;
+		const char* indexValue = nullptr;
+		if (PdaScriptBridge::TryCall(PdaScript::GetStat, index, indexValue) && indexValue && indexValue[0])
+		{
+			return indexValue;
+		}
 	}
 
 	return "";
