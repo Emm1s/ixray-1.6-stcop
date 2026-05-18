@@ -85,7 +85,7 @@ Snd_ThreadProc(void* data)
 {
     PROF_THREAD("Sound Thread");
 
-#if 0
+#ifdef IXR_WINDOWS
     Snd_Initialize();
     while (backend.is_running) {
         PROF_EVENT("Sound: WASAPI update");
