@@ -550,6 +550,10 @@ void CUIRankingWnd::InitStatInfo(CUIXml& xml)
 	if (xml.NavigateToNode("stat_list", 0))
 	{
 		_statList = UIHelper::CreateStackPanel(xml, "stat_list", this, false);
+		if (_statList)
+		{
+			_statList->Show(true);
+		}
 	}
 
 	for (u32 i = 0; i < legacyCount; ++i)
@@ -664,6 +668,8 @@ bool CUIRankingWnd::InitSplitStatColumns(CUIXml& xml, XML_NODE* statInfoNode, co
 		layoutParent = _statColumns;
 	}
 
+	xml.SetLocalRoot(statInfoNode);
+
 	_statCaptionsStack = UIHelper::CreateStackPanel(xml, captionsStackPath, layoutParent, false);
 	_statValuesStack = UIHelper::CreateStackPanel(xml, valuesStackPath, layoutParent, false);
 	if (!_statCaptionsStack || !_statValuesStack)
@@ -671,15 +677,17 @@ bool CUIRankingWnd::InitSplitStatColumns(CUIXml& xml, XML_NODE* statInfoNode, co
 		return false;
 	}
 
+	_statCaptionsStack->Show(true);
+	_statValuesStack->Show(true);
+
 	for (u32 i = 0; i < captionCount; ++i)
 	{
 		StatItem item = {};
 		item.layout = StatItem::ELayout::SplitColumns;
 
 		xml.SetLocalRoot(captionInitRoot);
-		item.caption = new CUIStatic();
-		item.caption->SetAutoDelete(true);
-		if (!CUIXmlInit::InitStatic(xml, "stat_caption", (int)i, item.caption))
+		item.caption = UIHelper::CreateStatic(xml, "stat_caption", _statCaptionsStack, false, (int)i);
+		if (!item.caption)
 		{
 			VERIFY2(false, make_string<const char*>("stat_caption[%u]: init failed", i));
 			xml.SetLocalRoot(statInfoNode);
@@ -691,7 +699,7 @@ bool CUIRankingWnd::InitSplitStatColumns(CUIXml& xml, XML_NODE* statInfoNode, co
 		{
 			item.caption->AdjustWidthToText();
 		}
-		_statCaptionsStack->AttachChild(item.caption);
+		item.caption->Show(true);
 
 		XML_NODE* captionNode = xml.NavigateToNode(captionInitRoot, "stat_caption", i);
 		if (captionNode)
@@ -700,16 +708,15 @@ bool CUIRankingWnd::InitSplitStatColumns(CUIXml& xml, XML_NODE* statInfoNode, co
 		}
 
 		xml.SetLocalRoot(valueInitRoot);
-		item.value = new CUIStatic();
-		item.value->SetAutoDelete(true);
-		if (!CUIXmlInit::InitStatic(xml, "stat_value", (int)i, item.value))
+		item.value = UIHelper::CreateStatic(xml, "stat_value", _statValuesStack, false, (int)i);
+		if (!item.value)
 		{
 			VERIFY2(false, make_string<const char*>("stat_value[%u]: init failed", i));
 			xml.SetLocalRoot(statInfoNode);
 			return false;
 		}
 		item.value->SetTextColor(valueColor);
-		_statValuesStack->AttachChild(item.value);
+		item.value->Show(true);
 
 		m_stat_items.push_back(item);
 	}
@@ -769,6 +776,7 @@ bool CUIRankingWnd::InitStackedStatRow(CUIXml& xml, XML_NODE* statInfoNode, cons
 		xml.SetLocalRoot(statInfoNode);
 		return false;
 	}
+	item.rowStack->Show(true);
 
 	item.caption = new CUIStatic();
 	item.caption->SetAutoDelete(true);
@@ -779,6 +787,7 @@ bool CUIRankingWnd::InitStackedStatRow(CUIXml& xml, XML_NODE* statInfoNode, cons
 		return false;
 	}
 	item.caption->AdjustWidthToText();
+	item.caption->Show(true);
 	item.rowStack->AttachChild(item.caption);
 
 	item.value = new CUIStatic();
@@ -790,6 +799,7 @@ bool CUIRankingWnd::InitStackedStatRow(CUIXml& xml, XML_NODE* statInfoNode, cons
 		return false;
 	}
 	item.value->SetTextColor(valueColor);
+	item.value->Show(true);
 	item.rowStack->AttachChild(item.value);
 
 	item.statId = xml.ReadAttrib(statRowNode, "id", "");

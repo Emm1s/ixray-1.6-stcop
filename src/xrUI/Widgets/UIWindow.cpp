@@ -249,10 +249,10 @@ void CUIWindow::AttachChild(CUIWindow* pChild)
 	R_ASSERT(pChild);
 	if (!pChild) return;
 
-	R_ASSERT(!IsChild(pChild));
 	pChild->SetParent(this);
 
 	xrCriticalSectionGuard guard(csUi);
+	R_ASSERT(std::find(m_ChildWndList.begin(), m_ChildWndList.end(), pChild) == m_ChildWndList.end());
 	m_ChildWndList.push_back(pChild);
 }
 
@@ -761,11 +761,23 @@ CUIWindow* CUIWindow::GetMessageTarget()
 	return m_pMessageTarget?m_pMessageTarget:GetParent();
 }
 
-bool CUIWindow::IsChild(CUIWindow *pPossibleChild) const
+bool CUIWindow::IsChild(CUIWindow* pPossibleChild) const
 {
-	xrCriticalSectionGuard guard(const_cast<xrCriticalSection&>(csUi));
-	WINDOW_LIST::const_iterator it = std::find(m_ChildWndList.begin(), m_ChildWndList.end(), pPossibleChild);
-	return it != m_ChildWndList.end();
+	if (!pPossibleChild)
+	{
+		return false;
+	}
+
+	// Non-blocking: Draw/Update may hold csUi on this window while iterating children.
+	xrCriticalSection& sync = const_cast<xrCriticalSection&>(csUi);
+	if (!sync.TryEnter())
+	{
+		return false;
+	}
+
+	const bool isChild = std::find(m_ChildWndList.begin(), m_ChildWndList.end(), pPossibleChild) != m_ChildWndList.end();
+	sync.Leave();
+	return isChild;
 }
 
 

@@ -16,7 +16,8 @@ public:
     bool IsActive() const { return _contacts != nullptr; }
 
 private:
-    CUIPdaContactsWnd* _contacts;
+    CUIPdaContactsWnd* _contacts = nullptr;
+    bool _dialogOnRightFrame = false;
     Fvector2 _savedTalkDlgPos;
     Fvector2 _savedTalkDlgSize;
 };

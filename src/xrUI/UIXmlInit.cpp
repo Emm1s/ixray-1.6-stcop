@@ -248,11 +248,11 @@ bool CUIXmlInit::InitStackPanel(CUIXml& xml_doc, const char* path, int index, CU
 		return RetVal;
 
 	CUIStackPanel::EStackPanelAlignment mode = CUIStackPanel::eLeft;
-	if (xml_doc.ReadAttribBool(path, index, "right", true))
+	if (xml_doc.ReadAttribBool(path, index, "right", false))
 	{
 		mode = CUIStackPanel::eRight;
 	}
-	const char* mode_str = xml_doc.ReadAttrib(path, index, "sp_align");
+	const char* mode_str = xml_doc.ReadAttrib(path, index, "sp_align", "left");
 	if (_stricmp(mode_str, "right") == 0) { mode = CUIStackPanel::eRight; }
 	else if (_stricmp(mode_str, "top") == 0) { mode = CUIStackPanel::eTop; }
 	else if (_stricmp(mode_str, "left") == 0) { mode = CUIStackPanel::eLeft; }

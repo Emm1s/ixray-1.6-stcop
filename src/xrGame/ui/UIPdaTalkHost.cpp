@@ -68,6 +68,7 @@ bool CUIPdaTalkHost::Begin(CUITalkWnd* talkWnd, CUIPdaContactsWnd* contacts)
     dialogWnd->SetMessageTarget(talkWnd);
 
     _contacts = contacts;
+    _dialogOnRightFrame = true;
     return true;
 }
 
@@ -82,13 +83,16 @@ void CUIPdaTalkHost::End(CUITalkWnd* talkWnd)
     if (!talkWnd || !dialogWnd)
     {
         _contacts = nullptr;
+        _dialogOnRightFrame = false;
         return;
     }
 
     CUIFrameWindow* rightFrame = _contacts->GetRightFrame();
-    if (rightFrame && rightFrame->IsChild(dialogWnd))
+    if (_dialogOnRightFrame && rightFrame && dialogWnd)
     {
+        dialogWnd->SetAutoDelete(false);
         rightFrame->DetachChild(dialogWnd);
+        _dialogOnRightFrame = false;
     }
 
     CUIScrollView* details = _contacts->GetDetailsScroll();
@@ -99,7 +103,8 @@ void CUIPdaTalkHost::End(CUITalkWnd* talkWnd)
 
     dialogWnd->ReloadDialogLayout(false);
 
-    if (!talkWnd->IsChild(dialogWnd))
+    dialogWnd->SetAutoDelete(false);
+    if (dialogWnd->GetParent() != talkWnd)
     {
         talkWnd->AttachChild(dialogWnd);
     }
@@ -110,4 +115,5 @@ void CUIPdaTalkHost::End(CUITalkWnd* talkWnd)
     dialogWnd->SetMessageTarget(nullptr);
 
     _contacts = nullptr;
+    _dialogOnRightFrame = false;
 }
