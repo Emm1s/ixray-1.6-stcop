@@ -1041,6 +1041,8 @@ xr_vector<char*>* CLocatorAPI::file_list_open			(const char* _path, u32 flags)
 		xr_strcpy(N,sizeof(N), _path);
 	}
 
+	xr_strcpy(N, Platform::ValidPath(N));
+	
 	xrSRWLockGuard g(m_files_lock, true);
 	
 	file			desc;
