@@ -337,8 +337,10 @@ void CRenderDevice::BeginRender()
 {
 	PROF_EVENT("CRenderDevice::BeginRender");
 
+#ifdef IXR_WINDOWS
 	CImGuiManager::Instance().NewPlatformFrame();
 	CImGuiManager::Instance().UpdateCapture();
+#endif
 }
 
 extern int main_menu_fps_limit, fps_limit;
