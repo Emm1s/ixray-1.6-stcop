@@ -1492,7 +1492,9 @@ T *CLocatorAPI::r_open_impl	(const char* path, const char* _fname)
 		xr_string temp_path = Platform::ValidPath(_fname);
 		std::replace(temp_path.begin(), temp_path.end(), '/', '\\'); 
 		if (!check_for_file(path,temp_path.data(),fname,desc)) {
-			return nullptr;
+			if (!check_for_file(path,_fname,fname,desc)) {
+				return nullptr;
+			}
 		}
 	}
 #endif
