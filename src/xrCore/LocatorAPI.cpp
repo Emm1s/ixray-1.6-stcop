@@ -991,6 +991,13 @@ const CLocatorAPI::file* CLocatorAPI::exist			(const char* fn)
 {
 	xrSRWLockGuard g(m_files_lock, true);
 	files_it it = file_find_it(fn);
+
+	if (it == m_files.end()) {
+		xr_string temp_path = fn;
+		std::replace(temp_path.begin(), temp_path.end(), '/', '\\'); 
+		it = file_find_it(temp_path.data());
+	}
+
 	return (it != m_files.end()) ? &(*it) : nullptr;
 }
 
@@ -1042,13 +1049,23 @@ xr_vector<char*>* CLocatorAPI::file_list_open			(const char* _path, u32 flags)
 	}
 
 	xr_strcpy(N, Platform::ValidPath(N));
-	
+
 	xrSRWLockGuard g(m_files_lock, true);
 	
 	file			desc;
 	desc.name		= N;
 	files_it	I 	= m_files.find(desc);
-	if (I==m_files.end())	return nullptr;
+	if (I==m_files.end())	{
+		for (int i = 0; i < strlen(N); ++i) {
+			if (N[i] == '/') N[i] = '\\';
+		}
+
+		I = m_files.find(desc);
+
+		if (I==m_files.end())	{
+			return nullptr;
+		}
+	}
 	
 	xr_vector<char*>*	dest	= new xr_vector<char*>();
 
@@ -1471,7 +1488,8 @@ T *CLocatorAPI::r_open_impl	(const char* path, const char* _fname)
 	}
 #else
 	if (!check_for_file(path,Platform::ValidPath(_fname),fname,desc)) {
-		xr_string temp_path = fname;
+		memset(fname, 0, sizeof(fname));
+		xr_string temp_path = Platform::ValidPath(_fname);
 		std::replace(temp_path.begin(), temp_path.end(), '/', '\\'); 
 		if (!check_for_file(path,temp_path.data(),fname,desc)) {
 			return nullptr;
