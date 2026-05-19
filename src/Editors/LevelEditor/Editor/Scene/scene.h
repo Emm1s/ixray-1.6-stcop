@@ -360,6 +360,8 @@ public:
 	bool IsValidateAtMake = true;
 	bool IsValidateDublicateNames = true;
 	bool IsValidateLODs = true;
+
+	bool IsAIMapDefaultLegacy = false;
 private:
 	bool IsAppliedPos = false;
 	bool IsPIERayPick = false;
