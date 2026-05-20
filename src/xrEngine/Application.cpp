@@ -401,7 +401,7 @@ int CApplication::Level_ID(const char* name, const char* ver, bool bSet)
 		Level_Scan();
 
 	string256 buffer;
-	xr_strconcat(buffer, name, "\\");
+	xr_strconcat(buffer, name, Platform::kPreferredSeparator);
 	for (u32 I = 0; I < Levels.size(); ++I)
 	{
 		if (0 == _stricmp(buffer, Levels[I].folder))
