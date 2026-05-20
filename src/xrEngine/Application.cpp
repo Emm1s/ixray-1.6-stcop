@@ -316,7 +316,7 @@ void gen_logo_name(string_path& dest, const char* level_name, int num)
 	xr_strconcat(dest, "intro\\intro_", level_name);
 
 	u32 len = xr_strlen(dest);
-	if (dest[len - 1] == '\\')
+	if (dest[len - 1] == Platform::kPreferredSeparator[0])
 		dest[len - 1] = 0;
 
 	string16 buff;

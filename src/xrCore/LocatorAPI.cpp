@@ -1694,18 +1694,21 @@ xr_string CLocatorAPI::fix_path(const xr_string& file)
 	return TempPath;
 }
 
-CLocatorAPI::files_it CLocatorAPI::file_find_it(const char* fname)
+CLocatorAPI::files_it CLocatorAPI::file_find_it(const char* InputPath)
 {
 	// проверить нужно ли пересканировать пути
 	check_pathes	();
 
-	file			desc_f;
-	string_path		file_name;
-	VERIFY			(xr_strlen(fname)*sizeof(char) < sizeof(file_name));
-	xr_strcpy		(file_name,sizeof(file_name),fname);
-	desc_f.name		= file_name;
-	files_it I		= m_files.find(desc_f);
-	return			(I);
+	string_path file_name;
+
+	VERIFY(xr_strlen(InputPath)*sizeof(char) < sizeof(file_name));
+	xr_strcpy(file_name,sizeof(file_name),InputPath);
+	xr_strcpy(file_name, Platform::ValidPath(file_name));
+	
+	file desc_f;
+	desc_f.name = file_name;
+	files_it I = m_files.find(desc_f);
+	return (I);
 }
 
 bool CLocatorAPI::TryLoad(const xr_string& File)
