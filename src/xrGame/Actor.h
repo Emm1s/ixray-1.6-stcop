@@ -28,6 +28,8 @@ using namespace ACTOR_DEFS;
 class CInfoPortion;
 struct GAME_NEWS_DATA;
 class CActorCondition;
+class CAI_Stalker;
+class CInventoryItem;
 class CCustomOutfit;
 class CGameTaskRegistryWrapper;
 class CGameNewsRegistryWrapper;
@@ -176,12 +178,14 @@ public:
 			void RegisterHeadshotKill();
 			void RegisterPlayerDeath();
 			void RegisterHelpWounded();
+			void TryRegisterHelpWounded(CAI_Stalker* targetStalker, const CInventoryItem* item);
 			u32 GetStatMoneyEarned	() const { return m_statMoneyEarned; }
 			u32 GetStatMoneySpent	() const { return m_statMoneySpent; }
 			float GetStatDistanceMeters() const { return m_statDistanceMeters; }
 			u32 GetStatHeadshots	() const { return m_statHeadshots; }
 			u32 GetStatDeaths		() const { return m_statDeaths; }
 			u32 GetStatHelpWounded	() const { return m_statHelpWounded; }
+			u32 GetPdaRankingStatRevision() const { return m_pdaRankingStatRevision; }
     CEncyclopediaRegistryWrapper*	encyclopedia_registry;
 	CGameNewsRegistryWrapper		*game_news_registry;
 	CCharacterPhysicsSupport		*m_pPhysics_support;
@@ -264,7 +268,9 @@ protected:
 	u32					m_statHeadshots = 0;
 	u32					m_statDeaths = 0;
 	u32					m_statHelpWounded = 0;
+	u32					m_pdaRankingStatRevision = 0;
 	bool				m_isMoneyStatInitialized = false;
+			void BumpPdaRankingStatRevision();
 	Fvector				m_lastStatPosition = {};
 	bool				m_hasLastStatPosition = false;
 	ref_sound			m_rainOnHelmetSnd = {};

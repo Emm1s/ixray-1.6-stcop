@@ -97,6 +97,7 @@ private:
 		CUIWindow* rowRoot = nullptr;
 		CUIStatic* caption = nullptr;
 		CUIStatic* value = nullptr;
+		shared_str cachedValue;
 	};
 
 	xr_vector<StatItem> m_stat_items;
@@ -107,6 +108,9 @@ private:
 
 	u32					m_delay;
 	u32					m_previous_time;
+	u32					m_statDelay;
+	u32					m_statPreviousTime;
+	u32					m_actorStatRevision;
 	u32					m_stat_count;
 	const char*				m_last_monster_icon_back;
 	const char*				m_last_monster_icon;
@@ -144,6 +148,8 @@ protected:
 			void		clear_all_factions		();
 			bool		SortingLessFunction		(CUIWindow* left, CUIWindow* right);
 			void		RefreshStatItems		();
+			void		RefreshStatItemsIfNeeded();
+			void		update_ranking_heavy	();
 			void		InitStatInfo			(CUIXml& xml);
 			bool		InitLegacyStat			(CUIXml& xml, XML_NODE* statInfoNode, u32 index, u32 valueColor);
 			bool		InitSplitStatColumns		(CUIXml& xml, XML_NODE* statInfoNode, u32 valueColor);

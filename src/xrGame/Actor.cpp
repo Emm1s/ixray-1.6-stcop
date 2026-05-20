@@ -46,6 +46,23 @@
 #include "Wound.h"
 #include "inventory_space.h"
 #include "nvg.h"
+#include "ai/stalker/ai_stalker.h"
+
+namespace
+{
+bool IsMedkitSection(const shared_str& section)
+{
+	return section == "medkit"
+		|| section == "medkit_army"
+		|| section == "medkit_scientic"
+		|| section == "medkit_script";
+}
+
+bool StalkerNeedsMedkitHelp(CAI_Stalker& stalker)
+{
+	return stalker.g_Alive() && (stalker.wounded() || stalker.critically_wounded());
+}
+} // namespace
 
 u16 old_slot = 0;
 bool need_restore_detector = false;
@@ -1189,6 +1206,11 @@ void CActor::HitSignal(float perc, Fvector& vLocalDir, CObject* who, s16 element
 	}
 }
 void start_tutorial(const char* name);
+void CActor::BumpPdaRankingStatRevision()
+{
+	++m_pdaRankingStatRevision;
+}
+
 void CActor::OnMoneyChanged(u32 previousMoney, u32 newMoney)
 {
 	if (!m_isMoneyStatInitialized)
@@ -1200,10 +1222,12 @@ void CActor::OnMoneyChanged(u32 previousMoney, u32 newMoney)
 	if (newMoney > previousMoney)
 	{
 		m_statMoneyEarned += (newMoney - previousMoney);
+		BumpPdaRankingStatRevision();
 	}
 	else if (newMoney < previousMoney)
 	{
 		m_statMoneySpent += (previousMoney - newMoney);
+		BumpPdaRankingStatRevision();
 	}
 }
 
@@ -1218,16 +1242,39 @@ void CActor::AddDistanceMeters(float deltaMeters)
 void CActor::RegisterHeadshotKill()
 {
 	++m_statHeadshots;
+	BumpPdaRankingStatRevision();
 }
 
 void CActor::RegisterPlayerDeath()
 {
 	++m_statDeaths;
+	BumpPdaRankingStatRevision();
 }
 
 void CActor::RegisterHelpWounded()
 {
 	++m_statHelpWounded;
+	BumpPdaRankingStatRevision();
+}
+
+void CActor::TryRegisterHelpWounded(CAI_Stalker* targetStalker, const CInventoryItem* item)
+{
+	if (!targetStalker || !item || !g_Alive())
+	{
+		return;
+	}
+
+	if (!StalkerNeedsMedkitHelp(*targetStalker))
+	{
+		return;
+	}
+
+	if (!IsMedkitSection(item->object().cNameSect()))
+	{
+		return;
+	}
+
+	RegisterHelpWounded();
 }
 
 void CActor::Die	(CObject* who)
@@ -1237,7 +1284,6 @@ void CActor::Die	(CObject* who)
 #ifdef DEBUG
 	Msg("--- Actor [%s] dies !", this->Name());
 #endif // #ifdef DEBUG
-	RegisterPlayerDeath();
 	inherited::Die		(who);
 
 	if (OnServer())

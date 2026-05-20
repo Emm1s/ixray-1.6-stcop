@@ -24,6 +24,7 @@
 #include "trade_parameters.h"
 #include "clsid_game.h"
 #include "Actor.h"
+#include "Actor.h"
 
 extern u32 get_rank(const shared_str& section);
 
@@ -85,14 +86,7 @@ void CAI_Stalker::transfer_item(CInventoryItem* item, CGameObject* old_owner, CG
 	{
 		if (CActor* const actor = old_owner->cast_actor())
 		{
-			if (critically_wounded())
-			{
-				const shared_str& section = item->object().cNameSect();
-				if (section == "medkit" || section == "medkit_army" || section == "medkit_scientic")
-				{
-					actor->RegisterHelpWounded();
-				}
-			}
+			actor->TryRegisterHelpWounded(this, item);
 		}
 	}
 

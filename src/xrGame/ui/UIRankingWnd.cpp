@@ -160,7 +160,10 @@ CUIRankingWnd::CUIRankingWnd()
 {
 	m_actor_ch_info				= nullptr;
 	m_previous_time				= Device.dwTimeGlobal;
+	m_statPreviousTime			= Device.dwTimeGlobal;
+	m_actorStatRevision			= 0;
 	m_delay						= 3000;
+	m_statDelay					= 250;
 	m_last_monster_icon_back	= "";
 	m_last_monster_icon			= "";
 	m_last_weapon_icon			= "";
@@ -207,9 +210,14 @@ void CUIRankingWnd::Show( bool status )
 			xr_sprintf(buf, sizeof(buf), "%d %s", Actor()->get_money(), "RU");
 			m_money_value->SetText(buf);
 			m_money_value->AdjustWidthToText();
-			update_info();
-			inherited::Update();
 		}
+
+		m_actorStatRevision = Actor()->GetPdaRankingStatRevision();
+		m_statPreviousTime = Device.dwTimeGlobal;
+		m_previous_time = Device.dwTimeGlobal;
+		RefreshStatItems();
+		update_ranking_heavy();
+		inherited::Update();
 	}
 	inherited::Show( status );
 }
@@ -222,10 +230,12 @@ void CUIRankingWnd::Update()
 		return;
 	}
 
+	RefreshStatItemsIfNeeded();
+
 	if (Device.dwTimeGlobal - m_previous_time > m_delay)
 	{
 		m_previous_time = Device.dwTimeGlobal;
-		update_info();
+		update_ranking_heavy();
 	}
 }
 
@@ -238,6 +248,7 @@ void CUIRankingWnd::Init()
 	CUIXmlInit::InitWindow( xml, "main_wnd", 0, this );
 	XML_NODE* stored_root = xml.GetLocalRoot();
 	m_delay				= (u32)xml.ReadAttribInt( "main_wnd", 0, "delay",	3000 );
+	m_statDelay			= (u32)xml.ReadAttribInt( "main_wnd", 0, "stat_delay", 250 );
 
     m_background = UIHelper::CreateFrameWindow(xml, "background", this, false);
     if (!m_background)
@@ -450,6 +461,12 @@ void CUIRankingWnd::add_achievement(CUIXml& xml, shared_str const& achiev_id)
 
 void CUIRankingWnd::update_info()
 {
+	update_ranking_heavy();
+	RefreshStatItems();
+}
+
+void CUIRankingWnd::update_ranking_heavy()
+{
 	for (const auto& achievement : m_achieves_vec)
 		achievement->Update();
 
@@ -463,7 +480,6 @@ void CUIRankingWnd::update_info()
 		m_coc_ranking_actor->Update();
 		//-Alundaio
 	}
-	RefreshStatItems();
 	get_best_monster();
 	get_favorite_weapon();
 	get_valuable_artifact_icon();
@@ -496,6 +512,37 @@ void CUIRankingWnd::update_info()
     }
 
     m_factions_list->ForceUpdate();
+}
+
+void CUIRankingWnd::RefreshStatItemsIfNeeded()
+{
+	CActor* actor = Actor();
+	if (!actor)
+	{
+		return;
+	}
+
+	const u32 revision = actor->GetPdaRankingStatRevision();
+	const bool revisionChanged = revision != m_actorStatRevision;
+	const bool statIntervalElapsed = m_statDelay == 0
+		|| Device.dwTimeGlobal - m_statPreviousTime >= m_statDelay;
+
+	if (!revisionChanged && !statIntervalElapsed)
+	{
+		return;
+	}
+
+	if (revisionChanged)
+	{
+		m_actorStatRevision = revision;
+	}
+
+	if (statIntervalElapsed)
+	{
+		m_statPreviousTime = Device.dwTimeGlobal;
+	}
+
+	RefreshStatItems();
 }
 
 void CUIRankingWnd::InitStatInfo(CUIXml& xml)
@@ -846,7 +893,12 @@ void CUIRankingWnd::RefreshStatItems()
 	InventoryUtilities::GetTimePeriodAsString(timeBuf, sizeof(timeBuf), Level().GetStartGameTime(), Level().GetGameTime());
 	if (m_stat_items[0].value)
 	{
-		m_stat_items[0].value->SetText(timeBuf);
+		const shared_str timeText = timeBuf;
+		if (m_stat_items[0].cachedValue != timeText)
+		{
+			m_stat_items[0].cachedValue = timeText;
+			m_stat_items[0].value->SetText(timeBuf);
+		}
 	}
 
 	for (u32 i = 1; i < m_stat_count; ++i)
@@ -861,10 +913,20 @@ void CUIRankingWnd::RefreshStatItems()
 		const char* statValue = GetStatValue(item, i);
 		if (!statValue || !statValue[0])
 		{
-			item.value->SetText("");
+			if (item.cachedValue.size() != 0)
+			{
+				item.cachedValue = "";
+				item.value->SetText("");
+			}
 			continue;
 		}
 
+		if (item.cachedValue == statValue)
+		{
+			continue;
+		}
+
+		item.cachedValue = statValue;
 		item.value->SetText(statValue);
 	}
 }
@@ -979,6 +1041,13 @@ const char* CUIRankingWnd::GetStatValue(const StatItem& item, const u32 index) c
 
 	if (item.statId.size() != 0)
 	{
+		const bool preferLuaDistanceFormat = m_isGetPdaStatById
+			&& RankingStatIdMatches(item.statId, PdaRankingStatId::Distance);
+		if (!preferLuaDistanceFormat && TryFormatActorStatById(actor, item.statId, actorStatBuffer))
+		{
+			return actorStatBuffer;
+		}
+
 		if (m_isGetPdaStatById)
 		{
 			const char* value = nullptr;
@@ -992,11 +1061,6 @@ const char* CUIRankingWnd::GetStatValue(const StatItem& item, const u32 index) c
 		if (PdaScriptBridge::TryCall(PdaScript::GetStatById, item.statId.c_str(), value) && value && value[0])
 		{
 			return value;
-		}
-
-		if (TryFormatActorStatById(actor, item.statId, actorStatBuffer))
-		{
-			return actorStatBuffer;
 		}
 	}
 

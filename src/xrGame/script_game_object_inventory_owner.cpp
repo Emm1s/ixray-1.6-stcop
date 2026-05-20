@@ -542,14 +542,9 @@ void CScriptGameObject::TransferItem(CScriptGameObject* pItem, CScriptGameObject
 	if (CActor* actor = object().cast_actor())
 	{
 		CEntityAlive* const targetAlive = pForWho->object().cast_entity_alive();
-		CAI_Stalker* const targetStalker = targetAlive ? targetAlive->cast_stalker() : nullptr;
-		if (targetStalker && targetStalker->critically_wounded())
+		if (CAI_Stalker* const targetStalker = targetAlive ? targetAlive->cast_stalker() : nullptr)
 		{
-			const shared_str& section = pIItem->object().cNameSect();
-			if (section == "medkit" || section == "medkit_army" || section == "medkit_scientic")
-			{
-				actor->RegisterHelpWounded();
-			}
+			actor->TryRegisterHelpWounded(targetStalker, pIItem);
 		}
 	}
 
