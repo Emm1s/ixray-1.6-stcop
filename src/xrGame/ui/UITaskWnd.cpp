@@ -24,6 +24,7 @@
 #include "../../xrEngine/string_table.h"
 #include "../../xrUI/Widgets/UIGamepadLegend.h"
 #include "PdaConstants.h"
+#include "PdaUiSound.h"
 
 CUITaskWnd::CUITaskWnd()
 	: m_background(nullptr), m_background2(nullptr),
@@ -131,6 +132,7 @@ void CUITaskWnd::Init()
 	m_pMapWnd						= new CUIMapWnd(); 
 	m_pMapWnd->SetAutoDelete		(false);
 	m_pMapWnd->hint_wnd				= hint_wnd;
+	m_pMapWnd->SetUiSounds			(m_pUiSounds);
 	m_pMapWnd->Init					(PDA_TASK_XML, PdaConfig::MapSubdialogWindowName);
 	AttachChild						(m_pMapWnd);
 
@@ -173,6 +175,7 @@ void CUITaskWnd::Init()
 	m_task_wnd->SetAutoDelete	(true);
 	m_task_wnd->hint_wnd		= hint_wnd;
 	m_task_wnd->init_from_xml	(xml, "second_task_wnd");
+	m_task_wnd->SetUiSounds		(m_pUiSounds);
 
 	m_pMapWnd->AttachChild		(m_task_wnd);
 	m_task_wnd->SetMessageTarget(this);
@@ -192,12 +195,18 @@ void CUITaskWnd::Init()
 
 	m_map_legend_wnd					= new UIMapLegend(); 
 	m_map_legend_wnd->SetAutoDelete		(true);
+	m_map_legend_wnd->SetUiSounds		(m_pUiSounds);
 	m_map_legend_wnd->init_from_xml		(xml, "map_legend_wnd");
 	m_pMapWnd->AttachChild				(m_map_legend_wnd);
 	m_map_legend_wnd->SetMessageTarget	(this);
 	m_map_legend_wnd->Show				(false);
 
 	m_gamepad_legend			= UIHelper::CreateGamepadLegend(xml, "gamepad_legend", this, false);
+
+	if (m_pUiSounds)
+	{
+		m_pUiSounds->LoadTaskWindow(xml);
+	}
 }
 
 void CUITaskWnd::Update()
@@ -440,7 +449,12 @@ void CUITaskWnd::OnPrevTaskClicked()
 void CUITaskWnd::OnShowTaskListWnd( CUIWindow* w, void* d )
 {
 	m_task_wnd_show = !m_task_wnd_show;
-	m_task_wnd->Show( !m_task_wnd->IsShown() );
+	const bool showList = !m_task_wnd->IsShown();
+	if (m_pUiSounds)
+	{
+		m_pUiSounds->PlayPanel(showList);
+	}
+	m_task_wnd->Show(showList);
 }
 
 void CUITaskWnd::Show_TaskListWnd(bool status)
@@ -510,6 +524,10 @@ void CUITaskWnd::TaskShowMapSpot( CGameTask* task, bool show )
 
 void CUITaskWnd::OnTask1DbClicked(CUIWindow*, void*)
 {
+	if (m_pUiSounds)
+	{
+		m_pUiSounds->Play(EPdaUiSound::ListSelect);
+	}
 	CGameTask* primary = nullptr;
 	CGameTask* secondary = nullptr;
 	ResolveTaskRows(primary, secondary);
@@ -518,6 +536,10 @@ void CUITaskWnd::OnTask1DbClicked(CUIWindow*, void*)
 
 void CUITaskWnd::OnTask2DbClicked(CUIWindow*, void*)
 {
+	if (m_pUiSounds)
+	{
+		m_pUiSounds->Play(EPdaUiSound::ListSelect);
+	}
 	CGameTask* primary = nullptr;
 	CGameTask* secondary = nullptr;
 	ResolveTaskRows(primary, secondary);
@@ -531,49 +553,86 @@ void CUITaskWnd::ShowMapLegend( bool status )
 
 void CUITaskWnd::Switch_ShowMapLegend()
 {
-	m_map_legend_wnd->Show( !m_map_legend_wnd->IsShown() );
+	const bool showLegend = !m_map_legend_wnd->IsShown();
+	if (m_pUiSounds)
+	{
+		m_pUiSounds->PlayPanel(showLegend);
+	}
+	m_map_legend_wnd->Show(showLegend);
 }
 
 void CUITaskWnd::OnShowTreasures(CUIWindow* ui, void* d)
 {
+	if (m_pUiSounds)
+	{
+		m_pUiSounds->PlayFilterToggle();
+	}
 	m_bTreasuresEnabled = !m_bTreasuresEnabled;
 	ReloadTaskInfo();
 }
 void CUITaskWnd::OnShowPrimaryObjects(CUIWindow* ui, void* d)
 {
+	if (m_pUiSounds)
+	{
+		m_pUiSounds->PlayFilterToggle();
+	}
 	m_bPrimaryObjectsEnabled = !m_bPrimaryObjectsEnabled;
 	ReloadTaskInfo();
 }
 void CUITaskWnd::OnShowSecondaryTasks(CUIWindow* ui, void* d)
 {
+	if (m_pUiSounds)
+	{
+		m_pUiSounds->PlayFilterToggle();
+	}
 	SecondaryTasksEnabled(!m_bSecondaryTasksEnabled);
 }
 void CUITaskWnd::OnShowQuestNpcs(CUIWindow* ui, void* d)
 {
+	if (m_pUiSounds)
+	{
+		m_pUiSounds->PlayFilterToggle();
+	}
 	m_bQuestNpcsEnabled = !m_bQuestNpcsEnabled;
 	ReloadTaskInfo();
 }
 
 void CUITaskWnd::OnShowPersonalSpots(CUIWindow*, void*)
 {
+	if (m_pUiSounds)
+	{
+		m_pUiSounds->PlayFilterToggle();
+	}
 	m_bPersonalSpotsEnabled = !m_bPersonalSpotsEnabled;
 	ReloadTaskInfo();
 }
 
 void CUITaskWnd::OnTaskScopeStory(CUIWindow*, void*)
 {
+	if (m_pUiSounds)
+	{
+		m_pUiSounds->Play(EPdaUiSound::Tab);
+	}
 	m_taskScopeMode = ETaskScopeMode::Story;
 	ReloadTaskInfo();
 }
 
 void CUITaskWnd::OnTaskScopeSide(CUIWindow*, void*)
 {
+	if (m_pUiSounds)
+	{
+		m_pUiSounds->Play(EPdaUiSound::Tab);
+	}
 	m_taskScopeMode = ETaskScopeMode::Side;
 	ReloadTaskInfo();
 }
 
 void CUITaskWnd::OnTaskScopeFailed(CUIWindow*, void*)
 {
+	if (m_pUiSounds)
+	{
+		m_pUiSounds->Play(EPdaUiSound::Tab);
+	}
 	m_taskScopeMode = ETaskScopeMode::Failed;
 	ReloadTaskInfo();
 }
@@ -689,6 +748,20 @@ void CUITaskWnd::InitStorylineFocusButton(CUIXml& xml)
 	AddCallback(m_btn_focus, BUTTON_DOWN, CUIWndCallback::void_function(this, &CUITaskWnd::OnTask1DbClicked));
 }
 
+bool CUITaskWnd::OnMouseAction(float x, float y, EUIMessages mouse_action)
+{
+	if (m_pMapWnd && IsShown()
+		&& (mouse_action == WINDOW_MOUSE_WHEEL_UP || mouse_action == WINDOW_MOUSE_WHEEL_DOWN))
+	{
+		if (m_pMapWnd->ApplyMouseWheelZoom(mouse_action))
+		{
+			return true;
+		}
+	}
+
+	return inherited::OnMouseAction(x, y, mouse_action);
+}
+
 bool CUITaskWnd::OnGamepadKeyAction(int id, EUIMessages gamepad_action)
 {
 	if (gamepad_action == WINDOW_KEY_PRESSED)
@@ -790,7 +863,13 @@ bool CUITaskWnd::SwitchToNextFilter(bool bLoop)
 		}
 		m_currentFilterIndex = newFilterIndex;
 		if (m_cbFilters[m_currentFilterIndex])
+		{
+			if (m_pUiSounds)
+	{
+		m_pUiSounds->PlayFilterToggle();
+	}
 			return true;
+		}
 	}
 	return false;
 }
@@ -809,7 +888,13 @@ bool CUITaskWnd::SwitchToPrevFilter(bool bLoop)
 		}
 		m_currentFilterIndex = newFilterIndex;
 		if (m_cbFilters[m_currentFilterIndex])
+		{
+			if (m_pUiSounds)
+	{
+		m_pUiSounds->PlayFilterToggle();
+	}
 			return true;
+		}
 	}
 	return false;
 }

@@ -3,6 +3,7 @@
 #include "../../xrUI/Widgets/UIDialogWnd.h"
 #include "../encyclopedia_article_defs.h"
 #include "UIPdaAux.h"
+#include "PdaUiSound.h"
 
 class CInventoryOwner;
 class CUIFrameLineWnd;
@@ -62,8 +63,7 @@ protected:
 
 	CUIFrameLineWnd*		UIMainButtonsBackground;
 	CUIFrameLineWnd*		UITimerBackground;
-	ref_sound				m_soundKeyTab;
-	ref_sound				m_soundKeyClose;
+	CPdaUiSounds			m_uiSounds;
 
 	void					UpdateDateTime					(bool force = false);
 	void					UpdateLocationName				();
@@ -74,8 +74,6 @@ protected:
 	void					SetActiveTabBackground			(const shared_str& sectionId);
 	CUIWindow*				ResolveNativeSubdialog			(const shared_str& resolvedSection);
 	void					ApplyActiveSubdialog			(const shared_str& tabButtonSection, const shared_str& resolvedSection);
-	void					PlayKeyTabSound					();
-	void					PlayKeyCloseSound				();
 private:
 	bool m_isSetActiveSubdialog = false;
 	const char* m_onSetActiveSubdialog = {};
@@ -117,6 +115,8 @@ public:
 	virtual bool			OnGamepadKeyAction	(int key, EUIMessages gamepad_action);
 	virtual bool			OnGamepadKeyHold	(int key);
 			UIHint*			get_hint_wnd		() const { return m_hint_wnd; }
+			CPdaUiSounds&	UiSounds			() { return m_uiSounds; }
+			const CPdaUiSounds& UiSounds		() const { return m_uiSounds; }
 			void			DrawHint			();
 
 			void			SetActiveCaption	();

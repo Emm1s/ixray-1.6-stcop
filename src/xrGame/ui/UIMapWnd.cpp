@@ -23,6 +23,7 @@
 #include "map_hint.h"
 #include "../../xrUI/UICursor.h"
 #include "UIPdaSpot.h"
+#include "PdaUiSound.h"
 #include "UIMapZoomScale.h"
 
 #include "../../xrUI/Widgets/UIPropertiesBox.h"
@@ -309,9 +310,15 @@ void CUIMapWnd::Init(const char* xml_name, const char* start_from)
 
 	m_UserSpotWnd = new CUIPdaSpot();
 	m_UserSpotWnd->SetAutoDelete(true);
+	m_UserSpotWnd->SetUiSounds(m_pUiSounds);
 
 	if (!xr_strcmp(xml_name, "pda_map.xml"))
 		m_gamepad_legend = UIHelper::CreateGamepadLegend(uiXml, "gamepad_legend", this, false);
+
+	if (m_pUiSounds)
+	{
+		m_pUiSounds->LoadMapWindow(uiXml, start_from);
+	}
 }
 
 void CUIMapWnd::Show(bool status)
@@ -445,6 +452,11 @@ void CUIMapWnd::SetTargetMap			(CUICustomMap* m, const Fvector2& pos, bool bZoom
 
 void CUIMapWnd::MoveMap( Fvector2 const& pos_delta )
 {
+	if (m_pUiSounds && !pos_delta.similar({ 0.f, 0.f }, EPS_L))
+	{
+		m_pUiSounds->Play(EPdaUiSound::MapPan, true);
+	}
+
 	GlobalMap()->MoveWndDelta		(pos_delta);
 	UpdateScroll					();
 	HideCurHint();
@@ -612,8 +624,38 @@ bool CUIMapWnd::OnKeyboardAction				(int dik, EUIMessages keyboard_action)
 	return inherited::OnKeyboardAction	(dik, keyboard_action);
 }
 
+bool CUIMapWnd::ApplyMouseWheelZoom(EUIMessages mouse_action)
+{
+	if (mouse_action != WINDOW_MOUSE_WHEEL_DOWN && mouse_action != WINDOW_MOUSE_WHEEL_UP)
+	{
+		return false;
+	}
+
+	if (!GlobalMap() || GlobalMap()->Locked())
+	{
+		return false;
+	}
+
+	Fvector2 cursor_pos = GetUICursor().GetCursorPosition();
+	Frect map_rect = ActiveMapRect();
+	if (!map_rect.in(cursor_pos))
+	{
+		return false;
+	}
+
+	const float prev_zoom = GetZoom();
+	const bool zoom_in = mouse_action == WINDOW_MOUSE_WHEEL_DOWN;
+	UpdateZoom(zoom_in, false);
+	return !fsimilar(prev_zoom, GetZoom());
+}
+
 bool CUIMapWnd::OnMouseAction(float x, float y, EUIMessages mouse_action)
 {
+	if (ApplyMouseWheelZoom(mouse_action))
+	{
+		return true;
+	}
+
 	if ( inherited::OnMouseAction(x,y,mouse_action) /*|| m_btn_nav_parent->OnMouseAction(x,y,mouse_action)*/ )
 	{
 		return true;
@@ -635,16 +677,6 @@ bool CUIMapWnd::OnMouseAction(float x, float y, EUIMessages mouse_action)
 				return true;
 			}
 		break;
-
-		case WINDOW_MOUSE_WHEEL_DOWN:
-			UpdateZoom( true );
-			return true;
-		break;
-		case WINDOW_MOUSE_WHEEL_UP:
-			UpdateZoom( false );
-			return true;
-		break;
-
 		}//switch	
 	};
 
@@ -660,14 +692,14 @@ bool CUIMapWnd::OnGamepadKeyAction				(int id, EUIMessages gamepad_action)
 			case kPDA_TASKS_MAP_ZOOM_IN:
 			{
 				if (!any_binded_key_for_action_pressed_c(kPDA_TASKS_MAP_ZOOM_OUT))
-					UpdateZoom(true, true);
+					UpdateZoom(true, false);
 				ActionRepeaters()->SetActionStarted(this, kPDA_TASKS_MAP_ZOOM_IN);
 				return true;
 			}
 			case kPDA_TASKS_MAP_ZOOM_OUT:
 			{
 				if (!any_binded_key_for_action_pressed_c(kPDA_TASKS_MAP_ZOOM_IN))
-					UpdateZoom(false, true);
+					UpdateZoom(false, false);
 				ActionRepeaters()->SetActionStarted(this, kPDA_TASKS_MAP_ZOOM_OUT);
 				return true;
 			}
@@ -743,6 +775,10 @@ bool CUIMapWnd::UpdateZoom( bool b_zoom_in, bool b_use_dt )
 	
 	if ( !fsimilar( prev_zoom, GetZoom() ) )
 	{
+		if (m_pUiSounds)
+		{
+			m_pUiSounds->PlayMapZoom(b_zoom_in, b_use_dt);
+		}
 //		m_tgtCenter.set( 0, 0 );// = cursor_pos;
 		Frect vis_rect					= ActiveMapRect();
 		vis_rect.getcenter				(m_tgtCenter);
@@ -1006,6 +1042,11 @@ void CUIMapWnd::ViewActor()
 
 	SetTargetMap				(lm, m_prev_actor_pos, true);
 	m_controller_cursor_pos = m_controller_cursor_pos_initial;
+
+	if (m_pUiSounds)
+	{
+		m_pUiSounds->Play(EPdaUiSound::MapCenter);
+	}
 }
 
 void CUIMapWnd::ShowHintStr(CUIWindow* parent, const char* text) //map name

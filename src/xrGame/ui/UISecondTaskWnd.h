@@ -24,6 +24,7 @@ class CUIFrameLineWnd;
 class CGameTask;
 class CUITaskItem;
 class UIHint;
+class CPdaUiSounds;
 
 enum class ETaskListFilter : u8
 {
@@ -53,6 +54,7 @@ public:
 	virtual void	Update				();
 	virtual void	SendMessage			( CUIWindow* pWnd, s16 msg, void* pData );
 			void	SetFilterMode		(ETaskListFilter mode);
+			void	SetUiSounds			(CPdaUiSounds* uiSounds) { m_pUiSounds = uiSounds; }
 			ETaskListFilter GetFilterMode() const { return m_filter; }
 			bool	HasFilterTabs		() const { return m_filter_tabs != nullptr; }
 			void	UpdateStorylineTask	(CGameTask* task);
@@ -90,6 +92,7 @@ private: // m_
 //	u32					m_activ_task_count;
 	float				m_orig_h;
 	ETaskListFilter		m_filter;
+	CPdaUiSounds*		m_pUiSounds = nullptr;
 
 }; // class UITaskListWnd
 

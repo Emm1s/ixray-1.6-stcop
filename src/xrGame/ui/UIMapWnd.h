@@ -2,6 +2,7 @@
 
 #include "../../xrUI/Widgets/UIWindow.h"
 #include "../../xrUI/Widgets/UIWndCallback.h"
+class CPdaUiSounds;
 
 
 class CUICustomMap;
@@ -81,6 +82,7 @@ private:
 	// Optional XML: map_pattern_overlay (drawn above map; non-interactive).
 	CUIStatic*					m_mapPatternOverlay = nullptr;
 	UIMapZoomScale*				_zoomScale = nullptr;
+	CPdaUiSounds*				m_pUiSounds = nullptr;
 	u32							m_nav_timing;
 	Fvector2					m_controller_cursor_pos = { 0, 0 };
 	Fvector2					m_controller_cursor_pos_initial = { 0, 0 };
@@ -176,6 +178,8 @@ public:
 			void				HideHint				(CUIWindow* parent);
 			void				HideCurHint				();
 			void				Hint					(const shared_str& text);
+			bool				ApplyMouseWheelZoom		(EUIMessages mouse_action);
+			void				SetUiSounds				(CPdaUiSounds* uiSounds) { m_pUiSounds = uiSounds; }
 	virtual bool				OnMouseAction					(float x, float y, EUIMessages mouse_action);
 	virtual bool				OnKeyboardAction				(int dik, EUIMessages keyboard_action);
 	virtual bool				OnKeyboardHold			(int dik);

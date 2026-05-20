@@ -7,7 +7,7 @@
 #include "../../xrUI/Widgets/UICheckButton.h"
 #include "PdaConstants.h"
 #include "UISecondTaskWnd.h"
-
+class CPdaUiSounds;
 class CUIMapWnd;
 class CUIStatic;
 class CUIXml;
@@ -95,6 +95,7 @@ public:
 			void				DrawHint				();
 	virtual void				Show					(bool status);
 	virtual void				Reset					();
+	virtual bool				OnMouseAction			(float x, float y, EUIMessages mouse_action);
 	virtual bool				OnGamepadKeyAction		(int id, EUIMessages gamepad_action);
 	virtual bool				OnGamepadKeyHold		(int id);
 
@@ -128,10 +129,12 @@ public:
 			};
 
 			void				Show_TaskListWnd		(bool status);
+			void				SetUiSounds				(CPdaUiSounds* uiSounds) { m_pUiSounds = uiSounds; }
 
 			virtual CUIWindow* ui_cast_window() { return this; }
 
 protected:
+	CPdaUiSounds*				m_pUiSounds = nullptr;
 	// Controller
 	bool						SwitchToNextFilter		(bool loop);
 	bool						SwitchToPrevFilter		(bool loop);

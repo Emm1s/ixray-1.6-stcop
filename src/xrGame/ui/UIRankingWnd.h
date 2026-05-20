@@ -22,6 +22,7 @@ class CUIFrameWindow;
 class CUICharacterInfo;
 class CUIScrollView;
 class CUIGamepadLegend;
+class CPdaUiSounds;
 
 class CUIRankingWnd final :
 	public CUIWindow,
@@ -113,6 +114,8 @@ private:
 	shared_str				m_last_valuable_artifact_icon;
 	CUIGamepadLegend*	m_gamepad_legend = nullptr;
 
+	CPdaUiSounds*		m_pUiSounds = nullptr;
+
 	bool m_isGetRankingsArraySize = false;
 	const char* m_onGetRankingsArraySize = {};
 	bool m_isGetPdaStatById = false;
@@ -128,6 +131,7 @@ public:
 	virtual void		ResetAll				();
 
 			void		Init					();
+			void		SetUiSounds				(CPdaUiSounds* uiSounds) { m_pUiSounds = uiSounds; }
 			void		update_info				();
 
 			bool		OnGamepadKeyAction		(int key, EUIMessages gamepad_action) override;

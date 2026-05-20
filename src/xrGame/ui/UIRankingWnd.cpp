@@ -8,6 +8,7 @@
 #include "StdAfx.h"
 #include "pch_script.h"
 #include "UIRankingWnd.h"
+#include "PdaUiSound.h"
 
 #include "../../xrUI/Widgets/UIFixedScrollBar.h"
 #include "../../xrUI/UIXmlInit.h"
@@ -1057,6 +1058,10 @@ bool CUIRankingWnd::OnGamepadKeyAction(int key, EUIMessages gamepad_action)
 		{
 			case kPDA_LOG_SCROLL_UP:
 			{
+				if (m_pUiSounds)
+				{
+					m_pUiSounds->Play(EPdaUiSound::ListScroll, true);
+				}
 				CUIScrollView* scroll = m_achievements ? m_achievements : m_factions_list;
 				int orig = scroll->ScrollBar()->GetStepSize();
 				scroll->ScrollBar()->SetStepSize(RANKING_WND_SCROLL_STEP_SIZE);
@@ -1066,6 +1071,10 @@ bool CUIRankingWnd::OnGamepadKeyAction(int key, EUIMessages gamepad_action)
 			}
 			case kPDA_LOG_SCROLL_DOWN:
 			{
+				if (m_pUiSounds)
+				{
+					m_pUiSounds->Play(EPdaUiSound::ListScroll, true);
+				}
 				CUIScrollView* scroll = m_achievements ? m_achievements : m_factions_list;
 				int orig = scroll->ScrollBar()->GetStepSize();
 				scroll->ScrollBar()->SetStepSize(RANKING_WND_SCROLL_STEP_SIZE);

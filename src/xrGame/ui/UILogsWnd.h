@@ -27,6 +27,7 @@ struct GAME_NEWS_DATA;
 class CUINewsItemWnd;
 class CUIGamepadLegend;
 class CUICalendar;
+class CPdaUiSounds;
 
 class CUILogsWnd final : public CUIWindow, public CUIWndCallback
 {
@@ -75,6 +76,7 @@ private:
 
 	CUIXml				m_uiXml;
 	CUIGamepadLegend*	m_gamepad_legend = nullptr;
+	CPdaUiSounds*		m_pUiSounds = nullptr;
 
 	CUIWindow*			CreateItem			();
 	CUIWindow*			ItemFromCache		();
@@ -92,6 +94,7 @@ public:
 						~CUILogsWnd			() override;
 
 			void		Init				();
+			void		SetUiSounds			(CPdaUiSounds* uiSounds) { m_pUiSounds = uiSounds; }
 
 	void 				Show				( bool status ) override;
 	void				Update				() override;

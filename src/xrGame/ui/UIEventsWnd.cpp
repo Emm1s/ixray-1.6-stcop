@@ -5,6 +5,7 @@
 #include "../../xrUI/Widgets/UIFrameLineWnd.h"
 #include "../../xrUI/Widgets/UIAnimatedStatic.h"
 #include "UIMapWnd.h"
+#include "PdaUiSound.h"
 #include "../../xrUI/Widgets/UIScrollView.h"
 #include "../../xrUI/Widgets/UITabControl.h"
 #include "UITaskDescrWnd.h"
@@ -70,7 +71,13 @@ void CUIEventsWnd::Init				()
 	xml_init.InitWindow				(uiXml, "main_wnd:right_frame", 0, m_UIRightWnd);
 
 	m_UIMapWnd						= new CUIMapWnd(); m_UIMapWnd->SetAutoDelete(false);
+	m_UIMapWnd->SetUiSounds			(m_pUiSounds);
 	m_UIMapWnd->Init				("pda_events.xml","main_wnd:right_frame:map_wnd");
+
+	if (m_pUiSounds)
+	{
+		m_pUiSounds->LoadSubdialog(uiXml, "main_wnd");
+	}
 
 	m_UITaskInfoWnd					= new CUITaskDescrWnd(); m_UITaskInfoWnd->SetAutoDelete(false);
 	m_UITaskInfoWnd->Init			(&uiXml,"main_wnd:right_frame:task_descr_view");
@@ -160,6 +167,10 @@ void	CUIEventsWnd::SendMessage			(CUIWindow* pWnd, s16 msg, void* pData)
 
 void CUIEventsWnd::OnFilterChanged			(CUIWindow* w, void*)
 {
+	if (m_pUiSounds)
+	{
+		m_pUiSounds->Play(EPdaUiSound::Tab);
+	}
 	m_currFilter			=(ETaskFilters)m_TaskFilter->GetActiveIndex();
 	ReloadList				(false);
 	if(!GetDescriptionMode())
@@ -249,6 +260,11 @@ bool CUIEventsWnd::Filter(CGameTask* t)
 
 void CUIEventsWnd::SetDescriptionMode		(bool bMap)
 {
+	if (m_flags.test(flMapMode) != bMap && m_pUiSounds)
+	{
+		m_pUiSounds->PlayPanel(bMap);
+	}
+
 	if(bMap){
 		if (m_UIRightWnd->IsChild(m_UITaskInfoWnd))
 			m_UIRightWnd->DetachChild	(m_UITaskInfoWnd);
@@ -404,7 +420,13 @@ bool CUIEventsWnd::OnGamepadKeyAction(int id, EUIMessages gamepad_action)
 				}
 
 				if (!any_binded_key_for_action_pressed_c(kUI_SECONDARY_DOWN))
+				{
+					if (m_pUiSounds)
+					{
+						m_pUiSounds->Play(EPdaUiSound::ListScroll, true);
+					}
 					m_UITaskInfoWnd->ScrollUp();
+				}
 				ActionRepeaters()->SetActionStarted(this, kUI_SECONDARY_UP);
 				return true;
 			}
@@ -416,7 +438,13 @@ bool CUIEventsWnd::OnGamepadKeyAction(int id, EUIMessages gamepad_action)
 				}
 
 				if (!any_binded_key_for_action_pressed_c(kUI_SECONDARY_UP))
+				{
+					if (m_pUiSounds)
+					{
+						m_pUiSounds->Play(EPdaUiSound::ListScroll, true);
+					}
 					m_UITaskInfoWnd->ScrollDown();
+				}
 				ActionRepeaters()->SetActionStarted(this, kUI_SECONDARY_DOWN);
 				return true;
 			}
@@ -527,6 +555,10 @@ bool CUIEventsWnd::MoveSelectionDown(bool bAllowLoop)
 		return false;
 
 	SetSubtaskSelected(pNewSelection);
+	if (m_pUiSounds)
+	{
+		m_pUiSounds->Play(EPdaUiSound::ListSelect);
+	}
 	return true;
 }
 
@@ -537,6 +569,10 @@ bool CUIEventsWnd::MoveSelectionUp(bool bAllowLoop)
 		return false;
 
 	SetSubtaskSelected(pNewSelection);
+	if (m_pUiSounds)
+	{
+		m_pUiSounds->Play(EPdaUiSound::ListSelect);
+	}
 	return true;
 }
 

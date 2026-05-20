@@ -7,6 +7,7 @@
 
 #include "StdAfx.h"
 #include "UILogsWnd.h"
+#include "PdaUiSound.h"
 
 #include "../../xrUI/UIXmlInit.h"
 #include "../../xrUI/Widgets/UIProgressBar.h"
@@ -401,6 +402,11 @@ void CUILogsWnd::Init()
 	{
 		xr_delete(m_calendar);
 	}
+
+	if (m_pUiSounds)
+	{
+		m_pUiSounds->LoadSubdialog(m_uiXml, "main_wnd");
+	}
 }
 
 void CUILogsWnd::ReLoadNews()
@@ -562,6 +568,11 @@ void CUILogsWnd::AddNewsItem(GAME_NEWS_DATA& news_data)
 
 void CUILogsWnd::UpdateChecks( CUIWindow* w, void* d )
 {
+	if (m_pUiSounds)
+	{
+		m_pUiSounds->PlayFilterToggle();
+	}
+
 	if (m_use_split_lists)
 	{
 		SyncCalendarState();
@@ -581,7 +592,13 @@ void CUILogsWnd::PrevPeriod( CUIWindow* w, void* d )
 		m_selected_period = m_start_game_time;
 	}
 	if(current_period != m_selected_period)
+	{
+		if (m_pUiSounds)
+		{
+			m_pUiSounds->Play(EPdaUiSound::ListSelect);
+		}
 		m_need_reload = true;
+	}
 	SyncCalendarState();
 }
 
@@ -595,7 +612,13 @@ void CUILogsWnd::NextPeriod( CUIWindow* w, void* d )
 		m_selected_period = game_time;
 	}
 	if(current_period != m_selected_period)
+	{
+		if (m_pUiSounds)
+		{
+			m_pUiSounds->Play(EPdaUiSound::ListSelect);
+		}
 		m_need_reload = true;
+	}
 	SyncCalendarState();
 }
 
@@ -622,6 +645,10 @@ void CUILogsWnd::SyncCalendarState()
 
 void CUILogsWnd::OnCalendarDaySelected(ALife::_TIME_ID period)
 {
+	if (m_pUiSounds)
+	{
+		m_pUiSounds->Play(EPdaUiSound::ListSelect);
+	}
 	m_selected_period = period;
 	m_need_reload = true;
 	ReLoadNews();
@@ -631,6 +658,10 @@ void CUILogsWnd::ToggleCalendarPopup(CUIWindow* w, void* d)
 {
 	if (m_calendar)
 	{
+		if (m_pUiSounds)
+		{
+			m_pUiSounds->PlayPanel(!m_calendar->IsShown());
+		}
 		SyncCalendarState();
 		m_calendar->TogglePopup();
 	}
@@ -771,6 +802,11 @@ void CUILogsWnd::on_scroll_keys( int dik, int step )
 	if (!list || !list->ScrollBar())
 	{
 		return;
+	}
+
+	if (m_pUiSounds)
+	{
+		m_pUiSounds->Play(EPdaUiSound::ListScroll, true);
 	}
 
 	switch ( dik )

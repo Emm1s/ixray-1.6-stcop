@@ -31,6 +31,7 @@
 #include "../GametaskManager.h"
 #include "../Actor.h"
 #include "PdaConstants.h"
+#include "PdaUiSound.h"
 #include "../../xrUI/Widgets/UIMessages.h"
 
 namespace
@@ -160,6 +161,11 @@ bool UITaskListWnd::OnMouseAction( float x, float y, EUIMessages mouse_action )
 
 void UITaskListWnd::OnMouseScroll( float iDirection )
 {
+	if (m_pUiSounds)
+	{
+		m_pUiSounds->Play(EPdaUiSound::ListScroll, true);
+	}
+
 	if ( (u32)iDirection == WINDOW_MOUSE_WHEEL_UP )
 		m_list->ScrollBar()->TryScrollDec();
 	else if ((u32)iDirection == WINDOW_MOUSE_WHEEL_DOWN )
@@ -200,6 +206,11 @@ void UITaskListWnd::SendMessage( CUIWindow* pWnd, s16 msg, void* pData )
 {
 	if (msg == TAB_CHANGED && m_filter_tabs && pWnd == m_filter_tabs)
 	{
+		if (m_pUiSounds)
+		{
+			m_pUiSounds->Play(EPdaUiSound::Tab);
+		}
+
 		const shared_str activeId = m_filter_tabs->GetActiveId();
 		ETaskListFilter mode = ETaskListFilter::All;
 		if (activeId == "story")
@@ -376,6 +387,10 @@ bool UITaskListWnd::SelectNextToSelected(bool bNext)
 						UITaskListWndItem* nextToItem = static_cast<UITaskListWndItem*>(*(it + 1));
 						taskManager->SetActiveTask(nextToItem->get_task());
 						m_list->ScrollToItem(nextToItem, iFloor(-m_list->ScrollBar()->GetHeight() / 2.0f + nextToItem->GetWndRect().height() / 2.0f));
+						if (m_pUiSounds)
+						{
+							m_pUiSounds->Play(EPdaUiSound::ListSelect);
+						}
 						return true;
 					}
 				}
@@ -386,6 +401,10 @@ bool UITaskListWnd::SelectNextToSelected(bool bNext)
 						UITaskListWndItem* nextToItem = static_cast<UITaskListWndItem*>(*(it - 1));
 						taskManager->SetActiveTask(nextToItem->get_task());
 						m_list->ScrollToItem(nextToItem, iFloor(-m_list->ScrollBar()->GetHeight() / 2.0f + nextToItem->GetWndRect().height() / 2.0f));
+						if (m_pUiSounds)
+						{
+							m_pUiSounds->Play(EPdaUiSound::ListSelect);
+						}
 						return true;
 					}
 				}

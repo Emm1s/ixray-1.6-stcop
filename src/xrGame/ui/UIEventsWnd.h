@@ -15,6 +15,7 @@ class CUIScrollView;
 class CUITaskItemLegacy;
 class CUITaskRootItem;
 class CUIGamepadLegend;
+class CPdaUiSounds;
 
 class CUIEventsWnd	:public CUIWindow, public CUIWndCallback{
 	typedef CUIWindow			inherited;
@@ -62,6 +63,7 @@ public:
 	virtual						~CUIEventsWnd			();
 	virtual void				SendMessage				(CUIWindow* pWnd, s16 msg, void* pData);
 			void				Init					();
+			void				SetUiSounds				(CPdaUiSounds* uiSounds) { m_pUiSounds = uiSounds; }
 	virtual void				Update					();
 	virtual void				Draw					();
 	virtual void				Show					(bool status);
@@ -71,6 +73,7 @@ public:
 	virtual bool				OnGamepadKeyHold		(int id);
 
 	CUIXml						m_ui_task_item_xml;
+	CPdaUiSounds*				m_pUiSounds = nullptr;
 
 	virtual CUIWindow* ui_cast_window() { return this; }
 };
