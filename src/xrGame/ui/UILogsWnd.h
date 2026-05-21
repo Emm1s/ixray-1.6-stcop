@@ -39,6 +39,11 @@ private:
 	CUIFrameWindow*		m_center_background;
 	CUIStatic*			m_center_background2;
 
+	CUIFrameWindow*		m_left_frame = nullptr;
+	CUIFrameWindow*		m_right_frame = nullptr;
+	CUIFrameLineWnd*	m_left_frame_line = nullptr;
+	CUIFrameLineWnd*	m_right_frame_line = nullptr;
+
 	CUIStatic*			m_center_caption;
 	CUICharacterInfo*	m_actor_ch_info;
 
@@ -80,7 +85,8 @@ private:
 
 	CUIWindow*			CreateItem			();
 	CUIWindow*			ItemFromCache		();
-	void				InitScrollList		(LPCSTR nodeName, CUIScrollView*& outList);
+	void				InitScrollList		(LPCSTR nodeName, CUIScrollView*& outList, CUIWindow* parent = nullptr);
+	void				InitColumnFrames	();
 	CUIScrollView*		ActiveScrollList	();
 	void				ClearListToCache	(CUIScrollView* list);
 	void				ApplySplitModeUi	();

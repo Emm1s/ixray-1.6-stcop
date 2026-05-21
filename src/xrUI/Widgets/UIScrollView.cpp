@@ -261,6 +261,19 @@ void CUIScrollView::Draw()
 		RecalcSize();
 	}
 
+	for (CUIWindow* child : m_ChildWndList)
+	{
+		if (!child || child == m_pad || child == m_VScrollBar)
+		{
+			continue;
+		}
+		if (!child->IsShown() || child->GetCustomDraw())
+		{
+			continue;
+		}
+		child->Draw();
+	}
+
 	Frect visible_rect;
 	GetAbsoluteRect(visible_rect);
 	visible_rect.top += m_upIndent;

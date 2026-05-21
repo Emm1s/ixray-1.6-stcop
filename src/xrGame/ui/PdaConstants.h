@@ -14,12 +14,13 @@ constexpr const char* Main = "pda.xml";
 constexpr const char* Map = "pda_map.xml";
 constexpr const char* Ranking = "pda_ranking.xml";
 constexpr const char* FactionWar = "pda_fraction_war.xml";
-// Contacts layout also owns embedded PDA talk nodes.
 constexpr const char* ContactsNew = "pda_contacts_new.xml";
 constexpr const char* ContactsBackground = "background";
 constexpr const char* ContactsLeftFrame = "left_frame_window";
 constexpr const char* ContactsRightFrame = "right_frame_window";
 constexpr const char* ContactsDetailList = "detail_list";
+constexpr const char* LogsLeftFrameLine = "left_frame_line";
+constexpr const char* LogsRightFrameLine = "right_frame_line";
 constexpr const char* ContactsDialog = "pda_dialog";
 constexpr const char* DialogMain = "main";
 constexpr const char* DialogAnswersList = "answers_list";

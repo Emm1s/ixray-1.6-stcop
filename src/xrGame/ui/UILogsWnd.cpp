@@ -7,6 +7,7 @@
 
 #include "StdAfx.h"
 #include "UILogsWnd.h"
+#include "PdaConstants.h"
 #include "PdaUiSound.h"
 
 #include "../../xrUI/UIXmlInit.h"
@@ -54,6 +55,23 @@ bool CursorInScrollList(CUIScrollView* list)
 	Fvector2 pos = UI().GetUICursor().GetCursorPosition();
 	return rect.in(pos);
 }
+
+void AttachAutoStatics(CUIXml& xml, CUIXmlInit& xmlInit, const char* tag, CUIWindow* parent)
+{
+	if (!parent)
+	{
+		return;
+	}
+
+	const int count = xml.GetNodesNum(xml.GetRoot(), tag);
+	for (int i = 0; i < count; ++i)
+	{
+		CUIStatic* item = new CUIStatic();
+		item->SetAutoDelete(true);
+		parent->AttachChild(item);
+		xmlInit.InitStatic(xml, tag, i, item);
+	}
+}
 } // namespace
 
 CUILogsWnd::CUILogsWnd()
@@ -93,13 +111,41 @@ CUILogsWnd::~CUILogsWnd()
 	delete_data(m_items_cache);
 }
 
-void CUILogsWnd::InitScrollList(LPCSTR nodeName, CUIScrollView*& outList)
+void CUILogsWnd::InitScrollList(LPCSTR nodeName, CUIScrollView*& outList, CUIWindow* parent)
 {
+	CUIWindow* attachParent = parent ? parent : this;
+
 	CUIFixedScrollBar* tmp_scroll = new CUIFixedScrollBar();
 	outList = new CUIScrollView(tmp_scroll);
 	outList->SetAutoDelete(true);
-	AttachChild(outList);
+	attachParent->AttachChild(outList);
 	CUIXmlInit::InitScrollView(m_uiXml, nodeName, 0, outList);
+}
+
+void CUILogsWnd::InitColumnFrames()
+{
+	CUIWindow* frameParent = this;
+	if (m_background)
+	{
+		frameParent = m_background;
+	}
+
+	m_left_frame = UIHelper::CreateFrameWindow(m_uiXml, PdaXml::ContactsLeftFrame, frameParent, false);
+	m_right_frame = UIHelper::CreateFrameWindow(m_uiXml, PdaXml::ContactsRightFrame, frameParent, false);
+
+	CUIXmlInit xmlInit;
+
+	if (m_left_frame && m_uiXml.NavigateToNode(PdaXml::LogsLeftFrameLine))
+	{
+		m_left_frame_line = UIHelper::CreateFrameLine(m_uiXml, PdaXml::LogsLeftFrameLine, m_left_frame, false);
+		AttachAutoStatics(m_uiXml, xmlInit, "left_auto_static", m_left_frame);
+	}
+
+	if (m_right_frame && m_uiXml.NavigateToNode(PdaXml::LogsRightFrameLine))
+	{
+		m_right_frame_line = UIHelper::CreateFrameLine(m_uiXml, PdaXml::LogsRightFrameLine, m_right_frame, false);
+		AttachAutoStatics(m_uiXml, xmlInit, "right_auto_static", m_right_frame);
+	}
 }
 
 void CUILogsWnd::ApplySplitModeUi()
@@ -267,6 +313,8 @@ void CUILogsWnd::Init()
 		m_background2 = UIHelper::CreateFrameLine(m_uiXml, "background", this, false);
 	m_center_background = UIHelper::CreateFrameWindow(m_uiXml, "center_background", this, false);
 
+	InitColumnFrames();
+
 	if (m_uiXml.NavigateToNode("actor_ch_info"))
 	{
 		m_actor_ch_info = new CUICharacterInfo();
@@ -291,13 +339,23 @@ void CUILogsWnd::Init()
 	if (hasSplitLists)
 	{
 		m_use_split_lists = true;
-		InitScrollList("logs_list_news", m_list_news);
-		InitScrollList("logs_list_dialogs", m_list_dialogs);
+		CUIWindow* newsParent = this;
+		CUIWindow* dialogsParent = this;
+		if (m_left_frame)
+		{
+			newsParent = m_left_frame;
+		}
+		if (m_right_frame)
+		{
+			dialogsParent = m_right_frame;
+		}
+		InitScrollList("logs_list_news", m_list_news, newsParent);
+		InitScrollList("logs_list_dialogs", m_list_dialogs, dialogsParent);
 	}
 	else if (hasLegacyList)
 	{
 		m_use_split_lists = false;
-		InitScrollList("logs_list", m_list);
+		InitScrollList("logs_list", m_list, this);
 	}
 	else
 	{
