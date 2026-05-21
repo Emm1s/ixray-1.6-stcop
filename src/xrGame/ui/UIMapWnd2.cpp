@@ -58,6 +58,11 @@ void CUIMapWnd::RegisterNavButtonByName(CUI3tButton* btn)
 	{
 		AddCallback(btn, BUTTON_DOWN, CUIWndCallback::void_function(this, &CUIMapWnd::OnBtnPersonalSpot_Push));
 	}
+	else if (WindowNameEquals(n, PdaNavButton::TaskFocus))
+	{
+		m_btn_nav_task_focus = btn;
+		AddCallback(btn, BUTTON_DOWN, CUIWndCallback::void_function(this, &CUIMapWnd::OnBtnNavTaskFocus_Push));
+	}
 	else if (WindowNameEquals(n, "global_map_btn"))
 	{
 		AddCallback(btn, BUTTON_DOWN, CUIWndCallback::void_function(this, &CUIMapWnd::OnBtnZoomReset_Push));
@@ -195,5 +200,31 @@ void CUIMapWnd::OnBtnZoomReset_Push(CUIWindow*, void*)
 void CUIMapWnd::OnBtnPersonalSpot_Push(CUIWindow*, void*)
 {
 	SetPersonalSpotPlacement(!m_personalSpotPlacement);
+}
+
+void CUIMapWnd::OnBtnNavTaskFocus_Push(CUIWindow*, void*)
+{
+	CUITaskWnd* parentWnd = smart_cast<CUITaskWnd*>(m_pParentWnd);
+	if (parentWnd)
+	{
+		parentWnd->FocusPrimaryTaskOnMap();
+	}
+}
+
+void CUIMapWnd::UpdateNavTaskFocusVisibility(CGameTask* primaryTask)
+{
+	if (!m_btn_nav_task_focus)
+	{
+		return;
+	}
+
+	if (!primaryTask || primaryTask->m_map_object_id == u16(-1) || primaryTask->m_map_location.size() == 0)
+	{
+		m_btn_nav_task_focus->Show(false);
+	}
+	else
+	{
+		m_btn_nav_task_focus->Show(true);
+	}
 }
 

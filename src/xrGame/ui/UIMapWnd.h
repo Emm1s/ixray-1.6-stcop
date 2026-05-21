@@ -77,6 +77,7 @@ private:
 		max_btn_nav		= 9
 	};
 	CUI3tButton*				m_btn_nav[max_btn_nav];
+	CUI3tButton*				m_btn_nav_task_focus = nullptr;
 	CUIStatic*					m_btn_nav_parent;
 	CUIStatic*					m_controller_cursor = nullptr;
 	// Optional XML: map_pattern_overlay (drawn above map; non-interactive).
@@ -104,6 +105,7 @@ private:
 	void 				OnBtnDown_Push			(CUIWindow*, void*);
 	void 				OnBtnZoomReset_Push		(CUIWindow*, void*);
 	void 				OnBtnPersonalSpot_Push	(CUIWindow*, void*);
+	void 				OnBtnNavTaskFocus_Push	(CUIWindow*, void*);
 
 private:
 	void 				OnScrollV				(CUIWindow*, void*);
@@ -168,6 +170,7 @@ public:
 
 			void				SetPersonalSpotPlacement	(bool isActive);
 			bool				IsPersonalSpotPlacement	() const { return m_personalSpotPlacement; }
+			void				UpdateNavTaskFocusVisibility(CGameTask* primaryTask);
 
 			void				ShowHintStr				(CUIWindow* parent, const char* text);
 			void				ShowHintSpot			(CMapSpot* spot);

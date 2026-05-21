@@ -324,6 +324,11 @@ void CUITaskWnd::ReloadTaskInfo()
 		}
 	}
 
+	if (m_pMapWnd)
+	{
+		m_pMapWnd->UpdateNavTaskFocusVisibility(primaryTask);
+	}
+
 	if (m_btn_focus2)
 	{
 		if (!secondaryTask || (secondaryTask->m_map_object_id == u16(-1) || secondaryTask->m_map_location.size() == 0))
@@ -522,7 +527,7 @@ void CUITaskWnd::TaskShowMapSpot( CGameTask* task, bool show )
 	}
 }
 
-void CUITaskWnd::OnTask1DbClicked(CUIWindow*, void*)
+void CUITaskWnd::FocusPrimaryTaskOnMap()
 {
 	if (m_pUiSounds)
 	{
@@ -532,6 +537,11 @@ void CUITaskWnd::OnTask1DbClicked(CUIWindow*, void*)
 	CGameTask* secondary = nullptr;
 	ResolveTaskRows(primary, secondary);
 	TaskSetTargetMap(primary);
+}
+
+void CUITaskWnd::OnTask1DbClicked(CUIWindow*, void*)
+{
+	FocusPrimaryTaskOnMap();
 }
 
 void CUITaskWnd::OnTask2DbClicked(CUIWindow*, void*)

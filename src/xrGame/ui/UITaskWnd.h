@@ -130,6 +130,7 @@ public:
 
 			void				Show_TaskListWnd		(bool status);
 			void				SetUiSounds				(CPdaUiSounds* uiSounds) { m_pUiSounds = uiSounds; }
+			void				FocusPrimaryTaskOnMap	();
 
 			virtual CUIWindow* ui_cast_window() { return this; }
 
