@@ -16,7 +16,16 @@ constexpr const char* Ranking = "pda_ranking.xml";
 constexpr const char* FactionWar = "pda_fraction_war.xml";
 // Contacts layout also owns embedded PDA talk nodes.
 constexpr const char* ContactsNew = "pda_contacts_new.xml";
+constexpr const char* ContactsBackground = "background";
+constexpr const char* ContactsLeftFrame = "left_frame_window";
+constexpr const char* ContactsRightFrame = "right_frame_window";
+constexpr const char* ContactsDetailList = "detail_list";
 constexpr const char* ContactsDialog = "pda_dialog";
+constexpr const char* DialogMain = "main";
+constexpr const char* DialogAnswersList = "answers_list";
+constexpr const char* DialogQuestionsList = "questions_list";
+constexpr const char* DialogQuestionItem = "question_item";
+constexpr float ContactsFrameSizeTolerance = 2.f;
 } // namespace PdaXml
 
 namespace PdaSectionId
@@ -136,4 +145,23 @@ struct STaskWndFeatures
 };
 
 STaskWndFeatures DetectTaskWndFeatures(CUIXml& xml);
+
+struct SPdaContactsLayoutInfo
+{
+	bool hasDialogNode = false;
+	bool hasDialogMain = false;
+	bool hasAnswersList = false;
+	bool hasQuestionsList = false;
+	bool hasDialogFonts = false;
+	bool hasBackground = false;
+	bool frameSizeMismatch = false;
+	float rightFrameWidth = 0.f;
+	float rightFrameHeight = 0.f;
+	float dialogMainWidth = 0.f;
+	float dialogMainHeight = 0.f;
+};
+
+SPdaContactsLayoutInfo InspectPdaContactsLayout(CUIXml& xml);
+bool IsPdaContactsLayoutValid(const SPdaContactsLayoutInfo& info);
+void LogPdaContactsLayoutIssues(const SPdaContactsLayoutInfo& info, const char* xmlFileName);
 

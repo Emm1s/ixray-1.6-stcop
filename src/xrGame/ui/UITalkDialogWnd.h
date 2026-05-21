@@ -13,6 +13,7 @@
 class CUIScrollView;
 class CUIXml;
 class CUITalkWnd;
+class CUIPdaContactsWnd;
 class CUIGamepadLegend;
 class CUIQuestionItem;
 
@@ -29,7 +30,7 @@ public:
 	
 
 			void InitTalkDialogWnd		();
-			void ReloadDialogLayout		(bool usePdaDialogXml);
+			void ReloadDialogLayout		(bool usePdaDialogXml, const CUIPdaContactsWnd* contacts = nullptr);
 
 	virtual void SendMessage			(CUIWindow* pWnd, s16 msg, void* pData = NULL);
 
@@ -121,6 +122,9 @@ private:
 
 	bool m_usePdaDialogXml = false;
 	bool m_hasPdaDialogLayout = false;
+	bool _layoutXmlOwned = true;
+	XML_NODE* _pdaDialogLayoutRoot = nullptr;
+	void ReleaseLayoutXml();
 	void BuildDialogLayout();
 };
 

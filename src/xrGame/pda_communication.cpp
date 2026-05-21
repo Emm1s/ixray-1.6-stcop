@@ -84,6 +84,10 @@ bool CPdaCommunication::OpenDialog(CInventoryOwner* npc)
 
     if (_active && _npc == npc)
     {
+        if (actor)
+        {
+            BeginPdaSession(npc);
+        }
         return true;
     }
 

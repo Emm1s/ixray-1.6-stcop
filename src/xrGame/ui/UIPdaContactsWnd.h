@@ -12,6 +12,7 @@ class CUIScrollView;
 class CInventoryOwner;
 class UIHint;
 class CUIGamepadLegend;
+class CUIXml;
 
 class CUIPdaContactsWnd: public CUIWindow  
 {
@@ -44,6 +45,8 @@ public:
 
 	CUIFrameWindow*				GetRightFrame				() const { return UIRightFrame; }
 	CUIScrollView*				GetDetailsScroll			() const { return UIDetailsWnd; }
+	CUIXml*						GetLayoutXml				() const { return _layoutXml; }
+	bool						HasValidPdaDialogLayout		() const { return _hasValidDialogLayout; }
 
 	CUIScrollView*				UIListWnd;
 	CUIScrollView*				UIDetailsWnd;
@@ -52,6 +55,8 @@ public:
 	virtual CUIWindow* ui_cast_window() { return this; }
 
 protected:
+	CUIXml*						_layoutXml = nullptr;
+	bool						_hasValidDialogLayout = false;
 	CUIFrameWindow*				m_background;
 	CUIFrameWindow*				UIFrameContacts;
 	CUIFrameLineWnd*			UIContactsHeader;

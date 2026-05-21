@@ -17,6 +17,7 @@
 #include "../../xrEngine/xr_input.h"
 #include "../../xrUI/Widgets/UIGamepadLegend.h"
 #include "PdaConstants.h"
+#include "UIPdaContactsWnd.h"
 
 #define				TALK_XML				"talk.xml"
 
@@ -28,6 +29,33 @@ bool UiKbHintsPreferred()
 {
 	return !pInput || !pInput->GetControllerMode();
 }
+
+class CScopedPdaDialogXmlRoot final
+{
+	CUIXml* _xml = nullptr;
+	XML_NODE* _previousRoot = nullptr;
+
+public:
+	CScopedPdaDialogXmlRoot(CUIXml* xml, XML_NODE* pdaDialogRoot)
+	{
+		if (!xml || !pdaDialogRoot)
+		{
+			return;
+		}
+
+		_xml = xml;
+		_previousRoot = xml->GetLocalRoot();
+		_xml->SetLocalRoot(pdaDialogRoot);
+	}
+
+	~CScopedPdaDialogXmlRoot()
+	{
+		if (_xml)
+		{
+			_xml->SetLocalRoot(_previousRoot);
+		}
+	}
+};
 } // namespace
 
 CUITalkDialogWnd::CUITalkDialogWnd()
@@ -51,10 +79,21 @@ CUITalkDialogWnd::CUITalkDialogWnd()
 
 CUITalkDialogWnd::~CUITalkDialogWnd()
 {
-	xr_delete(m_uiXml);
+	ReleaseLayoutXml();
 }
 
-void CUITalkDialogWnd::ReloadDialogLayout(bool usePdaDialogXml)
+void CUITalkDialogWnd::ReleaseLayoutXml()
+{
+	if (_layoutXmlOwned)
+	{
+		xr_delete(m_uiXml);
+	}
+	m_uiXml = nullptr;
+	_layoutXmlOwned = true;
+	_pdaDialogLayoutRoot = nullptr;
+}
+
+void CUITalkDialogWnd::ReloadDialogLayout(bool usePdaDialogXml, const CUIPdaContactsWnd* contacts)
 {
 	if (m_usePdaDialogXml == usePdaDialogXml && UIAnswersList != nullptr)
 	{
@@ -81,36 +120,73 @@ void CUITalkDialogWnd::ReloadDialogLayout(bool usePdaDialogXml)
 	m_gamepad_back_hint = nullptr;
 	m_gamepad_log_hint = nullptr;
 
-	xr_delete(m_uiXml);
-	m_uiXml = new CUIXml();
+	ReleaseLayoutXml();
 	m_usePdaDialogXml = usePdaDialogXml;
 	m_hasPdaDialogLayout = false;
+	_pdaDialogLayoutRoot = nullptr;
+
 	if (m_usePdaDialogXml)
 	{
-		const bool contactsLoaded = m_uiXml->Load(CONFIG_PATH, UI_PATH, PdaXml::ContactsNew);
-		XML_NODE* dialogNode = contactsLoaded ? m_uiXml->NavigateToNode(PdaXml::ContactsDialog) : nullptr;
-		if (dialogNode)
+		CUIXml* contactsXml = contacts ? contacts->GetLayoutXml() : nullptr;
+		if (contactsXml)
 		{
-			m_uiXml->SetLocalRoot(dialogNode);
-			m_hasPdaDialogLayout = m_uiXml->NavigateToNode("main") != nullptr;
+			m_uiXml = contactsXml;
+			_layoutXmlOwned = false;
 		}
 		else
 		{
-			Msg("! CUITalkDialogWnd: missing [%s] in [%s], fallback to [%s]",
-				PdaXml::ContactsDialog, PdaXml::ContactsNew, TALK_XML);
+			m_uiXml = new CUIXml();
+			_layoutXmlOwned = true;
+			if (!m_uiXml->Load(CONFIG_PATH, UI_PATH, PdaXml::ContactsNew))
+			{
+				Msg("! CUITalkDialogWnd: failed to load [%s]", PdaXml::ContactsNew);
+			}
+		}
+
+		XML_NODE* storedRoot = m_uiXml ? m_uiXml->GetLocalRoot() : nullptr;
+		XML_NODE* dialogNode = m_uiXml ? m_uiXml->NavigateToNode(PdaXml::ContactsDialog) : nullptr;
+		if (dialogNode)
+		{
+			_pdaDialogLayoutRoot = dialogNode;
+			m_uiXml->SetLocalRoot(dialogNode);
+			m_hasPdaDialogLayout = m_uiXml->NavigateToNode(PdaXml::DialogMain) != nullptr;
+			BuildDialogLayout();
+			if (storedRoot)
+			{
+				m_uiXml->SetLocalRoot(storedRoot);
+			}
+			else if (XML_NODE* documentRoot = m_uiXml->GetRoot())
+			{
+				m_uiXml->SetLocalRoot(documentRoot);
+			}
+		}
+		else
+		{
+			const SPdaContactsLayoutInfo layoutInfo = m_uiXml ? InspectPdaContactsLayout(*m_uiXml) : SPdaContactsLayoutInfo();
+			LogPdaContactsLayoutIssues(layoutInfo, m_uiXml ? m_uiXml->m_xml_file_name : PdaXml::ContactsNew);
+			Msg("! CUITalkDialogWnd: missing [%s], fallback to [%s]", PdaXml::ContactsDialog, TALK_XML);
+			if (!_layoutXmlOwned)
+			{
+				m_uiXml = nullptr;
+			}
+			m_uiXml = new CUIXml();
+			_layoutXmlOwned = true;
 			m_uiXml->Load(CONFIG_PATH, UI_PATH, TALK_XML);
+			BuildDialogLayout();
 		}
 	}
 	else
 	{
+		m_uiXml = new CUIXml();
+		_layoutXmlOwned = true;
 		m_uiXml->Load(CONFIG_PATH, UI_PATH, TALK_XML);
+		BuildDialogLayout();
 	}
-	BuildDialogLayout();
 }
 
 void CUITalkDialogWnd::InitTalkDialogWnd()
 {
-	ReloadDialogLayout(false);
+	ReloadDialogLayout(false, nullptr);
 }
 
 void CUITalkDialogWnd::BuildDialogLayout()
@@ -374,6 +450,7 @@ bool CUITalkDialogWnd::TryClearQuestions()
 
 void CUITalkDialogWnd::AddQuestion(const char* str, const char* value, int number, SPhraseInfo &phInfo)
 {
+	CScopedPdaDialogXmlRoot xmlScope(m_uiXml, _pdaDialogLayoutRoot);
 	CUIQuestionItem* itm			= new CUIQuestionItem(m_uiXml,"question_item");
 	itm->Init						(value, str, phInfo.bFinalizer);
 	++number; //zero-based index
@@ -441,6 +518,7 @@ void CUITalkDialogWnd::AddQuestion(const char* str, const char* value, int numbe
 
 void CUITalkDialogWnd::AddAnswer(const char* SpeakerName, const char* str, bool bActor)
 {
+	CScopedPdaDialogXmlRoot xmlScope(m_uiXml, _pdaDialogLayoutRoot);
 	CUIAnswerItem* itm				= new CUIAnswerItem(m_uiXml,bActor?"actor_answer_item":"other_answer_item");
 	itm->Init						(str, SpeakerName);
 	UIAnswersList->AddWindow		(itm, true);
@@ -476,6 +554,7 @@ void CUITalkDialogWnd::AddAnswer(const char* SpeakerName, const char* str, bool 
 
 void CUITalkDialogWnd::AddIconedAnswer(const char* caption, const char* text, const char* texture_name, const char* templ_name)
 {
+	CScopedPdaDialogXmlRoot xmlScope(m_uiXml, _pdaDialogLayoutRoot);
 	CUIAnswerItemIconed* itm		= new CUIAnswerItemIconed(m_uiXml,templ_name);
 	itm->Init						(text, caption, texture_name);
 	UIAnswersList->AddWindow		(itm, true);
@@ -494,6 +573,7 @@ void CUITalkDialogWnd::AddIconedAnswer(const char* caption, const char* text, co
 
 void CUITalkDialogWnd::AddIconedAnswer(const char* text, const char* texture_name, Frect texture_rect, const char* templ_name)
 {
+	CScopedPdaDialogXmlRoot xmlScope(m_uiXml, _pdaDialogLayoutRoot);
 	CUIAnswerItemIconed* itm = new CUIAnswerItemIconed(m_uiXml, templ_name);
 	itm->Init(text, texture_name, texture_rect);
 	UIAnswersList->AddWindow(itm, true);

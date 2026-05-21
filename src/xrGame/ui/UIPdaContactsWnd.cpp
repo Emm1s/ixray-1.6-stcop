@@ -97,6 +97,7 @@ CUIPdaContactsWnd::CUIPdaContactsWnd()
 
 CUIPdaContactsWnd::~CUIPdaContactsWnd()
 {
+	xr_delete(_layoutXml);
 	ActionRepeaters()->UnregisterOwner(this);
 }	
 
@@ -112,66 +113,74 @@ void CUIPdaContactsWnd::Show(bool status)
 
 void CUIPdaContactsWnd::Init()
 {
-	CUIXml uiXml;
+	xr_delete(_layoutXml);
+	_layoutXml = new CUIXml();
+	_hasValidDialogLayout = false;
+
 	// CUIXml::Load(CONFIG_PATH, UI_PATH, ...) maps names via UI().get_xml_name() (e.g. widescreen -> *_16.xml).
-	if (!uiXml.Load(CONFIG_PATH, UI_PATH, PdaXml::ContactsNew))
+	if (!_layoutXml->Load(CONFIG_PATH, UI_PATH, PdaXml::ContactsNew))
 	{
 		Msg("! CUIPdaContactsWnd: failed to load [%s] from configs/ui (check addon merge order)", PdaXml::ContactsNew);
+		xr_delete(_layoutXml);
 		return;
 	}
 
+	const SPdaContactsLayoutInfo layoutInfo = InspectPdaContactsLayout(*_layoutXml);
+	LogPdaContactsLayoutIssues(layoutInfo, _layoutXml->m_xml_file_name);
+	_hasValidDialogLayout = IsPdaContactsLayoutValid(layoutInfo);
+
 	CUIXmlInit	xml_init;
 
-	xml_init.InitWindow					(uiXml, "main_wnd", 0, this);
+	xml_init.InitWindow					(*_layoutXml, "main_wnd", 0, this);
 
 	CUIWindow* frameParent = this;
-	if (uiXml.NavigateToNode("background"))
+	m_background = UIHelper::CreateFrameWindow(*_layoutXml, PdaXml::ContactsBackground, this, false);
+	if (m_background)
 	{
-		m_background					= UIHelper::CreateFrameWindow(uiXml, "background", this);
-		frameParent						= m_background;
+		frameParent = m_background;
 	}
 
-	UIFrameContacts						= UIHelper::CreateFrameWindow(uiXml, "left_frame_window", frameParent);
+	UIFrameContacts						= UIHelper::CreateFrameWindow(*_layoutXml, PdaXml::ContactsLeftFrame, frameParent);
 
-	UIContactsHeader					= UIHelper::CreateFrameLine(uiXml, "left_frame_line", UIFrameContacts);
+	UIContactsHeader					= UIHelper::CreateFrameLine(*_layoutXml, "left_frame_line", UIFrameContacts);
 
-	UIRightFrame						= UIHelper::CreateFrameWindow(uiXml, "right_frame_window", frameParent, false);
+	UIRightFrame						= UIHelper::CreateFrameWindow(*_layoutXml, PdaXml::ContactsRightFrame, frameParent, false);
 
-	UIRightFrameHeader					= UIHelper::CreateFrameLine(uiXml, "right_frame_line", UIRightFrame, false);
+	UIRightFrameHeader					= UIHelper::CreateFrameLine(*_layoutXml, "right_frame_line", UIRightFrame, false);
 
 	UIAnimation							= new CUIAnimatedStatic();UIAnimation->SetAutoDelete(true);
 	UIContactsHeader->AttachChild		(UIAnimation);
-	xml_init.InitAnimatedStatic			(uiXml, "a_static", 0, UIAnimation);
+	xml_init.InitAnimatedStatic			(*_layoutXml, "a_static", 0, UIAnimation);
 
 	UIListWnd							= new CUIScrollView();UIListWnd->SetAutoDelete(true);
 	UIFrameContacts->AttachChild		(UIListWnd);
-	xml_init.InitScrollView				(uiXml, "list", 0, UIListWnd);
+	xml_init.InitScrollView				(*_layoutXml, "list", 0, UIListWnd);
 
-	UIDetailsWnd						= UIHelper::CreateScrollView(uiXml, "detail_list", UIRightFrame, false);
+	UIDetailsWnd						= UIHelper::CreateScrollView(*_layoutXml, PdaXml::ContactsDetailList, UIRightFrame, false);
 
-	if (uiXml.NavigateToNode("hint_wnd"))
+	if (_layoutXml->NavigateToNode("hint_wnd"))
 	{
-		m_hint_wnd = UIHelper::CreateHint(uiXml, "hint_wnd");
+		m_hint_wnd = UIHelper::CreateHint(*_layoutXml, "hint_wnd");
 	}
 	
-	int leftStaticCount					= uiXml.GetNodesNum(uiXml.GetRoot(), "left_auto_static");
+	int leftStaticCount					= _layoutXml->GetNodesNum(_layoutXml->GetRoot(), "left_auto_static");
 	for (int i = 0; i < leftStaticCount; ++i)
 	{
 		CUIStatic* leftStatic = new CUIStatic();
 		leftStatic->SetAutoDelete(true);
 		UIFrameContacts->AttachChild(leftStatic);
-		xml_init.InitStatic(uiXml, "left_auto_static", i, leftStatic);
+		xml_init.InitStatic(*_layoutXml, "left_auto_static", i, leftStatic);
 	}
 	
-	int rightStaticCount					= uiXml.GetNodesNum(uiXml.GetRoot(), "right_auto_static");
+	int rightStaticCount					= _layoutXml->GetNodesNum(_layoutXml->GetRoot(), "right_auto_static");
 	for (int i = 0; i < rightStaticCount; ++i)
 	{
 		CUIStatic* rightStatic = new CUIStatic();
 		rightStatic->SetAutoDelete(true);
 		UIRightFrame->AttachChild(rightStatic);
-		xml_init.InitStatic(uiXml, "right_auto_static", i, rightStatic);
+		xml_init.InitStatic(*_layoutXml, "right_auto_static", i, rightStatic);
 	}
-	m_gamepad_legend = UIHelper::CreateGamepadLegend(uiXml, "gamepad_legend", this, false);
+	m_gamepad_legend = UIHelper::CreateGamepadLegend(*_layoutXml, "gamepad_legend", this, false);
 }
 
 void CUIPdaContactsWnd::Draw()
@@ -384,6 +393,12 @@ bool CUIPdaContactItem::OnMouseDown(int mouse_btn)
 	CInventoryOwner* owner = static_cast<CInventoryOwner*>(m_data);
 	if (!owner)
 	{
+		return true;
+	}
+
+	if (!m_cw->HasValidPdaDialogLayout())
+	{
+		Msg("! [PDA] contacts: invalid <%s> layout; see earlier [PDA] messages", PdaXml::ContactsDialog);
 		return true;
 	}
 

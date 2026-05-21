@@ -77,15 +77,44 @@ void CUITalkWnd::InitTalkWnd()
 void CUITalkWnd::InitTalkDialog(bool skipLogClear)
 {
 	m_pActor = Actor();
+	const bool isPdaSession = IsPdaMode() || IsEmbeddedInPda();
+
 	if (!IsPdaMode() && m_pActor != nullptr && !m_pActor->IsTalking())
 	{
+		return;
+	}
+
+	if (!m_pActor)
+	{
+		if (isPdaSession)
+		{
+			StopPdaDialog();
+		}
 		return;
 	}
 
 	m_pOurInvOwner = m_pActor->cast_inventory_owner();
 	m_pOthersInvOwner = m_pActor->GetTalkPartner();
 
-	const bool isPdaSession = IsPdaMode();
+	if (isPdaSession && !m_pOthersInvOwner)
+	{
+		m_pOthersInvOwner = PdaCommunication().GetSessionNpc();
+		if (m_pOthersInvOwner)
+		{
+			m_pActor->SetTalkPartner(m_pOthersInvOwner);
+			m_pOthersInvOwner->SetTalkPartner(m_pOurInvOwner);
+		}
+	}
+
+	if (!m_pOurInvOwner || !m_pOthersInvOwner)
+	{
+		if (isPdaSession)
+		{
+			StopPdaDialog();
+		}
+		return;
+	}
+
 	if (!isPdaSession)
 	{
 		Level().GameTaskManager()->IssuePendingRewards();
@@ -93,6 +122,15 @@ void CUITalkWnd::InitTalkDialog(bool skipLogClear)
 
 	m_pOurDialogManager = m_pOurInvOwner->cast_phrase_dialog_manager();
 	m_pOthersDialogManager = m_pOthersInvOwner->cast_phrase_dialog_manager();
+
+	if (!m_pOurDialogManager || !m_pOthersDialogManager)
+	{
+		if (isPdaSession)
+		{
+			StopPdaDialog();
+		}
+		return;
+	}
 
 	//имена собеседников
 	if (UITalkDialogWnd->UIDialogFrameTop)
@@ -453,7 +491,7 @@ bool CUITalkWnd::InitializeDialogForPda()
 	}
 
 	InitTalkDialog(true);
-	return true;
+	return m_pOthersInvOwner != nullptr && m_pOurDialogManager != nullptr && m_pOthersDialogManager != nullptr;
 }
 
 void CUITalkWnd::StopPdaDialog()

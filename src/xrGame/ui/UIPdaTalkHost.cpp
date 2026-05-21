@@ -42,7 +42,7 @@ bool CUIPdaTalkHost::Begin(CUITalkWnd* talkWnd, CUIPdaContactsWnd* contacts)
     talkWnd->DetachChild(dialogWnd);
 
     rightFrame->AttachChild(dialogWnd);
-    dialogWnd->ReloadDialogLayout(true);
+    dialogWnd->ReloadDialogLayout(true, contacts);
 
     CUIScrollView* details = contacts->GetDetailsScroll();
     if (details)
@@ -50,18 +50,20 @@ bool CUIPdaTalkHost::Begin(CUITalkWnd* talkWnd, CUIPdaContactsWnd* contacts)
         details->Show(false);
     }
 
-    if (!dialogWnd->HasPdaDialogLayout())
+    if (dialogWnd->HasPdaDialogLayout())
     {
-        if (details)
-        {
-            dialogWnd->SetWndPos(details->GetWndPos());
-            dialogWnd->SetWndSize(details->GetWndSize());
-        }
-        else
-        {
-            dialogWnd->SetWndPos(Fvector2().set(0.0f, 0.0f));
-            dialogWnd->SetWndSize(rightFrame->GetWndSize());
-        }
+        dialogWnd->SetWndPos(Fvector2().set(0.0f, 0.0f));
+        dialogWnd->SetWndSize(rightFrame->GetWndSize());
+    }
+    else if (details)
+    {
+        dialogWnd->SetWndPos(details->GetWndPos());
+        dialogWnd->SetWndSize(details->GetWndSize());
+    }
+    else
+    {
+        dialogWnd->SetWndPos(Fvector2().set(0.0f, 0.0f));
+        dialogWnd->SetWndSize(rightFrame->GetWndSize());
     }
 
     dialogWnd->ShowForPdaEmbed();
@@ -101,7 +103,7 @@ void CUIPdaTalkHost::End(CUITalkWnd* talkWnd)
         details->Show(true);
     }
 
-    dialogWnd->ReloadDialogLayout(false);
+    dialogWnd->ReloadDialogLayout(false, nullptr);
 
     dialogWnd->SetAutoDelete(false);
     if (dialogWnd->GetParent() != talkWnd)
