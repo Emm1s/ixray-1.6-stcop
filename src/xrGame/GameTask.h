@@ -198,6 +198,7 @@ public:
     // map
     void OnArrived();
     CMapLocation* LinkedMapLocation() override;
+    bool HasActiveMapTarget() const;
 
     void FillEncyclopedia() const;
 

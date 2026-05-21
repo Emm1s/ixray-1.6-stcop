@@ -314,7 +314,7 @@ void CUITaskWnd::ReloadTaskInfo()
 
 	if (m_btn_focus)
 	{
-		if (!primaryTask || (primaryTask->m_map_object_id == u16(-1) || primaryTask->m_map_location.size() == 0))
+		if (!primaryTask || !primaryTask->HasActiveMapTarget())
 		{
 			m_btn_focus->Show(false);
 		}
@@ -331,7 +331,7 @@ void CUITaskWnd::ReloadTaskInfo()
 
 	if (m_btn_focus2)
 	{
-		if (!secondaryTask || (secondaryTask->m_map_object_id == u16(-1) || secondaryTask->m_map_location.size() == 0))
+		if (!secondaryTask || !secondaryTask->HasActiveMapTarget())
 			m_btn_focus2->Show(false);
 		else
 			m_btn_focus2->Show(true);

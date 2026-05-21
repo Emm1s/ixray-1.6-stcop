@@ -464,6 +464,12 @@ CMapLocation* CGameTask::LinkedMapLocation()
 	return Objective(m_active_objective).LinkedMapLocation();
 }
 
+bool CGameTask::HasActiveMapTarget() const
+{
+	const SGameTaskObjective& objective = Objective(ActiveObjectiveIdx());
+	return objective.m_map_object_id != u16(-1) && objective.m_map_location.size() > 0;
+}
+
 void SGameTaskObjective::CreateMapLocation( bool on_load )
 {
 	if ( m_map_object_id == u16(-1) || m_map_location.size() == 0 )

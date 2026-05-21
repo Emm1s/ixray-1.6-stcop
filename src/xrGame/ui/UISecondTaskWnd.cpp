@@ -51,9 +51,7 @@ bool IsWindowOrChildOf(CUIWindow* child, CUIWindow* ancestor)
 
 bool TaskHasMapTarget(const CGameTask* task)
 {
-	return task
-		&& task->m_map_object_id != u16(-1)
-		&& task->m_map_location.size() > 0;
+	return task && task->HasActiveMapTarget();
 }
 } // namespace
 
@@ -273,7 +271,7 @@ void UITaskListWnd::UpdateStorylineTaskFocus()
 	}
 
 	CGameTask* task = StorylineTask();
-	if (!task || task->m_map_object_id == u16(-1) || task->m_map_location.size() == 0)
+	if (!task || !task->HasActiveMapTarget())
 	{
 		_btnStorylineTaskFocus->Show(false);
 		return;

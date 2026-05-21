@@ -218,7 +218,7 @@ void CUIMapWnd::UpdateNavTaskFocusVisibility(CGameTask* primaryTask)
 		return;
 	}
 
-	if (!primaryTask || primaryTask->m_map_object_id == u16(-1) || primaryTask->m_map_location.size() == 0)
+	if (!primaryTask || !primaryTask->HasActiveMapTarget())
 	{
 		m_btn_nav_task_focus->Show(false);
 	}
