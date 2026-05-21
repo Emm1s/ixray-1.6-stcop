@@ -29,6 +29,7 @@
 #include "UIVectorBinding.h"
 #include "Widgets/UITabButtonMP.h"
 #include "Widgets/UILines.h"
+#include "Widgets/UIStatic.h"
 //////////////////////////////////////////////////////////////////////////
 
 const char * const		COLOR_DEFINITIONS					= "color_defs.xml";
@@ -1279,6 +1280,14 @@ bool CUIXmlInit::InitTexture(CUIXml& xml_doc, const char* path, int index, IText
 	if (rect.width() != 0 && rect.height() != 0)
 		pWnd->SetTextureRect(rect);
 
+	string256 textureNodePath;
+	xr_strconcat(textureNodePath, path, ":texture");
+	if (xml_doc.NavigateToNode(textureNodePath, index))
+	{
+		if (CUIStatic* pStatic = dynamic_cast<CUIStatic*>(pWnd))
+			ReadTextureShadow(xml_doc, textureNodePath, index, pStatic);
+	}
+
 	return result;
 }
 
@@ -1789,6 +1798,41 @@ u32	CUIXmlInit::GetColor(CUIXml& xml_doc, const char* path, int index, u32 def_c
 		return color_argb(a,r,g,b);
 	}
 
+}
+
+u32 CUIXmlInit::GetShadowColor(CUIXml& xml_doc, const char* path, int index, u32 def_clr)
+{
+	const char* clr_def = xml_doc.ReadAttrib(path, index, "shadow_color", nullptr);
+	if (clr_def)
+	{
+		VERIFY(GetColorDefs()->find(clr_def) != GetColorDefs()->end());
+		return (*m_pColorDefs)[clr_def];
+	}
+
+	const int r = xml_doc.ReadAttribInt(path, index, "shadow_r", color_get_R(def_clr));
+	const int g = xml_doc.ReadAttribInt(path, index, "shadow_g", color_get_G(def_clr));
+	const int b = xml_doc.ReadAttribInt(path, index, "shadow_b", color_get_B(def_clr));
+	const int a = xml_doc.ReadAttribInt(path, index, "shadow_a", color_get_A(def_clr));
+	return color_argb(a, r, g, b);
+}
+
+void CUIXmlInit::ReadTextureShadow(CUIXml& xml_doc, const char* path, int index, CUIStatic* pWnd)
+{
+	VERIFY(pWnd);
+
+	const int shadowFlag = xml_doc.ReadAttribInt(path, index, "shadow", 0);
+	const float offsetX = xml_doc.ReadAttribFlt(path, index, "shadow_offset_x", 0.0f);
+	const float offsetY = xml_doc.ReadAttribFlt(path, index, "shadow_offset_y", 0.0f);
+
+	const bool enabled = (shadowFlag != 0) || !fis_zero(offsetX) || !fis_zero(offsetY);
+	if (!enabled)
+	{
+		pWnd->SetTextureShadow(false, Fvector2().set(0.0f, 0.0f), 0);
+		return;
+	}
+
+	const u32 shadowColor = GetShadowColor(xml_doc, path, index, color_argb(160, 0, 0, 0));
+	pWnd->SetTextureShadow(true, Fvector2().set(offsetX, offsetY), shadowColor);
 }
 
 u32	CUIXmlInit::GetGradientColor(CUIXml& xml_doc, const char* path, int index, u32 def_clr)
