@@ -163,6 +163,8 @@ void CEditableObject::FillSummaryProps(const char* pref, PropItemVec& items)
 
     PHelper().CreateCaption(items,PrepareKey(pref,"Geometry\\Object"),t);
 
+	PHelper().CreateFlag32(items, PrepareKey(pref, "Geometry\\Save separatly from level"), &m_objectFlags, eoNotInLevel);
+
     for (EditMeshIt m_it = FirstMesh(); m_it != LastMesh(); m_it++)
     {
         string128 t1;
