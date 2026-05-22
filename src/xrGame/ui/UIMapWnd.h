@@ -89,9 +89,11 @@ private:
 	Fvector2					m_controller_cursor_pos_initial = { 0, 0 };
 
 	bool						m_personalSpotPlacement = false;
+	bool						m_personalSpotRmbMode = false;
 
 	void						UpdateNav				();
 	void						RegisterNavButtonByName	(CUI3tButton* btn);
+	void						InitPersonalSpotRmbMode	(CUIXml& xml, const char* buttonPath, CUI3tButton* btn);
 
 	void 				OnBtnLegend_Push		(CUIWindow*, void*);
 	void 				OnBtnUp_Push			(CUIWindow*, void*);
@@ -170,6 +172,7 @@ public:
 
 			void				SetPersonalSpotPlacement	(bool isActive);
 			bool				IsPersonalSpotPlacement	() const { return m_personalSpotPlacement; }
+			bool				IsPersonalSpotRmbMode	() const { return m_personalSpotRmbMode; }
 			void				UpdateNavTaskFocusVisibility(CGameTask* primaryTask);
 
 			void				ShowHintStr				(CUIWindow* parent, const char* text);

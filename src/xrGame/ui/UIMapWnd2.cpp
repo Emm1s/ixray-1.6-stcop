@@ -7,6 +7,7 @@
 #include "../../xrUI/UIHelper.h"
 #include "UITaskWnd.h"
 #include "PdaConstants.h"
+#include "../../xrEngine/string_table.h"
 
 namespace
 {
@@ -18,7 +19,35 @@ bool WindowNameEquals(const char* windowName, const char* candidate)
 constexpr u8 kNavExtraIndexStart = 9;
 constexpr u8 kNavExtraIndexMaxExclusive = 32;
 constexpr const char* kNavButtonPathFormat = "btn_nav_parent:btn_nav_%d";
+
 } // namespace
+
+void CUIMapWnd::InitPersonalSpotRmbMode(CUIXml& xml, const char* buttonPath, CUI3tButton* btn)
+{
+	if (!btn || !buttonPath || !buttonPath[0])
+	{
+		return;
+	}
+
+	const shared_str windowName = btn->WindowName();
+	if (!WindowNameEquals(windowName.c_str(), PdaNavButton::PersonalSpot))
+	{
+		return;
+	}
+
+	if (xml.ReadAttribInt(buttonPath, 0, PdaNavButton::PersonalSpotRmbAttrib, 0) != 1)
+	{
+		return;
+	}
+
+	m_personalSpotRmbMode = true;
+
+	const char* hintRmb = xml.ReadAttrib(buttonPath, 0, PdaNavButton::PersonalSpotRmbHintAttrib, nullptr);
+	if (hintRmb && hintRmb[0])
+	{
+		btn->m_hint_text = g_pStringTable->translate(hintRmb);
+	}
+}
 
 void CUIMapWnd::RegisterNavButtonByName(CUI3tButton* btn)
 {
@@ -99,6 +128,7 @@ void CUIMapWnd::init_xml_nav(CUIXml& xml, const char* start_from)
 			CUI3tButton* navButton = UIHelper::Create3tButton(xml, buttonPath, m_btn_nav_parent);
 			Register(navButton);
 			RegisterNavButtonByName(navButton);
+			InitPersonalSpotRmbMode(xml, buttonPath, navButton);
 			return navButton;
 		};
 

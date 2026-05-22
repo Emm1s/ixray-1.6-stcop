@@ -104,6 +104,9 @@ constexpr const char* Down = "btn_nav_down";
 constexpr const char* Left = "btn_nav_left";
 constexpr const char* Right = "btn_nav_right";
 constexpr const char* PersonalSpot = "btn_personal_spot";
+// Optional btn_nav_* attribute: personal_spot_rmb="1" enables LMB button + RMB map placement.
+constexpr const char* PersonalSpotRmbAttrib = "personal_spot_rmb";
+constexpr const char* PersonalSpotRmbHintAttrib = "hint_rmb";
 // Optional btn_nav_9+ inside btn_nav_parent; window_name must match (not legacy btn_task_focus).
 constexpr const char* TaskFocus = "btn_nav_task_focus";
 } // namespace PdaNavButton

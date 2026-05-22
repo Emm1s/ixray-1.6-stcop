@@ -566,7 +566,29 @@ bool CUILevelMap::OnMouseAction(float x, float y, EUIMessages mouse_action)
 
 	if (MapWnd()->IsPersonalSpotPlacement())
 	{
-		if (mouse_action == WINDOW_LBUTTON_UP)
+		if (MapWnd()->IsPersonalSpotRmbMode())
+		{
+			if (mouse_action == WINDOW_RBUTTON_UP)
+			{
+				Fvector RealPosition;
+				if (MapWnd()->ConvertCursorPosToMap(&RealPosition, this))
+				{
+					CMapLocation* under = MapWnd()->UnderSpot(RealPosition, this);
+					if (under == nullptr)
+					{
+						MapWnd()->CreateSpotWindow(RealPosition, MapName());
+					}
+					MapWnd()->SetPersonalSpotPlacement(false);
+					return true;
+				}
+			}
+			else if (mouse_action == WINDOW_LBUTTON_DB_CLICK)
+			{
+				MapWnd()->SetPersonalSpotPlacement(false);
+				return true;
+			}
+		}
+		else if (mouse_action == WINDOW_LBUTTON_UP)
 		{
 			Fvector RealPosition;
 			if (MapWnd()->ConvertCursorPosToMap(&RealPosition, this))
@@ -587,7 +609,7 @@ bool CUILevelMap::OnMouseAction(float x, float y, EUIMessages mouse_action)
 		}
 	}
 
-	if (mouse_action == WINDOW_LBUTTON_DB_CLICK)
+	if (!MapWnd()->IsPersonalSpotRmbMode() && mouse_action == WINDOW_LBUTTON_DB_CLICK)
 	{
 		Fvector RealPosition;
 
