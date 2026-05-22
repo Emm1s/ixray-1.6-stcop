@@ -55,6 +55,7 @@ public:
 	//работа с дочерними и родительскими окнами
 	virtual void			AttachChild			(CUIWindow* pChild);
 	virtual void			DetachChild			(CUIWindow* pChild);
+	virtual bool			TryDetachChild		(CUIWindow* pChild);
 	virtual bool			IsChild				(CUIWindow* pChild) const;
 	virtual void			DetachAll			();
 	int						GetChildNum			() 

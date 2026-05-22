@@ -281,6 +281,42 @@ void CUIWindow::DetachChild(CUIWindow* pChild)
 		xr_delete(pChild);
 }
 
+bool CUIWindow::TryDetachChild(CUIWindow* pChild)
+{
+	R_ASSERT(pChild);
+	if (nullptr == pChild)
+	{
+		return false;
+	}
+
+	if (m_pMouseCapturer == pChild)
+	{
+		SetCapture(pChild, false);
+	}
+
+	if (!csUi.TryEnter())
+	{
+		return false;
+	}
+
+	WINDOW_LIST_it it = std::find(m_ChildWndList.begin(), m_ChildWndList.end(), pChild);
+	if (it != m_ChildWndList.end())
+	{
+		m_ChildWndList.erase(it);
+	}
+
+	csUi.Leave();
+
+	pChild->SetParent(nullptr);
+
+	if (pChild->IsAutoDelete())
+	{
+		xr_delete(pChild);
+	}
+
+	return true;
+}
+
 void CUIWindow::DetachAll()
 {
 	xrCriticalSectionGuard guard(csUi);

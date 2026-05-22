@@ -234,6 +234,11 @@ CUIPdaWnd::CUIPdaWnd()
 CUIPdaWnd::~CUIPdaWnd()
 {
 	ActionRepeaters()->UnregisterOwner(this);
+	CUIGameCustom* gameUi = CurrentGameUI();
+	if (gameUi && gameUi->TalkMenu && gameUi->TalkMenu->IsEmbeddedInPda())
+	{
+		gameUi->TalkMenu->StopPdaDialog();
+	}
 	delete_data( pUITaskWnd );
 	delete_data( pUIFactionWarWnd );
 	delete_data( UIPdaContactsWnd );

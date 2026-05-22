@@ -93,7 +93,12 @@ void CUIPdaTalkHost::End(CUITalkWnd* talkWnd)
     if (_dialogOnRightFrame && rightFrame && dialogWnd)
     {
         dialogWnd->SetAutoDelete(false);
-        rightFrame->DetachChild(dialogWnd);
+        if (!rightFrame->TryDetachChild(dialogWnd))
+        {
+            _contacts = nullptr;
+            _dialogOnRightFrame = false;
+            return;
+        }
         _dialogOnRightFrame = false;
     }
 
