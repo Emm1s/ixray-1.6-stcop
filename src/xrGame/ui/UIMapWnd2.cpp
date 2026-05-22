@@ -20,6 +20,24 @@ constexpr u8 kNavExtraIndexStart = 9;
 constexpr u8 kNavExtraIndexMaxExclusive = 32;
 constexpr const char* kNavButtonPathFormat = "btn_nav_parent:btn_nav_%d";
 
+CUI3tButton* FindNavButtonByWindowName(CUI3tButton* const* buttons, u32 count, const char* windowName)
+{
+	for (u32 i = 0; i < count; ++i)
+	{
+		CUI3tButton* btn = buttons[i];
+		if (btn && WindowNameEquals(btn->WindowName().c_str(), windowName))
+		{
+			return btn;
+		}
+	}
+	return nullptr;
+}
+
+bool IsNavPanButtonHeld(CUI3tButton* btn)
+{
+	return btn && btn->CursorOverWindow() && btn->GetButtonState() == CUIButton::BUTTON_PUSHED;
+}
+
 } // namespace
 
 void CUIMapWnd::InitPersonalSpotRmbMode(CUIXml& xml, const char* buttonPath, CUI3tButton* btn)
@@ -180,19 +198,24 @@ void CUIMapWnd::UpdateNav()
 	}
 	m_nav_timing = Device.dwTimeGlobal;
 
-	if (m_btn_nav[btn_up] && m_btn_nav[btn_up]->CursorOverWindow() && m_btn_nav[btn_up]->GetButtonState() == CUIButton::BUTTON_PUSHED)
+	CUI3tButton* btnUp = FindNavButtonByWindowName(m_btn_nav, max_btn_nav, PdaNavButton::Up);
+	CUI3tButton* btnLeft = FindNavButtonByWindowName(m_btn_nav, max_btn_nav, PdaNavButton::Left);
+	CUI3tButton* btnRight = FindNavButtonByWindowName(m_btn_nav, max_btn_nav, PdaNavButton::Right);
+	CUI3tButton* btnDown = FindNavButtonByWindowName(m_btn_nav, max_btn_nav, PdaNavButton::Down);
+
+	if (IsNavPanButtonHeld(btnUp))
 	{
 		MoveMap(Fvector2().set(0.0f, m_map_move_step));
 	}
-	else if (m_btn_nav[btn_left] && m_btn_nav[btn_left]->CursorOverWindow() && m_btn_nav[btn_left]->GetButtonState() == CUIButton::BUTTON_PUSHED)
+	else if (IsNavPanButtonHeld(btnLeft))
 	{
 		MoveMap(Fvector2().set(m_map_move_step, 0.0f));
 	}
-	else if (m_btn_nav[btn_right] && m_btn_nav[btn_right]->CursorOverWindow() && m_btn_nav[btn_right]->GetButtonState() == CUIButton::BUTTON_PUSHED)
+	else if (IsNavPanButtonHeld(btnRight))
 	{
 		MoveMap(Fvector2().set(-m_map_move_step, 0.0f));
 	}
-	else if (m_btn_nav[btn_down] && m_btn_nav[btn_down]->CursorOverWindow() && m_btn_nav[btn_down]->GetButtonState() == CUIButton::BUTTON_PUSHED)
+	else if (IsNavPanButtonHeld(btnDown))
 	{
 		MoveMap(Fvector2().set(0.0f, -m_map_move_step));
 	}
