@@ -605,8 +605,14 @@ void InventoryUtilities::SendInfoToActor(const char* info_id)
 	{
 		return;
 	}
-	
-	if (CActor* actor = Level().CurrentEntity() ? Level().CurrentEntity()->cast_actor() : nullptr)
+
+	if (!g_pGameLevel)
+	{
+		return;
+	}
+
+	CObject* entity = g_pGameLevel->CurrentEntity();
+	if (CActor* actor = entity ? entity->cast_actor() : nullptr)
 	{
 		actor->TransferInfo(info_id, true);
 	}
