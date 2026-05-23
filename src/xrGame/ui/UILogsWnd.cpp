@@ -3,6 +3,10 @@
 //	Created 	: 25.04.2008
 //	Author		: Evgeniy Sokolov
 //	Description : UI Logs (PDA) window class implementation
+//
+//	Split lists (logs_list_news + logs_list_dialogs):
+//	- Per-column logs_item: nested logs_list_*:logs_item, else logs_item_news/logs_item_dialogs, else logs_item.
+//	- Optional stack layout in item XML: logs_itm_stack, logs_row_stack, logs_text_stack (sp_align, spacing).
 ////////////////////////////////////////////////////////////////////////////
 
 #include "StdAfx.h"
@@ -109,6 +113,8 @@ CUILogsWnd::~CUILogsWnd()
 		m_list_dialogs->Clear();
 	}
 	delete_data(m_items_cache);
+	delete_data(_itemsCacheNews);
+	delete_data(_itemsCacheTalk);
 }
 
 void CUILogsWnd::InitScrollList(LPCSTR nodeName, CUIScrollView*& outList, CUIWindow* parent)
@@ -178,17 +184,47 @@ CUIScrollView* CUILogsWnd::ActiveScrollList()
 	return m_list_news;
 }
 
-void CUILogsWnd::ClearListToCache(CUIScrollView* list)
+shared_str CUILogsWnd::ResolveItemTemplatePath(const char* listNode, const char* siblingNode)
+{
+	string512 nestedPath;
+	xr_strconcat(nestedPath, listNode, ":logs_item");
+
+	if (m_uiXml.NavigateToNode(nestedPath, 0))
+	{
+		return nestedPath;
+	}
+	if (m_uiXml.NavigateToNode(siblingNode, 0))
+	{
+		return siblingNode;
+	}
+	if (m_uiXml.NavigateToNode("logs_item", 0))
+	{
+		return "logs_item";
+	}
+
+	Msg("! CUILogsWnd: missing logs_item template (tried %s, %s, logs_item) in [%s]",
+		nestedPath, siblingNode, m_uiXml.m_xml_file_name);
+	return "logs_item";
+}
+
+CUIWindow::WINDOW_LIST& CUILogsWnd::ItemsCacheForType(bool forNews)
+{
+	return forNews ? _itemsCacheNews : _itemsCacheTalk;
+}
+
+void CUILogsWnd::ClearListToCache(CUIScrollView* list, bool forNews)
 {
 	if (!list || list->Empty())
 	{
 		return;
 	}
 
+	CUIWindow::WINDOW_LIST& cache = m_use_split_lists ? ItemsCacheForType(forNews) : m_items_cache;
+
 	xrCriticalSectionGuard guard(list->csUi);
-	m_items_cache.insert(m_items_cache.end(), list->Items().begin(), list->Items().end());
+	cache.insert(cache.end(), list->Items().begin(), list->Items().end());
 	list->Items().clear();
-	std::for_each(m_items_cache.begin(), m_items_cache.end(), itemToCache);
+	std::for_each(cache.begin(), cache.end(), itemToCache);
 }
 
 void CUILogsWnd::FlushReadyItems(WINDOW_LIST& ready, CUIScrollView* list)
@@ -351,6 +387,9 @@ void CUILogsWnd::Init()
 		}
 		InitScrollList("logs_list_news", m_list_news, newsParent);
 		InitScrollList("logs_list_dialogs", m_list_dialogs, dialogsParent);
+
+		_itemTemplateNews = ResolveItemTemplatePath("logs_list_news", "logs_item_news");
+		_itemTemplateDialogs = ResolveItemTemplatePath("logs_list_dialogs", "logs_item_dialogs");
 	}
 	else if (hasLegacyList)
 	{
@@ -545,12 +584,12 @@ void CUILogsWnd::ReLoadNews()
 
 	if (m_use_split_lists)
 	{
-		ClearListToCache(m_list_news);
-		ClearListToCache(m_list_dialogs);
+		ClearListToCache(m_list_news, true);
+		ClearListToCache(m_list_dialogs, false);
 	}
 	else
 	{
-		ClearListToCache(m_list);
+		ClearListToCache(m_list, true);
 	}
 	PerformWork();
 }
@@ -585,31 +624,43 @@ void CUILogsWnd::PerformWork()
 	ProcessIndexQueue(m_news_in_queue, 30);
 }
 
-CUIWindow*	CUILogsWnd::CreateItem()
+CUIWindow* CUILogsWnd::CreateItem(bool forNews)
 {
-	CUINewsItemWnd* itm_res;
-	itm_res = new CUINewsItemWnd();
-	itm_res->Init(m_uiXml, "logs_item");
-	return itm_res;
+	CUINewsItemWnd* itmRes = new CUINewsItemWnd();
+	if (m_use_split_lists)
+	{
+		const char* templatePath = forNews
+			? _itemTemplateNews.c_str()
+			: _itemTemplateDialogs.c_str();
+		itmRes->Init(m_uiXml, templatePath, true);
+	}
+	else
+	{
+		itmRes->Init(m_uiXml, "logs_item", false);
+	}
+	return itmRes;
 }
 
-CUIWindow* CUILogsWnd::ItemFromCache()
+CUIWindow* CUILogsWnd::ItemFromCache(bool forNews)
 {
-	CUIWindow* itm_res;
-	if(m_items_cache.empty())
+	CUIWindow::WINDOW_LIST& cache = m_use_split_lists ? ItemsCacheForType(forNews) : m_items_cache;
+
+	CUIWindow* itmRes = nullptr;
+	if (cache.empty())
 	{
-		itm_res = CreateItem();
-	}else
-	{
-		itm_res		= m_items_cache.back();
-		m_items_cache.pop_back	();
+		itmRes = CreateItem(forNews);
 	}
-	return			itm_res;
+	else
+	{
+		itmRes = cache.back();
+		cache.pop_back();
+	}
+	return itmRes;
 }
 
 void CUILogsWnd::AddNewsItem(GAME_NEWS_DATA& news_data)
 {
-	CUIWindow* news_itm_w		= ItemFromCache();
+	CUIWindow* news_itm_w		= ItemFromCache(news_data.m_type == GAME_NEWS_DATA::eNews);
 	CUINewsItemWnd*	news_itm	= smart_cast<CUINewsItemWnd*>(news_itm_w);
 	news_itm->Setup				(news_data);
 

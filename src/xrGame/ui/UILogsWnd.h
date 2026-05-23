@@ -23,7 +23,8 @@ class CUICharacterInfo;
 class CUIScrollView;
 class CUI3tButton;
 class CUICheckButton;
-struct GAME_NEWS_DATA;
+#include "../game_news.h"
+
 class CUINewsItemWnd;
 class CUIGamepadLegend;
 class CUICalendar;
@@ -70,6 +71,11 @@ private:
 	CUIScrollView*		m_list_news = nullptr;
 	CUIScrollView*		m_list_dialogs = nullptr;
 
+	shared_str			_itemTemplateNews;
+	shared_str			_itemTemplateDialogs;
+	WINDOW_LIST			_itemsCacheNews;
+	WINDOW_LIST			_itemsCacheTalk;
+
 	u32					m_previous_time;
 	bool				m_need_reload;
 	WINDOW_LIST			m_items_cache;
@@ -83,12 +89,14 @@ private:
 	CUIGamepadLegend*	m_gamepad_legend = nullptr;
 	CPdaUiSounds*		m_pUiSounds = nullptr;
 
-	CUIWindow*			CreateItem			();
-	CUIWindow*			ItemFromCache		();
+	shared_str			ResolveItemTemplatePath(const char* listNode, const char* siblingNode);
+	CUIWindow::WINDOW_LIST&	ItemsCacheForType	(bool forNews);
+	CUIWindow*			CreateItem			(bool forNews);
+	CUIWindow*			ItemFromCache		(bool forNews);
 	void				InitScrollList		(LPCSTR nodeName, CUIScrollView*& outList, CUIWindow* parent = nullptr);
 	void				InitColumnFrames	();
 	CUIScrollView*		ActiveScrollList	();
-	void				ClearListToCache	(CUIScrollView* list);
+	void				ClearListToCache	(CUIScrollView* list, bool forNews);
 	void				ApplySplitModeUi	();
 	void				FlushReadyItems		(WINDOW_LIST& ready, CUIScrollView* list);
 	void				ScrollAllListsToBegin();

@@ -149,7 +149,7 @@ bool  CScriptGameObject::GiveGameNews(const char* news, const char* texture_name
 void _give_news(const char* caption, const char* text, const char* texture_name, int delay, int show_time, int type)
 {
 	GAME_NEWS_DATA				news_data;
-	news_data.m_type = (GAME_NEWS_DATA::eNewsType)type;
+	news_data.m_type = (GAME_NEWS_DATA::ENewsKind)type;
 	news_data.news_caption = caption;
 	news_data.news_text = text;
 	if (show_time != 0)
