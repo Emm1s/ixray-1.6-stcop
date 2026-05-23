@@ -157,10 +157,84 @@ struct b_mu_reference
     u32					reserved	[8];
 };
 
+struct b_external_object_vmap
+{
+	shared_str Name;
+	struct{
+		u8			type	:2;
+		u8			polymap	:1;
+		u8			dim		:2;
+		u8			reserved:3;
+	};
+	IntVec vindices;
+	IntVec pindices;
+	FloatVec vm;
+	
+	IC void resize(int cnt)
+	{
+		vm.resize(cnt*dim);
+		vindices.resize(cnt);
+		if (polymap)
+		{
+			pindices.resize(cnt);
+		}
+	}
+	IC Fvector2& getUV(int idx)
+	{
+		VERIFY(type==0);
+		return (Fvector2&)vm[idx*dim];
+	}
+};
+
+struct b_external_object_vmap_pt
+{
+	int vmap_index=-1;
+	int index=-1;
+};
+
+struct b_external_object_vmap_list
+{
+	xr_vector<b_external_object_vmap_pt> list;
+};
+
+struct b_external_object_face_data_vert
+{
+	int pindex;
+	int vmref;
+};
+
+struct b_external_object_face_data
+{
+	b_external_object_face_data_vert pv[3];	
+};
+
+struct b_external_object_face_mat_link
+{
+	shared_str name;
+	xr_vector<int> Faces;
+};
+
+struct b_external_object_mesh_data
+{
+	shared_str m_Name;
+	Fbox m_Box;
+	xr_vector<Fvector> m_Vertices;
+	xr_vector<b_face> m_Faces;
+};
+
+struct SSurfaceData;
+
+struct b_external_object_data
+{
+	xr_vector<SSurfaceData*> m_Surfaces; // only shared allowed anyway
+	xr_vector<b_external_object_mesh_data> m_meshes;
+};
+
 struct b_external_object_reference
 {
 	string128 name;
 	Fmatrix transform;
+	b_external_object_data* prototype;
 	u16 sector;
 };
 
@@ -270,4 +344,59 @@ enum EBUILD_CHUNKS
 	EB_ExternalObjects,
 
 	EB_FORCE_DWORD = u32(-1)
+};
+
+enum class EEditableObjectChunks
+{
+	OBJECT_BODY = 0x7777,
+	VERSION = 0x0900,
+	REFERENCE = 0x0902,
+	FLAGS = 0x0903,
+	SURFACES = 0x0905,
+	SURFACES2 = 0x0906,
+	SURFACES3 = 0x0907,
+	SURFACES_SHARED = 0x0908,
+	EDITMESHES = 0x0910,
+	CLASSSCRIPT = 0x0912,
+	BONES = 0x0913,
+	SMOTIONS = 0x0916,
+	SURFACES_XRLC = 0x0918,
+	BONEPARTS = 0x0919,
+	ACTORTRANSFORM = 0x0920,
+	BONES2 = 0x0921,
+	DESC = 0x0922,
+	BONEPARTS2 = 0x0923,
+	SMOTIONS2 = 0x0924,
+	LODS = 0x0925,
+	SMOTIONS3 = 0x0926,
+};
+
+enum class EEditableObjectVersions
+{
+	Vanilla = 0x0010,
+};
+
+
+enum class EEditableMeshVersions : u16
+{
+	EMESH_CURRENT_VERSION = 0x0011,
+};
+
+enum class EEditableMeshChunks
+{
+	EMESH_CHUNK_VERSION = 0x1000,
+	EMESH_CHUNK_MESHNAME = 0x1001,
+	EMESH_CHUNK_FLAGS = 0x1002,
+	EMESH_CHUNK_NOT_USED_0 = 0x1003,
+	EMESH_CHUNK_BBOX = 0x1004,
+	EMESH_CHUNK_VERTS = 0x1005,
+	EMESH_CHUNK_FACES = 0x1006,
+	EMESH_CHUNK_VMAPS_0 = 0x1007,
+	EMESH_CHUNK_VMREFS = 0x1008,
+	EMESH_CHUNK_SFACE = 0x1009,
+	EMESH_CHUNK_BOP = 0x1010,
+	EMESH_CHUNK_VMAPS_1 = 0x1011,
+	EMESH_CHUNK_VMAPS_2 = 0x1012,
+	EMESH_CHUNK_SG = 0x1013,
+	EMESH_CHUNK_NORMALS = 0x1014,
 };

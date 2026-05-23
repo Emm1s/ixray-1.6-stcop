@@ -13,6 +13,7 @@
 
 // FX: link sphere symbols 
 #include "../../3rd-party/MagicSoftware/FreeMagic/Include/MgcSphere.h"
+#include "LevelEditor/Engine/communicate.h"
 
 const u32 color_bone_sel_color	=0xFFFFFFFF;
 const u32 color_bone_norm_color	=0xFFFFFF00;

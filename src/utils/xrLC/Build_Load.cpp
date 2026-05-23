@@ -68,8 +68,6 @@ void CBuild::Load	(const b_params& Params, const IReader& _in_FS)
 	//*******
 
 	Status("Vertices...");
- 
-	size_t pre = GetHeapMemory();
 	{
 		F = fs.open_chunk(EB_Vertices);
 		u32 v_count = F->length() / sizeof(b_vertex);
@@ -204,6 +202,21 @@ void CBuild::Load	(const b_params& Params, const IReader& _in_FS)
 	transfer("glows", glows, fs, EB_Glows);
 	transfer("portals", portals, fs, EB_Portals);
 	transfer("LODs", lods, fs, EB_LOD_models);
+	
+	Status("External objects...");
+	
+	fs.open_chunk(EB_ExternalObjects, [this](IReader& F)
+	{
+		auto& refs = external_object_references();
+		refs.resize(F.r_u32());
+		for (auto& elem : refs)
+		{
+			F.r_stringZ(elem.name, sizeof(elem.name));
+			F.r(&elem.transform, sizeof(elem.transform));
+			elem.sector = F.r_u16();
+			elem.prototype = &lc_global_data()->LoadExternalObjectData(elem.name);
+		}
+	});
 
 	// Load lights
 	Status	("Loading lights...");

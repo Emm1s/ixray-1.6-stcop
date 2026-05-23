@@ -12,6 +12,7 @@
 
 #include "ExportSkeleton.h"
 #include "ExportObjectOGF.h"
+#include "LevelEditor/Engine/communicate.h"
 
 #if 1
  #include "../Layers/xrRender/Shader.h"
