@@ -186,6 +186,7 @@ local IsRight = sp:IsAlignRight() --// получить выравнивание
 > **Статус**: Поддерживается <br>
 > **Минимальная версия**: 1.3
 * Добавлена поддержка квадратной миникарты, как в ЧН/ТЧ.
+* Прозрачность текстуры карты уровня настраивается атрибутами `a`, `r`, `g`, `b` или `color` на узле `level_frame` в `zone_map.xml`. Если атрибуты не заданы, используется значение по умолчанию `a=127` (как в оригинале).
 
 ![image](https://github.com/user-attachments/assets/9473739e-71c0-4d11-8dd9-6a1322901095)
 
@@ -193,7 +194,7 @@ local IsRight = sp:IsAlignRight() --// получить выравнивание
 ```xml
 <window>
 	<minimap>
-		<level_frame x="17" y="14" width="137" height="166"/>
+		<level_frame x="17" y="14" width="137" height="166" a="127"/>
 		
 		<background x="3" y="3" width="164" height="191" stretch="1"> 
 			<texture>ui_hud_map</texture>

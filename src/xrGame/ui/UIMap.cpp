@@ -679,7 +679,6 @@ CUIMiniMap::~CUIMiniMap()
 void CUIMiniMap::Init_internal(const shared_str& name, CInifile& pLtx, const shared_str& sect_name, const char* sh_name)
 {
 	inherited::Init_internal	(name, pLtx, sect_name, sh_name);
-	CUIStatic::SetTextureColor	(0x7fffffff);
 }
 
 void CUIMiniMap::UpdateSpots()
