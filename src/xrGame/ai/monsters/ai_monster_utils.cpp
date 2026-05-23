@@ -33,24 +33,64 @@ bool object_position_valid(const CEntity *entity)
 		);
 }
 
-Fvector get_bone_position	(CObject *object, const char* bone_name)
+namespace
 {
-	u16 bone_id			= PKinematics(object->Visual())->LL_BoneID				(bone_name);
-	CBoneInstance &bone = PKinematics(object->Visual())->LL_GetBoneInstance	(bone_id);
+bool try_get_bone_world_position(CObject* object, const char* bone_name, Fvector& out)
+{
+	if (!object || !object->Visual())
+		return false;
 
-	Fmatrix	global_transform;
-	global_transform.mul	(object->XFORM(),bone.mTransform);
+	IKinematics* const kinematics = PKinematics(object->Visual());
+	if (!kinematics)
+		return false;
 
-	return	(global_transform.c);
+	const u16 bone_id = kinematics->LL_BoneID(bone_name);
+	if (bone_id == BI_NONE)
+		return false;
+
+	kinematics->LL_GetBoneWorldPosition(bone_id, object->XFORM(), out);
+	return true;
 }
+} // namespace
 
-Fvector get_head_position(CObject *object) 
+Fvector get_bone_position(CObject* object, const char* bone_name)
 {
-	const char* bone_name		=	"bip01_head";
-	if ( CBaseMonster* monster = object != nullptr ? object->cast_base_monster() : nullptr)
+	Fvector result;
+	if (!object)
 	{
-		bone_name		=	monster->get_head_bone_name();
+		result.set(0.f, 0.f, 0.f);
+		return result;
 	}
 
-	return get_bone_position(object, bone_name);
+	if (try_get_bone_world_position(object, bone_name, result))
+		return result;
+
+	object->Center(result);
+	return result;
+}
+
+Fvector get_head_position(CObject* object)
+{
+	Fvector result;
+	if (!object)
+	{
+		result.set(0.f, 0.f, 0.f);
+		return result;
+	}
+
+	if (CBaseMonster* const monster = object->cast_base_monster())
+	{
+		if (try_get_bone_world_position(object, monster->get_head_bone_name(), result))
+			return result;
+	}
+
+	static const char* head_bone_names[] = {"bip01_head", "head", "eye_left", "eye_right"};
+	for (const char* name : head_bone_names)
+	{
+		if (try_get_bone_world_position(object, name, result))
+			return result;
+	}
+
+	object->Center(result);
+	return result;
 }
