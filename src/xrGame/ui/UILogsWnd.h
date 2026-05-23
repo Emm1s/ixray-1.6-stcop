@@ -76,6 +76,12 @@ private:
 	WINDOW_LIST			_itemsCacheNews;
 	WINDOW_LIST			_itemsCacheTalk;
 
+	bool				_talkSortNewestFirst = false;
+	bool				_talkPinLastContact = false;
+	CUI3tButton*		_btnTalkSortOldest = nullptr;
+	CUI3tButton*		_btnTalkSortNewest = nullptr;
+	CUI3tButton*		_btnTalkPinLast = nullptr;
+
 	u32					m_previous_time;
 	bool				m_need_reload;
 	WINDOW_LIST			m_items_cache;
@@ -101,7 +107,12 @@ private:
 	void				FlushReadyItems		(WINDOW_LIST& ready, CUIScrollView* list);
 	void				ScrollAllListsToBegin();
 	void				ScrollAllListsToEnd	();
-	void				ProcessIndexQueue	(xr_vector<u32>& queue, u32 batchSize);
+	void				ProcessIndexQueue	(xr_vector<u32>& queue, u32 batchSize, bool popFromBack);
+	void				InitTalkDialogsToolbar	();
+	void				UpdateTalkDialogsToolbarVisual();
+	void				OnTalkSortOldest	(CUIWindow* w, void* d);
+	void				OnTalkSortNewest	(CUIWindow* w, void* d);
+	void				OnTalkPinLastToggle	(CUIWindow* w, void* d);
 
 public:
 						CUILogsWnd			();

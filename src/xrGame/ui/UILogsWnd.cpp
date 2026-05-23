@@ -34,6 +34,9 @@
 #include "../../xrEngine/string_table.h"
 #include "UINewsItemWnd.h"
 #include "../../xrEngine/xr_input.h"
+#include "../../xrUI/Widgets/UI3tButton.h"
+
+#include <algorithm>
 
 #define PDA_LOGS_XML "pda_logs.xml"
 
@@ -75,6 +78,98 @@ void AttachAutoStatics(CUIXml& xml, CUIXmlInit& xmlInit, const char* tag, CUIWin
 		parent->AttachChild(item);
 		xmlInit.InitStatic(xml, tag, i, item);
 	}
+}
+
+void SortTalkQueueIndices(xr_vector<u32>& indices, const GAME_NEWS_VECTOR& newsVector)
+{
+	if (indices.size() < 2)
+	{
+		return;
+	}
+
+	std::sort(indices.begin(), indices.end(),
+		[&newsVector](u32 leftIdx, u32 rightIdx)
+		{
+			const ALife::_TIME_ID leftTime = newsVector[leftIdx].receive_time;
+			const ALife::_TIME_ID rightTime = newsVector[rightIdx].receive_time;
+			if (leftTime != rightTime)
+			{
+				return leftTime < rightTime;
+			}
+			return leftIdx < rightIdx;
+		});
+}
+
+// Last interlocutor is matched by news_caption (display name), not NPC id.
+// Empty captions and actor lines are skipped; duplicate display names share one block.
+shared_str ResolveLastInterlocutorCaption(
+	const xr_vector<u32>& indices, const GAME_NEWS_VECTOR& newsVector, const char* actorName)
+{
+	if (!actorName || !actorName[0] || indices.empty())
+	{
+		return {};
+	}
+
+	u32 bestIdx = u32(-1);
+	for (const u32 idx : indices)
+	{
+		const GAME_NEWS_DATA& entry = newsVector[idx];
+		if (!entry.news_caption.size())
+		{
+			continue;
+		}
+		if (0 == xr_strcmp(entry.news_caption.c_str(), actorName))
+		{
+			continue;
+		}
+
+		if (bestIdx == u32(-1) || entry.receive_time > newsVector[bestIdx].receive_time)
+		{
+			bestIdx = idx;
+		}
+	}
+
+	if (bestIdx == u32(-1))
+	{
+		return {};
+	}
+
+	return newsVector[bestIdx].news_caption;
+}
+
+void PartitionTalkQueuePinLast(
+	xr_vector<u32>& indices, const GAME_NEWS_VECTOR& newsVector, const shared_str& pinCaption)
+{
+	if (!pinCaption.size() || indices.size() < 2)
+	{
+		return;
+	}
+
+	xr_vector<u32> pinned;
+	xr_vector<u32> rest;
+	pinned.reserve(indices.size());
+	rest.reserve(indices.size());
+
+	for (const u32 idx : indices)
+	{
+		if (newsVector[idx].news_caption == pinCaption)
+		{
+			pinned.push_back(idx);
+		}
+		else
+		{
+			rest.push_back(idx);
+		}
+	}
+
+	if (pinned.empty())
+	{
+		return;
+	}
+
+	indices.clear();
+	indices.insert(indices.end(), pinned.begin(), pinned.end());
+	indices.insert(indices.end(), rest.begin(), rest.end());
 }
 } // namespace
 
@@ -390,6 +485,7 @@ void CUILogsWnd::Init()
 
 		_itemTemplateNews = ResolveItemTemplatePath("logs_list_news", "logs_item_news");
 		_itemTemplateDialogs = ResolveItemTemplatePath("logs_list_dialogs", "logs_item_dialogs");
+		InitTalkDialogsToolbar();
 	}
 	else if (hasLegacyList)
 	{
@@ -580,6 +676,19 @@ void CUILogsWnd::ReLoadNews()
 			}
 		}
 	}
+	if (m_use_split_lists && !m_talk_in_queue.empty())
+	{
+		SortTalkQueueIndices(m_talk_in_queue, news_vector);
+		if (_talkPinLastContact && pActor)
+		{
+			const shared_str pinCaption = ResolveLastInterlocutorCaption(
+				m_talk_in_queue, news_vector, pActor->NameReal());
+			if (pinCaption.size())
+			{
+				PartitionTalkQueuePinLast(m_talk_in_queue, news_vector, pinCaption);
+			}
+		}
+	}
 	m_need_reload = false;
 
 	if (m_use_split_lists)
@@ -594,7 +703,7 @@ void CUILogsWnd::ReLoadNews()
 	PerformWork();
 }
 
-void CUILogsWnd::ProcessIndexQueue(xr_vector<u32>& queue, u32 batchSize)
+void CUILogsWnd::ProcessIndexQueue(xr_vector<u32>& queue, u32 batchSize, bool popFromBack)
 {
 	if (queue.empty() || !Actor())
 	{
@@ -606,8 +715,15 @@ void CUILogsWnd::ProcessIndexQueue(xr_vector<u32>& queue, u32 batchSize)
 
 	for (u32 i = 0; i < count; ++i)
 	{
-		const u32 idx = queue.back();
-		queue.pop_back();
+		const u32 idx = popFromBack ? queue.back() : queue.front();
+		if (popFromBack)
+		{
+			queue.pop_back();
+		}
+		else
+		{
+			queue.erase(queue.begin());
+		}
 		AddNewsItem(news_vector[idx]);
 	}
 }
@@ -616,12 +732,122 @@ void CUILogsWnd::PerformWork()
 {
 	if (m_use_split_lists)
 	{
-		ProcessIndexQueue(m_news_in_queue, 30);
-		ProcessIndexQueue(m_talk_in_queue, 30);
+		ProcessIndexQueue(m_news_in_queue, 30, true);
+		ProcessIndexQueue(m_talk_in_queue, 30, _talkSortNewestFirst);
 		return;
 	}
 
-	ProcessIndexQueue(m_news_in_queue, 30);
+	ProcessIndexQueue(m_news_in_queue, 30, true);
+}
+
+void CUILogsWnd::InitTalkDialogsToolbar()
+{
+	if (!m_use_split_lists || !m_list_dialogs)
+	{
+		return;
+	}
+
+	if (m_uiXml.NavigateToNode("logs_list_dialogs:btn_talk_sort_oldest"))
+	{
+		_btnTalkSortOldest = UIHelper::Create3tButton(
+			m_uiXml, "logs_list_dialogs:btn_talk_sort_oldest", m_list_dialogs);
+	}
+	if (m_uiXml.NavigateToNode("logs_list_dialogs:btn_talk_sort_newest"))
+	{
+		_btnTalkSortNewest = UIHelper::Create3tButton(
+			m_uiXml, "logs_list_dialogs:btn_talk_sort_newest", m_list_dialogs);
+	}
+	if (m_uiXml.NavigateToNode("logs_list_dialogs:btn_talk_pin_last"))
+	{
+		_btnTalkPinLast = UIHelper::Create3tButton(
+			m_uiXml, "logs_list_dialogs:btn_talk_pin_last", m_list_dialogs);
+	}
+
+	if (_btnTalkSortOldest)
+	{
+		Register(_btnTalkSortOldest);
+		AddCallback(_btnTalkSortOldest, BUTTON_CLICKED,
+			CUIWndCallback::void_function(this, &CUILogsWnd::OnTalkSortOldest));
+	}
+	if (_btnTalkSortNewest)
+	{
+		Register(_btnTalkSortNewest);
+		AddCallback(_btnTalkSortNewest, BUTTON_CLICKED,
+			CUIWndCallback::void_function(this, &CUILogsWnd::OnTalkSortNewest));
+	}
+	if (_btnTalkPinLast)
+	{
+		Register(_btnTalkPinLast);
+		AddCallback(_btnTalkPinLast, BUTTON_CLICKED,
+			CUIWndCallback::void_function(this, &CUILogsWnd::OnTalkPinLastToggle));
+	}
+
+	UpdateTalkDialogsToolbarVisual();
+}
+
+void CUILogsWnd::UpdateTalkDialogsToolbarVisual()
+{
+	if (_btnTalkSortOldest)
+	{
+		_btnTalkSortOldest->SetHighlighted(!_talkSortNewestFirst);
+	}
+	if (_btnTalkSortNewest)
+	{
+		_btnTalkSortNewest->SetHighlighted(_talkSortNewestFirst);
+	}
+	if (_btnTalkPinLast)
+	{
+		_btnTalkPinLast->SetHighlighted(_talkPinLastContact);
+	}
+}
+
+void CUILogsWnd::OnTalkSortOldest(CUIWindow* w, void* d)
+{
+	if (!_talkSortNewestFirst)
+	{
+		return;
+	}
+
+	_talkSortNewestFirst = false;
+	UpdateTalkDialogsToolbarVisual();
+
+	if (m_pUiSounds)
+	{
+		m_pUiSounds->PlayFilterToggle();
+	}
+
+	m_need_reload = true;
+}
+
+void CUILogsWnd::OnTalkSortNewest(CUIWindow* w, void* d)
+{
+	if (_talkSortNewestFirst)
+	{
+		return;
+	}
+
+	_talkSortNewestFirst = true;
+	UpdateTalkDialogsToolbarVisual();
+
+	if (m_pUiSounds)
+	{
+		m_pUiSounds->PlayFilterToggle();
+	}
+
+	m_need_reload = true;
+}
+
+void CUILogsWnd::OnTalkPinLastToggle(CUIWindow* w, void* d)
+{
+	_talkPinLastContact = !_talkPinLastContact;
+	UpdateTalkDialogsToolbarVisual();
+
+	if (m_pUiSounds)
+	{
+		m_pUiSounds->PlayFilterToggle();
+	}
+
+	m_need_reload = true;
 }
 
 CUIWindow* CUILogsWnd::CreateItem(bool forNews)
