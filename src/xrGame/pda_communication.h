@@ -30,10 +30,12 @@ public:
     static CPdaCommunication& Get();
 
     bool IsEnabled() const;
+    bool IsRemotePhraseContext() const;
     float GetTalkDistance() const;
 
     bool OpenDialog(CInventoryOwner* npc);
     EPdaCommunicationStatus CanStart(CInventoryOwner* npc, CInventoryOwner* actor) const;
+    static const char* StatusStringId(EPdaCommunicationStatus status);
     void Update();
 
     void Stop();
@@ -65,6 +67,7 @@ private:
 };
 
 IC CPdaCommunication& PdaCommunication() { return CPdaCommunication::Get(); }
+IC bool PdaCommunication_IsRemotePhraseContext() { return CPdaCommunication::Get().IsRemotePhraseContext(); }
 IC bool PdaCommunication_IsSessionActive() { return CPdaCommunication::Get().IsSessionActive(); }
 IC void PdaCommunication_Stop() { CPdaCommunication::Get().Stop(); }
 IC void PdaCommunication_Update() { CPdaCommunication::Get().Update(); }

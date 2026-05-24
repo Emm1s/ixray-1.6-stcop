@@ -8,6 +8,8 @@
 #include "InventoryOwner.h"
 #include "Level.h"
 #include "relation_registry.h"
+#include "UIGameCustom.h"
+#include "ui/UITalkWnd.h"
 
 #ifdef DEBUG
 #define PDA_LOG(...) Msg(__VA_ARGS__)
@@ -55,6 +57,52 @@ bool CPdaCommunication::IsEnabled() const
     return _pdaTalkEnabledCached;
 }
 
+bool CPdaCommunication::IsRemotePhraseContext() const
+{
+    if (!IsEnabled() || !_active)
+    {
+        return false;
+    }
+
+    CUIGameCustom* gameUi = CurrentGameUI();
+    if (gameUi == nullptr || gameUi->TalkMenu == nullptr)
+    {
+        return false;
+    }
+
+    const CUITalkWnd* talkWnd = gameUi->TalkMenu;
+    return talkWnd->IsPdaMode() || talkWnd->IsEmbeddedInPda();
+}
+
+const char* CPdaCommunication::StatusStringId(EPdaCommunicationStatus status)
+{
+    switch (status)
+    {
+    case EPdaCommunicationStatus::Success:
+        return "st_pda_talk_status_available";
+    case EPdaCommunicationStatus::DisabledByConfig:
+        return "st_pda_talk_status_disabled";
+    case EPdaCommunicationStatus::InvalidActor:
+    case EPdaCommunicationStatus::InvalidNpc:
+        return "st_pda_talk_status_unavailable";
+    case EPdaCommunicationStatus::NpcDead:
+        return "st_pda_talk_status_dead";
+    case EPdaCommunicationStatus::NpcHostile:
+        return "st_pda_talk_status_hostile";
+    case EPdaCommunicationStatus::ActorBusy:
+    case EPdaCommunicationStatus::NpcAlreadyTalking:
+        return "st_pda_talk_status_busy";
+    case EPdaCommunicationStatus::NpcOffline:
+        return "st_pda_talk_status_offline";
+    case EPdaCommunicationStatus::NpcOutOfRange:
+        return "st_pda_talk_status_out_of_range";
+    case EPdaCommunicationStatus::NpcNoCapability:
+        return "st_pda_talk_status_no_capability";
+    default:
+        return "st_pda_talk_status_unavailable";
+    }
+}
+
 float CPdaCommunication::GetTalkDistance() const
 {
     if (pSettings && pSettings->section_exist("switch_distance"))
@@ -80,6 +128,11 @@ void CPdaCommunication::Update()
 
 bool CPdaCommunication::OpenDialog(CInventoryOwner* npc)
 {
+    if (!IsEnabled())
+    {
+        return false;
+    }
+
     CActor* actor = Actor();
 
     if (_active && _npc == npc)

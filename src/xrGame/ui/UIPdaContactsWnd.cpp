@@ -396,6 +396,11 @@ bool CUIPdaContactItem::OnMouseDown(int mouse_btn)
 		return true;
 	}
 
+	if (!PdaCommunication().IsEnabled())
+	{
+		return true;
+	}
+
 	if (!m_cw->HasValidPdaDialogLayout())
 	{
 		Msg("! [PDA] contacts: invalid <%s> layout; see earlier [PDA] messages", PdaXml::ContactsDialog);
@@ -432,49 +437,22 @@ void CUIPdaContactItem::OnFocusReceive()
 void CUIPdaContactItem::SetHintText()
 {
 	CSE_ALifeTraderAbstract* T = ch_info_get_from_id(UIInfo->OwnerID());
+	CInventoryOwner* owner = static_cast<CInventoryOwner*>(m_data);
+	CActor* actor = Actor();
 
-	const char* stalkersKilled = "0";
-	const char* mutantsKilled = "0";
-	const char* artsFound = "0";
-	const char* itemsSold = "0";
-
-	luabind::functor<const char*> functorGetStalkersKilled;
-	if (ai().script_engine().functor("pda.coc_contacts_get_stalkers_killed", functorGetStalkersKilled))
-		stalkersKilled = functorGetStalkersKilled(UIInfo->OwnerID());
-
-	luabind::functor<const char*> functorGetMutantsKilled;
-	if (ai().script_engine().functor("pda.coc_contacts_get_mutants_killed", functorGetMutantsKilled))
-		mutantsKilled = functorGetMutantsKilled(UIInfo->OwnerID());
-
-	luabind::functor<const char*> functorGetArtsFound;
-	if (ai().script_engine().functor("pda.coc_contacts_get_arts_found", functorGetArtsFound))
-		artsFound = functorGetArtsFound(UIInfo->OwnerID());
-
-	luabind::functor<const char*> functorGetItemsSold;
-	if (ai().script_engine().functor("pda.coc_contacts_get_items_sold", functorGetItemsSold))
-		itemsSold = functorGetItemsSold(UIInfo->OwnerID());
+	EPdaCommunicationStatus status = EPdaCommunicationStatus::DisabledByConfig;
+	if (PdaCommunication().IsEnabled() && owner && actor)
+	{
+		status = PdaCommunication().CanStart(owner, actor->cast_inventory_owner());
+	}
 
 	xr_string str;
 	str = "%c[255, 255, 160, 255] %c[default]";
 	str += T->m_character_name.c_str();
 	str += "\\n \\n %c[255, 215, 215, 215]";
-	str += g_pStringTable->translate("st_mm_pda_statistics").c_str();
-	str += ": %c[default] \\n%c[255, 160, 160, 160]";
-	str += g_pStringTable->translate("st_mm_pda_stalkers_killed").c_str();
+	str += g_pStringTable->translate("st_pda_talk_status_label").c_str();
 	str += ": %c[default] ";
-	str += stalkersKilled;
-	str += "\\n%c[255, 160, 160, 160]";
-	str += g_pStringTable->translate("st_mm_pda_mutants_killed").c_str();
-	str += ": %c[default] ";
-	str += mutantsKilled;
-	str += "\\n%c[255, 160, 160, 160]";
-	str += g_pStringTable->translate("st_mm_pda_artes_found").c_str();
-	str += ": %c[default] ";
-	str += artsFound;
-	str += "\\n%c[255, 160, 160, 160]";
-	str += g_pStringTable->translate("st_mm_pda_items_sold").c_str();
-	str += ": %c[default] ";
-	str += itemsSold;
+	str += g_pStringTable->translate(CPdaCommunication::StatusStringId(status)).c_str();
 
 	m_cw->m_hint_wnd->set_text(str.c_str());
 }

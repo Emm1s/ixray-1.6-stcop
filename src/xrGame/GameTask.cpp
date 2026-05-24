@@ -322,6 +322,7 @@ void SGameTaskObjective::SetTaskState(ETaskState state)
 	const bool isPdaRewardDeferred = parentTask &&
 		m_task_state == eTaskStateCompleted &&
 		!parentTask->m_remoteAllowed &&
+		PdaCommunication().IsEnabled() &&
 		PdaCommunication_IsSessionActive();
 
 	if( (m_task_state == eTaskStateFail) || (m_task_state == eTaskStateCompleted) )

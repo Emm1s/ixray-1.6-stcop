@@ -358,7 +358,7 @@ void CUIPdaWnd::Init()
 		pUIFactionWarWnd->hint_wnd = m_hint_wnd;
 		pUIFactionWarWnd->Init();
 	}
-	if (tabPresentLambda(PdaSectionId::Contacts) && !UIPdaContactsWnd)
+	if (PdaCommunication().IsEnabled() && tabPresentLambda(PdaSectionId::Contacts) && !UIPdaContactsWnd)
 	{
 		UIPdaContactsWnd = new CUIPdaContactsWnd();
 		UIPdaContactsWnd->Init();

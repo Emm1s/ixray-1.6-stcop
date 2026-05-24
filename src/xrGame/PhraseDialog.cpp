@@ -308,6 +308,15 @@ void CPhraseDialog::load_shared	(const char*)
 	data()->m_ScriptDialogHelper.Load(pXML, dialog_node);
 
 	data()->m_isPdaAvailable = pXML->ReadInt(dialog_node, "pda_available", 0, 0) == 1;
+#ifdef DEBUG
+	if (pXML->ReadAttribInt(dialog_node, "pda", 0) == 1)
+	{
+		Msg(
+			"! [PDA] dialog [%s]: legacy pda=\"1\" attribute is ignored; use <pda_available>1</pda_available>",
+			*item_data.id
+		);
+	}
+#endif
 	LoadPdaDisabledPhraseOverrides(pXML, dialog_node, data());
 
 	//заполнить граф диалога фразами
