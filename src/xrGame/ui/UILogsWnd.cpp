@@ -19,7 +19,6 @@
 #include "../../xrUI/Widgets/UIFrameLineWnd.h"
 #include "../../xrUI/Widgets/UIFrameWindow.h"
 #include "../../xrUI/Widgets/UIScrollBar.h"
-#include "../../xrUI/Widgets/UIFixedScrollBar.h"
 #include "../../xrUI/Widgets/UIScrollView.h"
 #include "../../xrUI/Widgets/UICheckButton.h"
 #include "../../xrUI/UIHelper.h"
@@ -216,8 +215,7 @@ void CUILogsWnd::InitScrollList(LPCSTR nodeName, CUIScrollView*& outList, CUIWin
 {
 	CUIWindow* attachParent = parent ? parent : this;
 
-	CUIFixedScrollBar* tmp_scroll = new CUIFixedScrollBar();
-	outList = new CUIScrollView(tmp_scroll);
+	outList = new CUIScrollView();
 	outList->SetAutoDelete(true);
 	attachParent->AttachChild(outList);
 	CUIXmlInit::InitScrollView(m_uiXml, nodeName, 0, outList);

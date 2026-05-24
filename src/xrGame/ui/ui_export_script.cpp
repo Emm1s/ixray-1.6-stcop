@@ -18,6 +18,7 @@
 #include "../xrUI/Widgets/UIOptionsManagerScript.h"
 #include "../xrUI/Widgets/UIMultiTextStatic.h"
 #include "../xrUI/Widgets/UIListWnd.h"
+#include "../xrUI/Widgets/UIScrollBar.h"
 #include "ui/UIMapInfo.h"
 #include "map_manager.h"
 #include "ScriptXMLInit.h"
@@ -55,6 +56,7 @@ void UIRegistrator::script_register(lua_State *L)
 	CUIActionRepeatersOwner::script_register(L);
 	CUIActionRepeatersManager::script_register(L);
 	CUIWindow::script_register(L);
+	CUIScrollBar::script_register(L);
 	CUIMMShniaga::script_register(L);
 	CUIStatic::script_register(L);
 	CUIButton::script_register(L);
@@ -116,7 +118,8 @@ void UIRegistrator::script_register(lua_State *L)
 	module(L,"ui")
 	[
 		def("get_current_kx",				&get_current_kx),
-		def("is_widescreen",				&is_widescreen)
+		def("is_widescreen",				&is_widescreen),
+		def("QueryScrollBarProfileLayout",	&QueryScrollBarProfileLayout_script)
 	];
 
 	CMapManager::script_register(L);

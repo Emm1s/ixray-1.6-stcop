@@ -10,7 +10,6 @@
 #include "UIRankingWnd.h"
 #include "PdaUiSound.h"
 
-#include "../../xrUI/Widgets/UIFixedScrollBar.h"
 #include "../../xrUI/UIXmlInit.h"
 #include "../../xrUI/Widgets/UIProgressBar.h"
 #include "../../xrUI/Widgets/UIFrameLineWnd.h"

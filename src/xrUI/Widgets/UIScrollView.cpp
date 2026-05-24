@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "UIScrollView.h"
 #include "UIScrollBar.h"
-#include "UIFixedScrollBar.h"
 #include "../ui_base.h"
 #include "../UICursor.h"
 #include "../../xrEngine/xr_input.h"	
@@ -56,55 +55,105 @@ void CUIScrollView::ForceUpdate()
 	RecalcSize			();
 }
 
-void CUIScrollView::InitScrollView()
+bool CUIScrollView::_createOrInitScrollBar()
 {
-	if (!m_pad)
-	{
-        m_pad						= new CUIWindow(); m_pad->SetAutoDelete(true);
-		AttachChild					(m_pad);
-	}
-	m_pad->SetWndPos				(Fvector2().set(0,0));
+	const Fvector2 scrollPos = Fvector2().set(GetWndSize().x, 0.0f);
+	const char* profile = m_scrollbar_profile.size() ? *m_scrollbar_profile : nullptr;
 
-	CUIFixedScrollBar* tmp_scroll = m_VScrollBar != nullptr ? m_VScrollBar->ui_cast_fixed_scroll_bar() : nullptr;
-
-	if (tmp_scroll != nullptr)
+	if (m_VScrollBar && m_VScrollBar->IsInitialized())
 	{
-		if (!tmp_scroll->InitScrollBar(Fvector2().set(GetWndSize().x, 0.0f), false, *m_scrollbar_profile))
-		{
-			DetachChild(m_VScrollBar);
-			m_VScrollBar = nullptr;
-		}
+		return true;
 	}
 
 	if (!m_VScrollBar)
 	{
 		m_VScrollBar = new CUIScrollBar();
 		m_VScrollBar->SetAutoDelete(true);
-		AttachChild					(m_VScrollBar);
-		Register					(m_VScrollBar);
-		AddCallback					(m_VScrollBar,	SCROLLBAR_VSCROLL, CUIWndCallback::void_function (this, &CUIScrollView::OnScrollV) );
+		AttachChild(m_VScrollBar);
+		Register(m_VScrollBar);
+		AddCallback(m_VScrollBar, SCROLLBAR_VSCROLL, CUIWndCallback::void_function(this, &CUIScrollView::OnScrollV));
 	}
 
-	if (!!m_scrollbar_profile && !tmp_scroll)
+	if (!CUIScrollBar::InitForProfile(*m_VScrollBar, scrollPos, GetWndSize().y, false, profile))
 	{
-		m_VScrollBar->InitScrollBar(Fvector2().set(GetWndSize().x, 0.0f),
-			GetWndSize().y, false, *m_scrollbar_profile);
+		DetachChild(m_VScrollBar);
+		m_VScrollBar = nullptr;
+		return false;
+	}
+
+	return true;
+}
+
+void CUIScrollView::_applyScrollBarLayout()
+{
+	if (!m_VScrollBar)
+	{
+		return;
+	}
+
+	const Fvector2 scPos = { m_VScrollBar->GetWndPos().x - m_VScrollBar->GetWndSize().x, m_VScrollBar->GetWndPos().y };
+	m_VScrollBar->SetWndPos(scPos);
+	m_VScrollBar->SetWindowName("scroll_v");
+	m_VScrollBar->SetStepSize(std::max(1, iFloor(GetHeight() / 10)));
+	m_VScrollBar->SetPageSize(iFloor(GetHeight()));
+}
+
+void CUIScrollView::InitScrollView()
+{
+	if (!m_pad)
+	{
+		m_pad = new CUIWindow();
+		m_pad->SetAutoDelete(true);
+		AttachChild(m_pad);
+	}
+	m_pad->SetWndPos(Fvector2().set(0, 0));
+
+	if (!_createOrInitScrollBar())
+	{
+		return;
+	}
+
+	_applyScrollBarLayout();
+}
+
+void CUIScrollView::SetScrollBarProfile(const char* profile)
+{
+	m_scrollbar_profile = profile;
+}
+
+bool CUIScrollView::ReinitScrollBar()
+{
+	if (!m_pad || GetWndSize().y <= 0.0f)
+	{
+		return false;
+	}
+
+	int scrollPos = 0;
+	if (m_VScrollBar)
+	{
+		scrollPos = m_VScrollBar->GetScrollPos();
 	}
 	else
 	{
-		m_VScrollBar->InitScrollBar(Fvector2().set(GetWndSize().x, 0.0f),
-			GetWndSize().y, false);
+		scrollPos = iFloor(-m_pad->GetWndPos().y);
 	}
 
-	Fvector2 sc_pos					= {m_VScrollBar->GetWndPos().x - m_VScrollBar->GetWndSize().x, m_VScrollBar->GetWndPos().y};
-	m_VScrollBar->SetWndPos			(sc_pos);
-	m_VScrollBar->SetWindowName		("scroll_v");
-	m_VScrollBar->SetStepSize		(std::max(1,iFloor(GetHeight()/10)));
-	m_VScrollBar->SetPageSize		(iFloor(GetHeight()));
-}
+	if (m_VScrollBar)
+	{
+		DetachChild(m_VScrollBar);
+		m_VScrollBar = nullptr;
+	}
 
-void CUIScrollView::SetScrollBarProfile(const char* profile){
-	m_scrollbar_profile = profile;
+	if (!_createOrInitScrollBar())
+	{
+		return false;
+	}
+
+	_applyScrollBarLayout();
+	_applyScrollPos(scrollPos);
+	UpdateScroll();
+
+	return true;
 }
 
 void CUIScrollView::AddWindow			(CUIWindow* pWnd, bool auto_delete)
@@ -226,22 +275,40 @@ void CUIScrollView::RecalcSize			()
 	m_visible_rgn.set			(-1,-1);
 }
 
-void CUIScrollView::UpdateScroll		()
+void CUIScrollView::_applyScrollPos(int scrollPos)
+{
+	if (!m_pad)
+	{
+		return;
+	}
+	Fvector2 wPos = m_pad->GetWndPos();
+	m_pad->SetWndPos(Fvector2().set(wPos.x, float(-scrollPos)));
+	m_visible_rgn.set(-1, -1);
+}
+
+void CUIScrollView::_updateVerticalScrollState()
 {
 	if (!m_VScrollBar || !m_pad)
 	{
 		return;
 	}
 
-	Fvector2 w_pos					= m_pad->GetWndPos();
-	m_VScrollBar->SetHeight(GetHeight());
-	m_VScrollBar->SetRange		(0,iFloor(m_pad->GetHeight()*Scroll2ViewV()));
-
-	m_VScrollBar->SetScrollPos	(iFloor(-w_pos.y));
+	const Fvector2 wPos = m_pad->GetWndPos();
+	if (!m_VScrollBar->IsFixedLayout())
+	{
+		m_VScrollBar->SetHeight(GetHeight());
+	}
+	m_VScrollBar->SetRange(0, iFloor(m_pad->GetHeight() * Scroll2ViewV()));
+	m_VScrollBar->SetScrollPos(iFloor(-wPos.y));
 
 	const bool showScroll = NeedShowScrollBar();
 	m_VScrollBar->Show(showScroll);
 	m_VScrollBar->Enable(showScroll);
+}
+
+void CUIScrollView::UpdateScroll()
+{
+	_updateVerticalScrollState();
 }
 
 float CUIScrollView::Scroll2ViewV	(){
@@ -345,12 +412,9 @@ bool CUIScrollView::NeedShowScrollBar()
 	return m_pad->GetHeight() > visibleHeight + 1.0f;
 }
 
-void CUIScrollView::OnScrollV			(CUIWindow*, void*)
+void CUIScrollView::OnScrollV(CUIWindow*, void*)
 {
-	int s_pos					= m_VScrollBar->GetScrollPos();
-	Fvector2 w_pos				= m_pad->GetWndPos();
-	m_pad->SetWndPos			(Fvector2().set(w_pos.x,float(-s_pos)));
-	m_visible_rgn.set			(-1,-1);
+	_applyScrollPos(m_VScrollBar->GetScrollPos());
 }
 
 bool CUIScrollView::OnMouseAction(float x, float y, EUIMessages mouse_action)
@@ -403,30 +467,36 @@ int CUIScrollView::GetCurrentScrollPos()
 
 void CUIScrollView::SetScrollPos(int value)
 {
-	if(m_flags.test	(eNeedRecalc) )
-		RecalcSize			();
+	if (m_flags.test(eNeedRecalc))
+	{
+		RecalcSize();
+	}
 
-	clamp(value,GetMinScrollPos(),GetMaxScrollPos());
+	clamp(value, GetMinScrollPos(), GetMaxScrollPos());
 	m_VScrollBar->SetScrollPos(value);
-	OnScrollV(nullptr,nullptr);
+	_applyScrollPos(value);
 }
 
-void CUIScrollView::ScrollToBegin		()
+void CUIScrollView::ScrollToBegin()
 {
-	if(m_flags.test	(eNeedRecalc) )
-		RecalcSize			();
+	if (m_flags.test(eNeedRecalc))
+	{
+		RecalcSize();
+	}
 
 	m_VScrollBar->SetScrollPos(m_VScrollBar->GetMinRange());
-	OnScrollV(nullptr,nullptr);
+	_applyScrollPos(m_VScrollBar->GetScrollPos());
 }
 
-void CUIScrollView::ScrollToEnd			()
+void CUIScrollView::ScrollToEnd()
 {
-	if(m_flags.test	(eNeedRecalc) )
-		RecalcSize			();
+	if (m_flags.test(eNeedRecalc))
+	{
+		RecalcSize();
+	}
 
 	m_VScrollBar->SetScrollPos(m_VScrollBar->GetMaxRange());
-	OnScrollV(nullptr,nullptr);
+	_applyScrollPos(m_VScrollBar->GetScrollPos());
 }
 
 void CUIScrollView::ScrollToItem(CUIWindow *pItem, int addVerticalOffset)

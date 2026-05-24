@@ -22,7 +22,6 @@ class ITextureOwner;
 class CUILightAnimColorConroller;
 class CUITreeViewItem;
 class CUIScrollView;
-class CUIFixedScrollBar;
 class CUISelectable;
 class CUIListItemServer;
 class CUIProgressShape;
@@ -46,7 +45,6 @@ public:
 	virtual CUILightAnimColorConroller* ui_cast_light_anim_color_controller() { return nullptr; }
 	virtual CUITreeViewItem* ui_cast_tree_view_item() { return nullptr; }
 	virtual CUIScrollView* ui_cast_scroll_view() { return nullptr; }
-	virtual CUIFixedScrollBar* ui_cast_fixed_scroll_bar() { return nullptr; }
 	virtual CUISelectable* ui_cast_selectable() { return nullptr; }
 	virtual CUIListItemServer* ui_cast_list_item_server() { return nullptr; }
 	virtual CUIProgressShape* ui_cast_progress_shape() { return nullptr; }

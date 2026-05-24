@@ -12,7 +12,6 @@
 #include "../xrEngine/string_table.h"
 #include "../xrEngine/xr_input.h"
 #include "../../xrUI/UIHelper.h"
-#include "../../xrUI/Widgets/UIFixedScrollBar.h"
 #include "../../xrUI/Widgets/UIFrameWindow.h"
 #include "../../xrUI/Widgets/UIFrameLineWnd.h"
 #include "../../xrUI/Widgets/UITabControl.h"
@@ -28,6 +27,7 @@
 
 #include "../../xrUI/Widgets/UIPropertiesBox.h"
 #include "../../xrUI/Widgets/UIListBoxItem.h"
+#include "../../xrUI/Widgets/UIScrollBar.h"
 
 namespace
 {
@@ -151,15 +151,13 @@ void CUIMapWnd::Init(const char* xml_name, const char* start_from)
 		CUIWindow* rect_parent			= m_use_legacy_map ? m_UILevelFrame : m_UIMainFrame;
 		Frect r							= rect_parent->GetWndRect();
 
-        auto tempScroll = new CUIFixedScrollBar();
-		if (tempScroll->InitScrollBar(Fvector2().set(r.left + dx, r.bottom - sy), true))
-			m_UIMainScrollH = tempScroll;
-        else
-        {
-            xr_delete(tempScroll);
-            m_UIMainScrollH = new CUIScrollBar();
-            m_UIMainScrollH->InitScrollBar(Fvector2().set(r.left + dx, r.bottom - sy), r.right - r.left - dx * 2 - sx, true, "pda");
-        }
+		const Fvector2 scrollHPos = Fvector2().set(r.left + dx, r.bottom - sy);
+		const float scrollHLength = r.right - r.left - dx * 2.0f - sx;
+		const Fvector2 scrollVPos = Fvector2().set(r.right - sx, r.top + dy);
+		const float scrollVLength = r.bottom - r.top - dy * 2.0f;
+
+		m_UIMainScrollH = new CUIScrollBar();
+		CUIScrollBar::InitForProfile(*m_UIMainScrollH, scrollHPos, scrollHLength, true, "pda");
 
 		m_UIMainScrollH->SetStepSize	(std::max( 1, (int)(m_UILevelFrame->GetWidth()*0.1f) ) );
 		m_UIMainScrollH->SetPageSize	( (int)m_UILevelFrame->GetWidth() ); // iFloor
@@ -168,15 +166,8 @@ void CUIMapWnd::Init(const char* xml_name, const char* start_from)
 		Register						(m_UIMainScrollH);
 		AddCallback						(m_UIMainScrollH, SCROLLBAR_HSCROLL,CUIWndCallback::void_function(this,&CUIMapWnd::OnScrollH));
 
-		tempScroll = new CUIFixedScrollBar();
-		if (tempScroll->InitScrollBar(Fvector2().set(r.right - sx, r.top + dy), false))
-			m_UIMainScrollV = tempScroll;
-		else
-		{
-			xr_delete(tempScroll);
-			m_UIMainScrollV = new CUIScrollBar();
-			m_UIMainScrollV->InitScrollBar(Fvector2().set(r.right - sx, r.top + dy), r.bottom - r.top - dy * 2, false, "pda");
-		}
+		m_UIMainScrollV = new CUIScrollBar();
+		CUIScrollBar::InitForProfile(*m_UIMainScrollV, scrollVPos, scrollVLength, false, "pda");
 
 		m_UIMainScrollV->SetStepSize	(std::max( 1, (int)(m_UILevelFrame->GetHeight()*0.1f) ) );
 		m_UIMainScrollV->SetPageSize	( (int)m_UILevelFrame->GetHeight() );

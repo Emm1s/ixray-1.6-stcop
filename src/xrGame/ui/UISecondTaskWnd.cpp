@@ -19,7 +19,6 @@
 #include "../../xrUI/Widgets/UITabControl.h"
 #include "../../xrUI/Widgets/UICheckButton.h"
 #include "../../xrUI/Widgets/UIFrameLineWnd.h"
-#include "../../xrUI/Widgets/UIFixedScrollBar.h"
 #include "../../xrUI/Widgets/UIHint.h"
 #include "UITaskWnd.h"
 #include "../../xrEngine/string_table.h"
