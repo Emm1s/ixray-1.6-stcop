@@ -1,6 +1,7 @@
 #pragma once
 
 #include "xrUIXmlParser.h"
+#include "ui_defs.h"
 
 class ITextureOwner;
 class CUIWindow;
@@ -81,6 +82,7 @@ public:
 	static Frect	GetFRect				(CUIXml& xml_doc, const char* path, int index);
 	static u32		GetColor				(CUIXml& xml_doc, const char* path, int index, u32 def_clr);
 	static u32		GetShadowColor			(CUIXml& xml_doc, const char* path, int index, u32 def_clr);
+	static void		ReadTextureShadowParams	(CUIXml& xml_doc, const char* path, int index, SUITextureShadowParams& out);
 	static void		ReadTextureShadow		(CUIXml& xml_doc, const char* path, int index, CUIStatic* pWnd);
 	static u32		GetGradientColor		(CUIXml& xml_doc, const char* path, int index, u32 def_clr);
 	static bool		InitMultiTextStatic		(CUIXml& xml_doc, const char* path, int index, CUIMultiTextStatic* pWnd);

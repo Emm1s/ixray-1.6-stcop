@@ -63,6 +63,7 @@ CMapLocation::CMapLocation(const char* type, u16 object_id, bool is_user_loc)
 	m_compassOverrideMaxDist = 0.0f;
 	m_compassOverrideVertAlign = valCenter;
 	m_hasCompassOverride = false;
+	m_compassShadow = {};
 	m_owner_se_object = (ai().get_alife() && !IsUserDefined()) ? ai().alife().objects().object(m_objectID, true) : nullptr;
 	m_flags.set				(eHintEnabled, true);
 	LoadSpot				(type, false);
@@ -274,6 +275,8 @@ void CMapLocation::LoadSpot(const char* type, bool bReload)
 					m_compass_spot_color = color_argb(a >= 0 ? a : 255, r >= 0 ? r : 255, g >= 0 ? g : 255, b >= 0 ? b : 255);
 				else
 					m_compass_spot_color = 0;
+
+				CUIXmlInit::ReadTextureShadowParams(*g_uiSpotXml, buf, 0, m_compassShadow);
 			}
 			else
 				m_compass_spot_color = 0;
@@ -340,6 +343,13 @@ void CMapLocation::LoadSpot(const char* type, bool bReload)
 				else
 				{
 					m_compassOverrideVertAlign = valCenter;
+				}
+
+				SUITextureShadowParams compassShadow;
+				CUIXmlInit::ReadTextureShadowParams(*g_uiSpotXml, compassPath, 0, compassShadow);
+				if (compassShadow.enabled)
+				{
+					m_compassShadow = compassShadow;
 				}
 			}
 		}

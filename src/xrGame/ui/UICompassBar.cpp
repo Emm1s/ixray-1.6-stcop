@@ -185,6 +185,14 @@ void CUICompassBar::ParseSpots(CUIXml& uiXml, const char* path)
     {
         _spotCfg.spotWidth = uiXml.ReadAttribFlt(tmplPath, 0, "width", 0.0f);
         _spotCfg.spotHeight = uiXml.ReadAttribFlt(tmplPath, 0, "height", 0.0f);
+        CUIXmlInit::ReadTextureShadowParams(uiXml, tmplPath, 0, _spotCfg.defaultShadow);
+    }
+
+    SUITextureShadowParams spotsShadow;
+    CUIXmlInit::ReadTextureShadowParams(uiXml, path, 0, spotsShadow);
+    if (spotsShadow.enabled)
+    {
+        _spotCfg.defaultShadow = spotsShadow;
     }
     
     const CUIXmlInit::ColorDefs* colorDefs = CUIXmlInit::GetColorDefs();
@@ -803,6 +811,9 @@ SSpotCandidate CUICompassBar::CreateSpotCandidate(CMapLocation* loc) const
     
     const Fvector2 locSize = loc->GetCompassSize();
     cand.iconSize = (locSize.x > 0.0f && locSize.y > 0.0f) ? locSize : Fvector2().set(_spotCfg.spotWidth, _spotCfg.spotHeight);
+
+    const SUITextureShadowParams& locShadow = loc->GetCompassTextureShadow();
+    cand.shadow = locShadow.enabled ? locShadow : _spotCfg.defaultShadow;
     
     return cand;
 }
@@ -877,6 +888,7 @@ void CUICompassBar::BuildRenderQueueFromCandidates(float camHeading, const Fvect
         item.textureName = &cand.textureName;
         item.iconSize = cand.iconSize;
         item.color = cand.color;
+        item.shadow = cand.shadow;
         _renderQueue.push_back(item);
     }
 }
@@ -1018,10 +1030,21 @@ void CUICompassBar::CommitLayout()
             u32 baseColor = _poolSpotBaseColor[poolIdx];
             u32 alpha = (u32)clampr(iFloor(float(color_get_A(baseColor)) * finalAlpha), 0, 255);
             wnd->SetTextureColor(subst_alpha(baseColor, alpha));
+            if (item.shadow.enabled)
+            {
+                const u32 shadowAlpha = (u32)clampr(
+                    iFloor(float(color_get_A(item.shadow.color)) * finalAlpha), 0, 255);
+                wnd->SetTextureShadow(true, item.shadow.offset, subst_alpha(item.shadow.color, shadowAlpha));
+            }
+            else
+            {
+                wnd->SetTextureShadow(false, Fvector2().set(0.0f, 0.0f), 0);
+            }
             wnd->Show(true);
         }
         else
         {
+            wnd->SetTextureShadow(false, Fvector2().set(0.0f, 0.0f), 0);
             wnd->Show(false);
         }
     }

@@ -20,6 +20,7 @@ struct SSpotRenderItem
     const shared_str* textureName;
     Fvector2 iconSize;
     u32 color;
+    SUITextureShadowParams shadow;
 
     bool operator<(const SSpotRenderItem& other) const
     {
@@ -63,6 +64,7 @@ struct SCompassSpotConfig
     float spotHeight = 0.0f;
     float collectInterval = 0.1f;
     u32 defaultSpotColor = 0;
+    SUITextureShadowParams defaultShadow;
 };
 
 struct SSpotCandidate
@@ -75,6 +77,7 @@ struct SSpotCandidate
     float offsetX;
     Fvector2 iconSize;
     EVTextAlignment valign;
+    SUITextureShadowParams shadow;
 };
 
 class CUICompassClipWindow final :
