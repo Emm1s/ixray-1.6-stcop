@@ -131,7 +131,7 @@ public:
 
 			void			SetStretchTexture		(bool stretch_texture)	{m_bStretchTexture = stretch_texture;}
 			bool			GetStretchTexture		()						{return m_bStretchTexture;}
-			void			SetTextureShadow		(bool enabled, const Fvector2& offset, u32 color);
+			void			SetTextureShadow		(bool enabled, float thickness, u32 color);
 			bool			GetTextureShadowEnabled	() const					{return m_textureShadowEnabled;}
 			void			SetEllipsis				(int pos, int indent)	{ TextItemControl()->SetEllipsis(pos != 0); }
 			void			SetEllipsis_script		(bool mode)				{ TextItemControl()->SetEllipsis(mode); }
@@ -169,7 +169,7 @@ protected:
 
 	Fvector2		m_TextureOffset;
 	bool			m_textureShadowEnabled;
-	Fvector2		m_textureShadowOffset;
+	float			m_textureShadowThickness;
 	u32				m_textureShadowColor;
 	bool			m_text_control_exists;
 

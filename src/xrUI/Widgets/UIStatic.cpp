@@ -12,6 +12,15 @@
 
 bool is_in2(const Frect& b1, const Frect& b2);
 
+namespace
+{
+	constexpr Fvector2 kOutlineDirs8[8] = {
+		{-1.0f, -1.0f}, { 0.0f, -1.0f}, { 1.0f, -1.0f},
+		{-1.0f,  0.0f},                 { 1.0f,  0.0f},
+		{-1.0f,  1.0f}, { 0.0f,  1.0f}, { 1.0f,  1.0f}
+	};
+}
+
 void lanim_cont::set_defaults()
 {
 	m_lanim					= nullptr;	
@@ -34,18 +43,18 @@ m_bConstHeading(false),
 m_fHeading(0.0f),
 m_pTextControl(nullptr),
 m_textureShadowEnabled(false),
+m_textureShadowThickness(0.0f),
 m_textureShadowColor(0)
 {
 	m_TextureOffset.set		(0.0f,0.0f);
-	m_textureShadowOffset.set	(0.0f, 0.0f);
 	m_lanim_xform.set_defaults	();
 	m_bEnableTextHighlighting = false;
 }
 
-void CUIStatic::SetTextureShadow(bool enabled, const Fvector2& offset, u32 color)
+void CUIStatic::SetTextureShadow(bool enabled, float thickness, u32 color)
 {
 	m_textureShadowEnabled = enabled;
-	m_textureShadowOffset = offset;
+	m_textureShadowThickness = thickness;
 	m_textureShadowColor = color;
 }
 
@@ -212,8 +221,14 @@ void CUIStatic::DrawTexture()
 	if (!m_bTextureEnable || !GetShader() || !GetShader()->inited())
 		return;
 
-	if (m_textureShadowEnabled)
-		DrawTexturePass(m_textureShadowColor, m_textureShadowOffset);
+	if (m_textureShadowEnabled && m_textureShadowThickness > 0.0f)
+	{
+		for (const Fvector2& d : kOutlineDirs8)
+		{
+			DrawTexturePass(m_textureShadowColor,
+				Fvector2().set(d.x * m_textureShadowThickness, d.y * m_textureShadowThickness));
+		}
+	}
 
 	DrawTexturePass(GetTextureColor(), Fvector2().set(0.0f, 0.0f));
 }

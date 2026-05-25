@@ -186,11 +186,11 @@ void CUICompassBar::ParseSpots(CUIXml& uiXml, const char* path)
     {
         _spotCfg.spotWidth = uiXml.ReadAttribFlt(tmplPath, 0, "width", 0.0f);
         _spotCfg.spotHeight = uiXml.ReadAttribFlt(tmplPath, 0, "height", 0.0f);
-        CUIXmlInit::ReadTextureShadowParams(uiXml, tmplPath, 0, _spotCfg.defaultShadow);
+        CUIXmlInit::ReadShadowsNode(uiXml, tmplPath, 0, _spotCfg.defaultShadow);
     }
 
     SUITextureShadowParams spotsShadow;
-    CUIXmlInit::ReadTextureShadowParams(uiXml, path, 0, spotsShadow);
+    CUIXmlInit::ReadShadowsNode(uiXml, path, 0, spotsShadow);
     if (spotsShadow.enabled)
     {
         _spotCfg.defaultShadow = spotsShadow;
@@ -439,6 +439,11 @@ void CUICompassBar::InitActiveTargetWidgets(CUIXml& uiXml, CUIXmlInit& xmlInit)
         {
             _activeMarker->SetAutoDelete(false);
             _activeMarkerFallbackColor = _activeMarker->GetTextureColor();
+            CUIXmlInit::ReadShadowsNode(uiXml, markerPath, 0, _activeMarkerShadow);
+            if (_activeMarkerShadow.enabled)
+            {
+                _activeMarker->SetTextureShadow(true, _activeMarkerShadow.thickness, _activeMarkerShadow.color);
+            }
         }
     }
 }
@@ -674,6 +679,7 @@ void CUICompassBar::EnsureFadeStorage()
     _cardinalBaseTextColor.resize(cardinalCount, _kDefaultColorWhite);
     _poolSpotAlpha.resize(spotCount, 0.0f);
     _poolSpotBaseColor.resize(spotCount, _kDefaultColorWhite);
+    _poolSpotShadow.resize(spotCount, SUITextureShadowParams{});
 }
 
 bool CUICompassBar::ProjectToStrip(const Fvector& targetPos, const Fvector& actorPos, float camHeading,
@@ -816,7 +822,14 @@ SSpotCandidate CUICompassBar::CreateSpotCandidate(CMapLocation* loc) const
     cand.iconSize = (locSize.x > 0.0f && locSize.y > 0.0f) ? locSize : Fvector2().set(_spotCfg.spotWidth, _spotCfg.spotHeight);
 
     const SUITextureShadowParams& locShadow = loc->GetCompassTextureShadow();
-    cand.shadow = locShadow.enabled ? locShadow : _spotCfg.defaultShadow;
+    if (loc->HasCompassShadowOverride())
+    {
+        cand.shadow = locShadow;
+    }
+    else
+    {
+        cand.shadow = locShadow.enabled ? locShadow : _spotCfg.defaultShadow;
+    }
     
     return cand;
 }
@@ -917,6 +930,7 @@ CUIStatic* CUICompassBar::GetSpotFromPool(xr_vector<CUIStatic*>& pool, CUIWindow
     _poolSpotOwners.push_back(nullptr);
     _poolSpotAlpha.push_back(0.0f);
     _poolSpotBaseColor.push_back(_kDefaultColorWhite);
+    _poolSpotShadow.push_back(SUITextureShadowParams{});
     
     return item;
 }
@@ -986,6 +1000,7 @@ void CUICompassBar::CommitLayout()
         _poolSpotOwners[poolIdx] = item.sourceLoc;
         poolSlotUsed[poolIdx] = 1;
         _poolSpotBaseColor[poolIdx] = item.color;
+        _poolSpotShadow[poolIdx] = item.shadow;
         Fvector2 spotSize(item.iconSize.x * kx, item.iconSize.y);
         wnd->SetWndSize(spotSize);
         float posOffsetX = 0.0f;
@@ -1033,21 +1048,24 @@ void CUICompassBar::CommitLayout()
             u32 baseColor = _poolSpotBaseColor[poolIdx];
             u32 alpha = (u32)clampr(iFloor(float(color_get_A(baseColor)) * finalAlpha), 0, 255);
             wnd->SetTextureColor(subst_alpha(baseColor, alpha));
-            if (item.shadow.enabled)
+
+            const SUITextureShadowParams& slotShadow = _poolSpotShadow[poolIdx];
+            if (slotShadow.enabled)
             {
                 const u32 shadowAlpha = (u32)clampr(
-                    iFloor(float(color_get_A(item.shadow.color)) * finalAlpha), 0, 255);
-                wnd->SetTextureShadow(true, item.shadow.offset, subst_alpha(item.shadow.color, shadowAlpha));
+                    iFloor(float(color_get_A(slotShadow.color)) * finalAlpha), 0, 255);
+                wnd->SetTextureShadow(true, slotShadow.thickness,
+                    subst_alpha(slotShadow.color, shadowAlpha));
             }
             else
             {
-                wnd->SetTextureShadow(false, Fvector2().set(0.0f, 0.0f), 0);
+                wnd->SetTextureShadow(false, 0.0f, 0);
             }
             wnd->Show(true);
         }
         else
         {
-            wnd->SetTextureShadow(false, Fvector2().set(0.0f, 0.0f), 0);
+            wnd->SetTextureShadow(false, 0.0f, 0);
             wnd->Show(false);
         }
     }
@@ -1071,10 +1089,25 @@ void CUICompassBar::CommitLayout()
             u32 baseColor = (i < _poolSpotBaseColor.size()) ? _poolSpotBaseColor[i] : _kDefaultColorWhite;
             u32 alpha = (u32)clampr(iFloor(float(color_get_A(baseColor)) * _poolSpotAlpha[i]), 0, 255);
             wnd->SetTextureColor(subst_alpha(baseColor, alpha));
+
+            const SUITextureShadowParams& slotShadow =
+                (i < _poolSpotShadow.size()) ? _poolSpotShadow[i] : SUITextureShadowParams{};
+            if (slotShadow.enabled)
+            {
+                const u32 shadowAlpha = (u32)clampr(
+                    iFloor(float(color_get_A(slotShadow.color)) * _poolSpotAlpha[i]), 0, 255);
+                wnd->SetTextureShadow(true, slotShadow.thickness,
+                    subst_alpha(slotShadow.color, shadowAlpha));
+            }
+            else
+            {
+                wnd->SetTextureShadow(false, 0.0f, 0);
+            }
             wnd->Show(true);
         }
         else
         {
+            wnd->SetTextureShadow(false, 0.0f, 0);
             wnd->Show(false);
             _poolSpotOwners[i] = nullptr;
         }
@@ -1115,6 +1148,15 @@ void CUICompassBar::UpdateActiveTargetMarker(CMapLocation* activeLoc)
     const u32 locColor = activeLoc->GetCompassColor();
     const u32 baseColor = (locColor != 0) ? locColor : _activeMarkerFallbackColor;
     _activeMarker->SetTextureColor(baseColor);
+
+    if (_activeMarkerShadow.enabled)
+    {
+        _activeMarker->SetTextureShadow(true, _activeMarkerShadow.thickness, _activeMarkerShadow.color);
+    }
+    else
+    {
+        _activeMarker->SetTextureShadow(false, 0.0f, 0);
+    }
 
     _activeMarker->Show(true);
 }

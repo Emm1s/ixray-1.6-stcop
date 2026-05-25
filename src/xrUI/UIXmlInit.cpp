@@ -1289,7 +1289,7 @@ bool CUIXmlInit::InitTexture(CUIXml& xml_doc, const char* path, int index, IText
 	if (xml_doc.NavigateToNode(textureNodePath, index))
 	{
 		if (CUIStatic* pStatic = dynamic_cast<CUIStatic*>(pWnd))
-			ReadTextureShadow(xml_doc, textureNodePath, index, pStatic);
+			ApplyShadowsToStatic(xml_doc, textureNodePath, index, pStatic);
 	}
 
 	return result;
@@ -1804,53 +1804,52 @@ u32	CUIXmlInit::GetColor(CUIXml& xml_doc, const char* path, int index, u32 def_c
 
 }
 
-u32 CUIXmlInit::GetShadowColor(CUIXml& xml_doc, const char* path, int index, u32 def_clr)
+void CUIXmlInit::ReadShadowsNode(CUIXml& xml_doc, const char* parentPath, int index, SUITextureShadowParams& out)
 {
-	const char* clr_def = xml_doc.ReadAttrib(path, index, "shadow_color", nullptr);
-	if (clr_def)
+	string512 shadowsPath;
+	xr_strconcat(shadowsPath, parentPath, ":shadows");
+	if (!xml_doc.NavigateToNode(shadowsPath, index))
 	{
-		VERIFY(GetColorDefs()->find(clr_def) != GetColorDefs()->end());
-		return (*m_pColorDefs)[clr_def];
-	}
-
-	const int r = xml_doc.ReadAttribInt(path, index, "shadow_r", color_get_R(def_clr));
-	const int g = xml_doc.ReadAttribInt(path, index, "shadow_g", color_get_G(def_clr));
-	const int b = xml_doc.ReadAttribInt(path, index, "shadow_b", color_get_B(def_clr));
-	const int a = xml_doc.ReadAttribInt(path, index, "shadow_a", color_get_A(def_clr));
-	return color_argb(a, r, g, b);
-}
-
-void CUIXmlInit::ReadTextureShadowParams(CUIXml& xml_doc, const char* path, int index, SUITextureShadowParams& out)
-{
-	const int shadowFlag = xml_doc.ReadAttribInt(path, index, "shadow", 0);
-	const float offsetX = xml_doc.ReadAttribFlt(path, index, "shadow_offset_x", 0.0f);
-	const float offsetY = xml_doc.ReadAttribFlt(path, index, "shadow_offset_y", 0.0f);
-
-	out.enabled = (shadowFlag != 0) || !fis_zero(offsetX) || !fis_zero(offsetY);
-	if (!out.enabled)
-	{
-		out.offset.set(0.0f, 0.0f);
+		out.enabled = false;
+		out.thickness = 0.0f;
 		out.color = 0;
 		return;
 	}
 
-	out.offset.set(offsetX, offsetY);
-	out.color = GetShadowColor(xml_doc, path, index, color_argb(160, 0, 0, 0));
+	out.thickness = xml_doc.ReadAttribFlt(shadowsPath, index, "thickness", 1.0f);
+
+	const u32 defClr = color_argb(160, 0, 0, 0);
+	const char* colorDef = xml_doc.ReadAttrib(shadowsPath, index, "color", nullptr);
+	if (colorDef && xr_strlen(colorDef) > 0)
+	{
+		const ColorDefs::const_iterator it = m_pColorDefs->find(colorDef);
+		out.color = (it != m_pColorDefs->end()) ? it->second : defClr;
+	}
+	else
+	{
+		const int r = xml_doc.ReadAttribInt(shadowsPath, index, "r", color_get_R(defClr));
+		const int g = xml_doc.ReadAttribInt(shadowsPath, index, "g", color_get_G(defClr));
+		const int b = xml_doc.ReadAttribInt(shadowsPath, index, "b", color_get_B(defClr));
+		const int a = xml_doc.ReadAttribInt(shadowsPath, index, "a", color_get_A(defClr));
+		out.color = color_argb(a, r, g, b);
+	}
+
+	out.enabled = (out.thickness > 0.0f) && (color_get_A(out.color) > 0);
 }
 
-void CUIXmlInit::ReadTextureShadow(CUIXml& xml_doc, const char* path, int index, CUIStatic* pWnd)
+void CUIXmlInit::ApplyShadowsToStatic(CUIXml& xml_doc, const char* parentPath, int index, CUIStatic* pWnd)
 {
 	VERIFY(pWnd);
 
 	SUITextureShadowParams shadowParams;
-	ReadTextureShadowParams(xml_doc, path, index, shadowParams);
+	ReadShadowsNode(xml_doc, parentPath, index, shadowParams);
 	if (!shadowParams.enabled)
 	{
-		pWnd->SetTextureShadow(false, Fvector2().set(0.0f, 0.0f), 0);
+		pWnd->SetTextureShadow(false, 0.0f, 0);
 		return;
 	}
 
-	pWnd->SetTextureShadow(true, shadowParams.offset, shadowParams.color);
+	pWnd->SetTextureShadow(true, shadowParams.thickness, shadowParams.color);
 }
 
 u32	CUIXmlInit::GetGradientColor(CUIXml& xml_doc, const char* path, int index, u32 def_clr)

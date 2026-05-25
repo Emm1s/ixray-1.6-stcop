@@ -63,6 +63,7 @@ CMapLocation::CMapLocation(const char* type, u16 object_id, bool is_user_loc)
 	m_compassOverrideMaxDist = 0.0f;
 	m_compassOverrideVertAlign = valCenter;
 	m_hasCompassOverride = false;
+	m_compassShadowOverridden = false;
 	m_compassShadow = {};
 	m_owner_se_object = (ai().get_alife() && !IsUserDefined()) ? ai().alife().objects().object(m_objectID, true) : nullptr;
 	m_flags.set				(eHintEnabled, true);
@@ -181,6 +182,7 @@ void CMapLocation::LoadSpot(const char* type, bool bReload)
 	string512 path_base, path;
 	xr_strcpy		(path_base,type);
 	m_compass_spot_color = 0;
+	m_compassShadowOverridden = false;
 	R_ASSERT3		(g_uiSpotXml->NavigateToNode(path_base,0), "XML node not found in file map_spots.xml", path_base);
 	const char* s		= g_uiSpotXml->ReadAttrib(path_base, 0, "hint", "no hint");
 	SetHint			(s);
@@ -276,7 +278,7 @@ void CMapLocation::LoadSpot(const char* type, bool bReload)
 				else
 					m_compass_spot_color = 0;
 
-				CUIXmlInit::ReadTextureShadowParams(*g_uiSpotXml, buf, 0, m_compassShadow);
+				CUIXmlInit::ReadShadowsNode(*g_uiSpotXml, buf, 0, m_compassShadow);
 			}
 			else
 				m_compass_spot_color = 0;
@@ -345,9 +347,18 @@ void CMapLocation::LoadSpot(const char* type, bool bReload)
 					m_compassOverrideVertAlign = valCenter;
 				}
 
+				string512 compassShadowsPath;
+				xr_strconcat(compassShadowsPath, compassPath, ":shadows");
+				const bool hasCompassShadowNode = g_uiSpotXml->NavigateToNode(compassShadowsPath, 0);
+
 				SUITextureShadowParams compassShadow;
-				CUIXmlInit::ReadTextureShadowParams(*g_uiSpotXml, compassPath, 0, compassShadow);
-				if (compassShadow.enabled)
+				CUIXmlInit::ReadShadowsNode(*g_uiSpotXml, compassPath, 0, compassShadow);
+				if (hasCompassShadowNode)
+				{
+					m_compassShadowOverridden = true;
+					m_compassShadow = compassShadow;
+				}
+				else if (compassShadow.enabled)
 				{
 					m_compassShadow = compassShadow;
 				}

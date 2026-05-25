@@ -81,9 +81,8 @@ public:
 	static bool 	InitHintWindow			(CUIXml& xml_doc, const char* path, int index, UIHintWindow* pWnd);
 	static Frect	GetFRect				(CUIXml& xml_doc, const char* path, int index);
 	static u32		GetColor				(CUIXml& xml_doc, const char* path, int index, u32 def_clr);
-	static u32		GetShadowColor			(CUIXml& xml_doc, const char* path, int index, u32 def_clr);
-	static void		ReadTextureShadowParams	(CUIXml& xml_doc, const char* path, int index, SUITextureShadowParams& out);
-	static void		ReadTextureShadow		(CUIXml& xml_doc, const char* path, int index, CUIStatic* pWnd);
+	static void		ReadShadowsNode			(CUIXml& xml_doc, const char* parentPath, int index, SUITextureShadowParams& out);
+	static void		ApplyShadowsToStatic	(CUIXml& xml_doc, const char* parentPath, int index, CUIStatic* pWnd);
 	static u32		GetGradientColor		(CUIXml& xml_doc, const char* path, int index, u32 def_clr);
 	static bool		InitMultiTextStatic		(CUIXml& xml_doc, const char* path, int index, CUIMultiTextStatic* pWnd);
 	static bool		InitTextBanner			(CUIXml& xml_doc, const char* path, int index, CUITextBanner* pBnr);

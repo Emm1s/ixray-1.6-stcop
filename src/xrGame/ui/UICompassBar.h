@@ -169,10 +169,12 @@ private:
     xr_vector<shared_str> _poolSpotTextureNames;
     xr_vector<float> _poolSpotAlpha;
     xr_vector<u32> _poolSpotBaseColor;
+    xr_vector<SUITextureShadowParams> _poolSpotShadow;
 
     shared_str _activeMarkerFallbackTexture;
     shared_str _activeMarkerLastTexture;
     u32 _activeMarkerFallbackColor;
+    SUITextureShadowParams _activeMarkerShadow;
 
     float _fov;
     float _stripWidth;

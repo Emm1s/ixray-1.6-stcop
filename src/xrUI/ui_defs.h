@@ -12,7 +12,7 @@ typedef	FactoryPtr<IUIShader>	ui_shader;
 struct UI_API SUITextureShadowParams
 {
 	bool enabled = false;
-	Fvector2 offset;
+	float thickness = 1.0f;
 	u32 color = 0;
 };
 
