@@ -354,19 +354,10 @@ UIArtefactParamItem::UIArtefactParamItem()
 	m_value     = nullptr;
 	m_magnitude = 1.0f;
 	m_sign_inverse = false;
-	
-	m_unit_str._set( "" );
-	m_texture_minus._set( "" );
-	m_texture_plus._set( "" );
 	m_text_legacy = nullptr;
 }
 
-UIArtefactParamItem::~UIArtefactParamItem()
-{
-	m_unit_str = nullptr;
-	m_texture_minus = nullptr;
-	m_texture_plus = nullptr;
-}
+UIArtefactParamItem::~UIArtefactParamItem() = default;
 
 UIArtefactParamItem::InitResult UIArtefactParamItem::Init(CUIXml& xml, const char* section)
 {
