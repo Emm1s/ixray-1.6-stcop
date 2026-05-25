@@ -7,6 +7,7 @@
 #include "../xrLC_Light/xrFace.h"
 #include "../xrLC_Light/xrMU_Model.h"
 #include "../xrLC_Light/xrMU_Model_Reference.h"
+#include "src/utils/xrLC_Light/xrExternalObject.h"
 
 extern u32	version;
 template <class T>
@@ -207,14 +208,25 @@ void CBuild::Load	(const b_params& Params, const IReader& _in_FS)
 	
 	fs.open_chunk(EB_ExternalObjects, [this](IReader& F)
 	{
-		auto& refs = external_object_references();
+		auto& refs = external_object_refs();
 		refs.resize(F.r_u32());
+		xr_map<shared_str, xrExternalObject*> Buffer;
 		for (auto& elem : refs)
 		{
-			F.r_stringZ(elem.name, sizeof(elem.name));
-			F.r(&elem.transform, sizeof(elem.transform));
-			elem.sector = F.r_u16();
-			elem.prototype = &lc_global_data()->LoadExternalObjectData(elem.name);
+			elem = new xrExternalObjectReference();
+			shared_str Name;
+			F.r_stringZ(Name);
+			F.r(&elem->xform, sizeof(elem->xform));
+			elem->sector = F.r_u16();
+			auto ModelIt = Buffer.find(Name);
+			if (ModelIt != Buffer.end())
+			{
+				elem->model = ModelIt->second;
+			} else
+			{
+				elem->model = lc_global_data()->LoadExternalObject(Name);
+				Buffer[Name] = elem->model;
+			}
 		}
 	});
 

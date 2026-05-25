@@ -9,6 +9,9 @@
 #include "../xrForms/CompilersUI.h"
 #include "src/Editors/LevelEditor/Engine/communicate.h"
 
+class xrExternalObjectReference;
+class xrExternalObject;
+
 namespace CDB{
 class MODEL;
 class CollectorPacked;
@@ -19,10 +22,10 @@ class xrMU_Reference;
 class base_Vertex;
 class base_Face;
 
+
+
 struct compilers_global_data
 {
-	xr_map<shared_str, b_external_object_data> external_objects;
-	xr_vector<b_external_object_reference> external_objects_refs;
 	xr_vector<b_BuildTexture>		_textures;
 	xr_hash_map<b_material_shared*, b_BuildTexture> _textures_shared;
 	xr_vector<b_material>			_materials;
@@ -51,6 +54,8 @@ class XRLC_LIGHT_API xrLC_GlobalData
 	vecFace							_g_faces;
 	xr_vector<xrMU_Model*>			_mu_models;
 	xr_vector<xrMU_Reference*>		_mu_refs;
+	xr_vector<xrExternalObject*>	_external_objects;
+	xr_vector<xrExternalObjectReference*> _external_objects_refs;
 
 private:
 	bool b_vert_not_register;
@@ -69,7 +74,6 @@ public:
 	IC CMemoryWriter& err_multiedge() { return _err_multiedge; };
 	IC CMemoryWriter& err_tjunction() { return _err_tjunction; };
 	IC b_params& g_params() { return _cl_globs._g_params; }
-	IC xr_vector<b_external_object_reference>& external_object_references() { return _cl_globs.external_objects_refs;}
 
 	Face*						create_face();
 	void						destroy_face(Face*& f);
@@ -83,12 +87,14 @@ public:
 	bool						b_r_vertices();
 	bool						vert_construct_register() { return !b_r_vertices() && !b_vert_not_register; }
 
-	b_external_object_data& LoadExternalObjectData(shared_str name);
+	xrExternalObject* LoadExternalObject(shared_str name);
 
 	base_lighting&				L_static() { return _cl_globs._L_static; }
 	CDB::MODEL*					RCAST_Model() { return _cl_globs._RCAST_Model; }
 	xr_vector<xrMU_Model*>&		mu_models() { return _mu_models; }
 	xr_vector<xrMU_Reference*>& mu_refs() { return _mu_refs; }
+	xr_vector<xrExternalObject*>& external_objects() { return _external_objects; }
+	xr_vector<xrExternalObjectReference*>& external_objects_refs() { return _external_objects_refs; }
 
  
  	void						initialize		()		;

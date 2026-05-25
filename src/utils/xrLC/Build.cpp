@@ -283,10 +283,16 @@ xr_hash_map<b_material_shared*, b_BuildTexture>& CBuild::textures_shared()
 	return lc_global_data()->textures_shared(); 
 }
 
-xr_vector<b_external_object_reference>& CBuild::external_object_references()
+xr_vector<xrExternalObject*>& CBuild::external_objects()
 {
 	VERIFY(lc_global_data());
-	return lc_global_data()->external_object_references();
+	return lc_global_data()->external_objects();
+}
+
+xr_vector<xrExternalObjectReference*>& CBuild::external_object_refs()
+{
+	VERIFY(lc_global_data());
+	return lc_global_data()->external_objects_refs();
 }
 
 base_lighting&	CBuild::L_static()

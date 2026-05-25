@@ -1,5 +1,4 @@
-#ifndef XRMU_MODEL_H
-#define XRMU_MODEL_H
+#pragma once
 
 #include "mu_model_face.h"
 
@@ -84,5 +83,3 @@ public:
 };
 
 void XRLC_LIGHT_API	calc_normals	( xrMU_Model &model );
- 
-#endif

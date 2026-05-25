@@ -5,6 +5,7 @@
 #include "xrDeflector.h"
 #include "Lightmap.h"
 #include "mu_model_face.h"
+#include "xrExternalObject.h"
 #include "xrMU_Model.h"
 #include "xrMU_Model_Reference.h"
 #include "../../xrCore/Collision/xrCDB.h"
@@ -91,19 +92,13 @@ bool	xrLC_GlobalData	::			b_r_vertices	()
 	return false;
 }
 
-b_external_object_data& xrLC_GlobalData::LoadExternalObjectData(shared_str name)
+xrExternalObject* xrLC_GlobalData::LoadExternalObject(shared_str name)
 {
-	auto it = _cl_globs.external_objects.find(name);
-	if (it != _cl_globs.external_objects.end())
-	{
-		return it->second;
-	}
-
-	_cl_globs.external_objects.emplace(name, b_external_object_data());
-	auto& slot = _cl_globs.external_objects[name];
+	
+	b_external_object_data slot;
 	string_path fn;
 	FS.update_path(fn, _objects_, EFS.ChangeFileExt(name.c_str(), ".object").c_str());
-	if (FS.TryLoad(fn))
+	if (I_ASSERT_M(FS.TryLoad(fn), "Unable to load external object [%s]", fn))
 	{
 		auto F = FS.rg_open(fn); R_ASSERT(F);
 		F->open_chunk(EEditableObjectChunks::OBJECT_BODY, [this, &fn, &slot](IReader* OBJ){
@@ -284,8 +279,51 @@ b_external_object_data& xrLC_GlobalData::LoadExternalObjectData(shared_str name)
 				}
 			});
 		});
+
+		auto Obj = _external_objects.emplace_back(new xrExternalObject());
+		Obj->m_name = name;
+		Obj->m_meshes.resize(slot.m_meshes.size());
+		for (size_t i = 0; i < slot.m_meshes.size(); i++)
+		{
+			auto& MeshData = slot.m_meshes[i];
+			auto& NewMesh = Obj->m_meshes[i];
+			NewMesh = new xrExternalObjectMesh();
+			NewMesh->m_name = MeshData.m_Name;
+			NewMesh->m_vertices.resize(MeshData.m_Vertices.size());
+			for (size_t j = 0; j < MeshData.m_Vertices.size(); j++)
+			{
+				auto VertexData = MeshData.m_Vertices[j];
+				auto& NewVertex = NewMesh->m_vertices[j];
+				NewVertex = new xrExternalVertex();
+				NewVertex->P.set(VertexData);
+				NewVertex->N.set(0,0,0);
+			}
+			NewMesh->m_faces.resize(MeshData.m_Faces.size());
+			for (size_t j = 0; j < MeshData.m_Faces.size(); j++)
+			{
+				auto& FaceData = MeshData.m_Faces[j];
+				auto& NewFace = NewMesh->m_faces[j];
+				NewFace = new xrExternalFace();
+				NewFace->dwMaterial = FaceData.dwMaterial;
+				NewFace->dwMaterialGame = FaceData.dwMaterial;
+				R_ASSERT(FaceData.dwMaterialGame<65536);
+				NewFace->flags.bSharedMaterial = !!(FaceData.flags & b_face_flags::UseSharedMaterial);
+				NewFace->SetVertex(0,NewMesh->m_vertices[FaceData.v[0]]);
+				NewFace->SetVertex(1,NewMesh->m_vertices[FaceData.v[1]]);
+				NewFace->SetVertex(2,NewMesh->m_vertices[FaceData.v[2]]);
+
+				// tc
+				Fvector2 uv1,uv2,uv3;
+				uv1.set(FaceData.t[0].x,FaceData.t[0].y);
+				uv2.set(FaceData.t[1].x,FaceData.t[1].y);
+				uv3.set(FaceData.t[2].x,FaceData.t[2].y);
+				NewFace->AddChannel( uv1, uv2, uv3 );
+				NewFace->CalcNormal();
+			}
+		}
+		return Obj;
 	}
-	return slot;
+	return nullptr;
 }
 
 xrLC_GlobalData::~xrLC_GlobalData()
