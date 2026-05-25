@@ -172,6 +172,7 @@ private:
 
     shared_str _activeMarkerFallbackTexture;
     shared_str _activeMarkerLastTexture;
+    u32 _activeMarkerFallbackColor;
 
     float _fov;
     float _stripWidth;

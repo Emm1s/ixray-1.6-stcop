@@ -63,7 +63,8 @@ CUICompassBar::CUICompassBar()
       _stripTextureOffsetY(0.0f),
       _collectSpotsTimer(0.0f),
       _isGameTypeSingleCompatible(false),
-      _stripGeometryCached(false)
+      _stripGeometryCached(false),
+      _activeMarkerFallbackColor(_kDefaultColorWhite)
 {
     _cfg.activePadding = _kDefaultActivePadding;
     _cfg.smoothingSpeed = _kDefaultSmoothingSpeed;
@@ -437,6 +438,7 @@ void CUICompassBar::InitActiveTargetWidgets(CUIXml& uiXml, CUIXmlInit& xmlInit)
         if (_activeMarker)
         {
             _activeMarker->SetAutoDelete(false);
+            _activeMarkerFallbackColor = _activeMarker->GetTextureColor();
         }
     }
 }
@@ -486,6 +488,7 @@ void CUICompassBar::CreateDefaultActiveTargetWidgets(CUIXml& uiXml)
         _activeMarker->SetWndPos(Fvector2().set(0.0f, 0.0f));
         _activeMarker->SetStretchTexture(true);
         _activeMarker->InitTexture(_activeMarkerFallbackTexture.c_str(), false);
+        _activeMarkerFallbackColor = _activeMarker->GetTextureColor();
         _activeTargetContainer->AttachChild(_activeMarker);
     }
 }
@@ -1108,6 +1111,11 @@ void CUICompassBar::UpdateActiveTargetMarker(CMapLocation* activeLoc)
         CUITextureMaster::InitTexture(texName, &_activeMarker->GetUIStaticItem());
         _activeMarkerLastTexture = texName;
     }
+
+    const u32 locColor = activeLoc->GetCompassColor();
+    const u32 baseColor = (locColor != 0) ? locColor : _activeMarkerFallbackColor;
+    _activeMarker->SetTextureColor(baseColor);
+
     _activeMarker->Show(true);
 }
 
