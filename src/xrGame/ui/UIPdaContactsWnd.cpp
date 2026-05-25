@@ -3,6 +3,7 @@
 #include "../PDA.h"
 #include "../../xrUI/UIXmlInit.h"
 #include "../Actor.h"
+#include "../Level.h"
 #include "../../xrUI/Widgets/UIFrameWindow.h"
 #include "../../xrUI/Widgets/UIFrameLineWnd.h"
 #include "../../xrUI/Widgets/UIAnimatedStatic.h"
@@ -14,12 +15,33 @@
 #include "../../xrUI/UICursor.h"
 #include "../../xrEngine/xr_input.h"
 #include "../pda_communication.h"
+#include "UICharacterInfo.h"
 #include "UIGameCustom.h"
 #include "UITalkWnd.h"
 #include "PdaConstants.h"
 
+extern CSE_ALifeTraderAbstract* ch_info_get_from_id(u16 id);
+
 namespace
 {
+// Resolves a contact owner safely from the stable owner id, avoiding dereference of stale m_data pointers
+// after the underlying NPC object was destroyed (death, alife unload) while the PDA window stays open.
+CInventoryOwner* ResolveContactOwnerById(u16 ownerId)
+{
+	if (ownerId == u16(-1))
+	{
+		return nullptr;
+	}
+
+	CObject* object = Level().Objects.net_Find(ownerId);
+	if (object == nullptr || object->getDestroy())
+	{
+		return nullptr;
+	}
+
+	return object->cast_inventory_owner();
+}
+
 // Ends embedded phrase UI and PDA talk session when the highlighted contact no longer matches the active NPC.
 void StopEmbeddedPhraseUiIfSessionNpcDiffers(CInventoryOwner* highlightedOwner)
 {
@@ -356,10 +378,6 @@ bool CUIPdaContactsWnd::OnGamepadKeyHold(int id)
 }
 
 
-extern CSE_ALifeTraderAbstract* ch_info_get_from_id (u16 id);
-
-#include "UICharacterInfo.h"
-
 void CUIPdaContactItem::SetSelected	(bool b)
 {
 	CUISelectable::SetSelected(b);
@@ -369,7 +387,7 @@ void CUIPdaContactItem::SetSelected	(bool b)
 		return;
 	}
 
-	CInventoryOwner* owner = static_cast<CInventoryOwner*>(m_data);
+	CInventoryOwner* owner = ResolveContactOwnerById(UIInfo->OwnerID());
 	StopEmbeddedPhraseUiIfSessionNpcDiffers(owner);
 
 	m_cw->UIDetailsWnd->Clear		();
@@ -390,7 +408,7 @@ bool CUIPdaContactItem::OnMouseDown(int mouse_btn)
 	// Selection/focus alone must not start a phrase session; LMB activates dialog branches like face-to-face talk.
 	m_cw->UIListWnd->SetSelected(this);
 
-	CInventoryOwner* owner = static_cast<CInventoryOwner*>(m_data);
+	CInventoryOwner* owner = ResolveContactOwnerById(UIInfo->OwnerID());
 	if (!owner)
 	{
 		return true;
@@ -437,13 +455,23 @@ void CUIPdaContactItem::OnFocusReceive()
 void CUIPdaContactItem::SetHintText()
 {
 	CSE_ALifeTraderAbstract* T = ch_info_get_from_id(UIInfo->OwnerID());
-	CInventoryOwner* owner = static_cast<CInventoryOwner*>(m_data);
+	if (!T)
+	{
+		m_cw->m_hint_wnd->set_text("");
+		return;
+	}
+
+	CInventoryOwner* owner = ResolveContactOwnerById(UIInfo->OwnerID());
 	CActor* actor = Actor();
 
 	EPdaCommunicationStatus status = EPdaCommunicationStatus::DisabledByConfig;
 	if (PdaCommunication().IsEnabled() && owner && actor)
 	{
 		status = PdaCommunication().CanStart(owner, actor->cast_inventory_owner());
+	}
+	else if (PdaCommunication().IsEnabled() && !owner)
+	{
+		status = EPdaCommunicationStatus::NpcOffline;
 	}
 
 	xr_string str;

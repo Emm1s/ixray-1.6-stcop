@@ -52,12 +52,13 @@ private:
     bool IsNpcOnline(CInventoryOwner* npc) const;
     bool IsNpcHostileToActor(CInventoryOwner* npc, CInventoryOwner* actor) const;
 
-private:
     void ensurePdaTalkConfigCache() const;
+    CInventoryOwner* ResolveSessionNpc() const;
 
 private:
     CInventoryOwner* _npc;
     CInventoryOwner* _actorOwner;
+    u16 _npcId;
 
     bool _active;
 

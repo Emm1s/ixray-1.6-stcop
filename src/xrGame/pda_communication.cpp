@@ -20,6 +20,7 @@
 CPdaCommunication::CPdaCommunication() :
     _npc(nullptr),
     _actorOwner(nullptr),
+    _npcId(u16(-1)),
     _active(false),
     _pdaTalkConfigLoaded(false),
     _pdaTalkEnabledCached(false),
@@ -113,11 +114,36 @@ float CPdaCommunication::GetTalkDistance() const
     return 150.0f;
 }
 
+CInventoryOwner* CPdaCommunication::ResolveSessionNpc() const
+{
+    if (_npcId == u16(-1))
+    {
+        return nullptr;
+    }
+
+    CObject* object = Level().Objects.net_Find(_npcId);
+    if (object == nullptr || object->getDestroy())
+    {
+        return nullptr;
+    }
+
+    return object->cast_inventory_owner();
+}
+
 void CPdaCommunication::Update()
 {
     if (_active)
     {
         CActor* actor = Actor();
+        // Resolve _npc through the stable session id every tick: the previously stored pointer can dangle if the
+        // NPC was destroyed (death, alife unload) without routing through CInventoryOwner::net_Destroy first.
+        CInventoryOwner* npc = ResolveSessionNpc();
+        if (npc == nullptr)
+        {
+            Stop();
+            return;
+        }
+        _npc = npc;
         if (!actor || CanStart(_npc, actor) != EPdaCommunicationStatus::Success)
         {
             Stop();
@@ -162,6 +188,8 @@ bool CPdaCommunication::OpenDialog(CInventoryOwner* npc)
 
     _actorOwner = actor ? actor->cast_inventory_owner() : nullptr;
     _npc = npc;
+    CGameObject* npcGameObject = npc ? npc->cast_game_object() : nullptr;
+    _npcId = npcGameObject ? npcGameObject->ID() : u16(-1);
     _active = true;
     PDA_LOG("[PDA] Session started with %s", npc ? npc->Name() : "?");
     return true;
@@ -184,16 +212,24 @@ bool CPdaCommunication::BeginPdaSession(CInventoryOwner* npc)
 void CPdaCommunication::EndPdaSession()
 {
     CActor* actor = Actor();
-    if (actor && _npc)
+    if (!actor || !_npc)
     {
-        if (actor->GetTalkPartner() == _npc)
-        {
-            actor->SetTalkPartner(nullptr);
-        }
-        if (_npc->GetTalkPartner() == actor)
-        {
-            _npc->SetTalkPartner(nullptr);
-        }
+        return;
+    }
+
+    // The session NPC pointer can be stale here (the caller may bypass Update). Pointer comparison is safe even when
+    // _npc dangles, and clearing the actor side first restores invariants without dereferencing the foreign object.
+    if (actor->GetTalkPartner() == _npc)
+    {
+        actor->SetTalkPartner(nullptr);
+    }
+
+    // Touch the NPC side only when the object is still live in the level (covers both alive sessions and the
+    // synchronous call coming from CInventoryOwner::net_Destroy where the object is mid-destroy).
+    CObject* npcObject = (_npcId != u16(-1)) ? Level().Objects.net_Find(_npcId) : nullptr;
+    if (npcObject != nullptr && !npcObject->getDestroy() && _npc->GetTalkPartner() == actor)
+    {
+        _npc->SetTalkPartner(nullptr);
     }
 }
 
@@ -203,6 +239,7 @@ void CPdaCommunication::Stop()
     _active = false;
     _npc = nullptr;
     _actorOwner = nullptr;
+    _npcId = u16(-1);
 }
 
 bool CPdaCommunication::IsSessionActive() const
