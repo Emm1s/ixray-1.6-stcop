@@ -54,8 +54,12 @@ bool IsMedkitSection(const shared_str& section)
 {
 	return section == "medkit"
 		|| section == "medkit_army"
-		|| section == "medkit_scientic"
-		|| section == "medkit_script";
+		|| section == "medkit_scientic";
+}
+
+bool IsActorHelpWoundedMedkitSection(const shared_str& section)
+{
+	return IsMedkitSection(section);
 }
 
 bool StalkerNeedsMedkitHelp(CAI_Stalker& stalker)
@@ -1245,9 +1249,33 @@ void CActor::RegisterHeadshotKill()
 	BumpPdaRankingStatRevision();
 }
 
+namespace
+{
+u32 s_deathStatCarryOver = 0;
+constexpr u32 helpWoundedDedupMs = 3000;
+} // namespace
+
+void CActor::ResetDeathStatCarryOver()
+{
+	s_deathStatCarryOver = 0;
+}
+
+void CActor::OnDeathStatLoadedFromSave(u32 savedDeaths)
+{
+	m_statDeathsSavedInLastLoad = savedDeaths;
+	m_statDeaths = m_statDeathsSavedInLastLoad + s_deathStatCarryOver;
+}
+
+void CActor::OnDeathStatSavedToGame()
+{
+	ResetDeathStatCarryOver();
+	m_statDeathsSavedInLastLoad = m_statDeaths;
+}
+
 void CActor::RegisterPlayerDeath()
 {
-	++m_statDeaths;
+	++s_deathStatCarryOver;
+	m_statDeaths = m_statDeathsSavedInLastLoad + s_deathStatCarryOver;
 	BumpPdaRankingStatRevision();
 }
 
@@ -1269,11 +1297,21 @@ void CActor::TryRegisterHelpWounded(CAI_Stalker* targetStalker, const CInventory
 		return;
 	}
 
-	if (!IsMedkitSection(item->object().cNameSect()))
+	if (!IsActorHelpWoundedMedkitSection(item->object().cNameSect()))
 	{
 		return;
 	}
 
+	const u16 stalkerId = targetStalker->ID();
+	const u32 now = Device.dwTimeGlobal;
+	if (stalkerId == m_lastHelpWoundedStalkerId
+		&& now - m_lastHelpWoundedGameTime < helpWoundedDedupMs)
+	{
+		return;
+	}
+
+	m_lastHelpWoundedStalkerId = stalkerId;
+	m_lastHelpWoundedGameTime = now;
 	RegisterHelpWounded();
 }
 

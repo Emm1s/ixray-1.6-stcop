@@ -82,14 +82,6 @@ u32 CAI_Stalker::fill_items(CInventory& inventory, CGameObject* old_owner, ALife
 
 void CAI_Stalker::transfer_item(CInventoryItem* item, CGameObject* old_owner, CGameObject* new_owner)
 {
-	if (item && old_owner && new_owner && new_owner == this)
-	{
-		if (CActor* const actor = old_owner->cast_actor())
-		{
-			actor->TryRegisterHelpWounded(this, item);
-		}
-	}
-
 	NET_Packet P;
 	CGameObject* O = old_owner;
 	O->u_EventGen(P, GE_TRADE_SELL, O->ID());

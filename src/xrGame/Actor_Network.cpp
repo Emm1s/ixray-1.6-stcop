@@ -1478,6 +1478,7 @@ void CActor::save(NET_Packet &output_packet)
 	output_packet.w_u32(m_statMoneySpent);
 	output_packet.w_float(m_statDistanceMeters);
 	output_packet.w_u32(m_statHeadshots);
+	OnDeathStatSavedToGame();
 	output_packet.w_u32(m_statDeaths);
 	output_packet.w_u32(m_statHelpWounded);
 
@@ -1523,7 +1524,7 @@ void CActor::load(IReader &input_packet)
 		m_statMoneySpent = input_packet.r_u32();
 		m_statDistanceMeters = input_packet.r_float();
 		m_statHeadshots = input_packet.r_u32();
-		m_statDeaths = input_packet.r_u32();
+		OnDeathStatLoadedFromSave(input_packet.r_u32());
 		m_statHelpWounded = input_packet.r_u32();
 	}
 	else
@@ -1532,7 +1533,7 @@ void CActor::load(IReader &input_packet)
 		m_statMoneySpent = 0;
 		m_statDistanceMeters = 0.0f;
 		m_statHeadshots = 0;
-		m_statDeaths = 0;
+		OnDeathStatLoadedFromSave(0);
 		m_statHelpWounded = 0;
 	}
 	m_isMoneyStatInitialized = true;

@@ -539,15 +539,6 @@ void CScriptGameObject::TransferItem(CScriptGameObject* pItem, CScriptGameObject
 		return;
 	}
 
-	if (CActor* actor = object().cast_actor())
-	{
-		CEntityAlive* const targetAlive = pForWho->object().cast_entity_alive();
-		if (CAI_Stalker* const targetStalker = targetAlive ? targetAlive->cast_stalker() : nullptr)
-		{
-			actor->TryRegisterHelpWounded(targetStalker, pIItem);
-		}
-	}
-
 	// выбросить у себя 
 	NET_Packet P;
 	CGameObject::u_EventGen(P, GE_TRADE_SELL, object().ID());

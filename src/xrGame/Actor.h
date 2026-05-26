@@ -179,6 +179,9 @@ public:
 			void RegisterPlayerDeath();
 			void RegisterHelpWounded();
 			void TryRegisterHelpWounded(CAI_Stalker* targetStalker, const CInventoryItem* item);
+			static void ResetDeathStatCarryOver();
+			void OnDeathStatLoadedFromSave(u32 savedDeaths);
+			void OnDeathStatSavedToGame();
 			u32 GetStatMoneyEarned	() const { return m_statMoneyEarned; }
 			u32 GetStatMoneySpent	() const { return m_statMoneySpent; }
 			float GetStatDistanceMeters() const { return m_statDistanceMeters; }
@@ -267,7 +270,10 @@ protected:
 	float				m_statDistanceMeters = 0.0f;
 	u32					m_statHeadshots = 0;
 	u32					m_statDeaths = 0;
+	u32					m_statDeathsSavedInLastLoad = 0;
 	u32					m_statHelpWounded = 0;
+	u16					m_lastHelpWoundedStalkerId = u16(-1);
+	u32					m_lastHelpWoundedGameTime = 0;
 	u32					m_pdaRankingStatRevision = 0;
 	bool				m_isMoneyStatInitialized = false;
 			void BumpPdaRankingStatRevision();
