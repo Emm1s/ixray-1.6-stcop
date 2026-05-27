@@ -438,11 +438,22 @@ void CUIMainIngameWnd::Init()
 	}
 	else if (UICompassBar)
 	{
-		independent = UIMotionIcon->Init(UICompassBar->GetFrame()->GetWndRect(), useCompassBar);
-		if (!independent)
-			UICompassBar->AttachChild(UIMotionIcon);
+		independent = UIMotionIcon->Init(Frect(), useCompassBar, true);
+		CUIWindow* layoutFrame = UIMotionIcon->CompassLayoutFrame();
+		if (layoutFrame)
+		{
+			UICompassBar->AttachChild(layoutFrame);
+			layoutFrame->AttachChild(UIMotionIcon);
+			UIMotionIcon->ApplyCompassLayout(UICompassBar);
+		}
 		else
-			AttachChild(UIMotionIcon);
+		{
+			independent = UIMotionIcon->Init(UICompassBar->GetFrame()->GetWndRect(), useCompassBar);
+			if (!independent)
+				UICompassBar->AttachChild(UIMotionIcon);
+			else
+				AttachChild(UIMotionIcon);
+		}
 	}
 	else
 		AttachChild(UIMotionIcon);

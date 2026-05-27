@@ -52,12 +52,34 @@ private:
 		float						m_luminosity;
 		float						m_cur_pos;
 
+		bool						_compassContextualFade = false;
+		float						_contextualAlpha = 0.f;
+		float						_fadeInSpeed = 6.f;
+		float						_fadeOutSpeed = 5.f;
+		float						_minVisibleAlpha = 0.01f;
+		float						_visibilityThreshold = 0.5f;
+		CUIStatic*					_compassBackground = nullptr;
+		u32							_compassBackgroundBaseColor = 0;
+		u32							_luminosityBarBaseColor = 0;
+
+		CUIWindow*					_compassLayoutFrame = nullptr;
+		Fvector2					_compassLayoutPos = {};
+		Fvector2					_compassLayoutSize = {};
+		bool						_compassLayoutRelative = true;
+		bool						_compassLayoutAlignCenter = false;
+
+		float UpdateContextualFadeAlpha(float alpha, bool isVisible) const;
+		bool IsCompassContextuallyNeeded() const;
+		void ApplyCompassContextualAlpha(float alpha);
+
 public:
 	virtual					~CUIMotionIcon		();
 							CUIMotionIcon		();
 	virtual	void			Update				();
 	virtual void			Draw				();
-			bool			Init				(Frect const& rect, bool useCompassBar);
+			bool			Init				(Frect const& rect, bool useCompassBar, bool useCompassLayout = false);
+			CUIWindow*		CompassLayoutFrame	();
+			void			ApplyCompassLayout	(CUIWindow* compassBar);
 			void			ShowState			(EState state);
 			void			SetPower			(float Pos);
 			void			SetNoise			(float Pos);
