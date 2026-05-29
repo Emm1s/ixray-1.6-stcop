@@ -38,7 +38,7 @@ void xrMU_Model::Load	( IReader& F, u32 version )
 	xr_vector<u32>			sm_groups;
 	sm_groups.resize		(b_faces.size());
 	R_ASSERT				( version > 17 );
-	F.r	(sm_groups.data(),(u32)sm_groups.size()*sizeof(u32));
+	F.r	(&*sm_groups.begin(),(u32)sm_groups.size()*sizeof(u32));
 
 	// CONVERT and OPTIMIZE
 	for (u32 v_it=0; v_it<b_vertices.size(); v_it++)

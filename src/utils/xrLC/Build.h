@@ -10,8 +10,6 @@
 #include "../xrLC_Light/b_build_texture.h"
 #include "../xrLC_Light/xrFace.h"
 
-class xrExternalObjectReference;
-class xrExternalObject;
 class xrLC_GlobalData;
 class xrMU_Model;
 class xrMU_Reference;
@@ -73,8 +71,7 @@ public:
 	static base_lighting& L_static();
 	static xr_vector<xrMU_Model*>& mu_models();
 	static xr_vector<xrMU_Reference*>& mu_refs();
-	static xr_vector<xrExternalObject*>& external_objects();
-	static xr_vector<xrExternalObjectReference*>& external_object_refs();
+	static xr_vector<b_external_object_reference>& external_object_references();
 
 	static Shader_xrLC_LIB& shaders();
 
