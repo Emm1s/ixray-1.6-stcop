@@ -48,8 +48,6 @@ public:
 	xr_vector<b_face> l_faces = {};
 	xr_vector<u32> l_smgroups = {};
 
-	xr_vector<b_external_object_reference> l_external_objects;
-
     xr_vector<b_mu_model>		l_mu_models;
     xr_vector<b_mu_reference>	l_mu_refs;
     xr_vector<e_b_lod>			l_lods;

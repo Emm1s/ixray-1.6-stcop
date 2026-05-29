@@ -157,13 +157,6 @@ struct b_mu_reference
     u32					reserved	[8];
 };
 
-struct b_external_object_reference
-{
-	string128 name;
-	Fmatrix transform;
-	u16 sector;
-};
-
 struct b_params
 {
 	// Normals & optimization
@@ -267,7 +260,6 @@ enum EBUILD_CHUNKS
     EB_MU_refs,
     EB_SmoothGroups,
 	EB_MaterialsShared,
-	EB_ExternalObjects,
 
 	EB_FORCE_DWORD = u32(-1)
 };

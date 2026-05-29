@@ -340,18 +340,6 @@ void SceneBuilder::SaveBuild()
 		F->w_u32   		(XRCL_CURRENT_VERSION);
 		F->close_chunk	();
 
-		F->make_chunk(EB_ExternalObjects, [this](IWriter& F)
-		{
-			// Maybe better to export to OGF right here and not in xrLC, but... idk
-			F.w_u32(l_external_objects.size());
-			for (auto& elem : l_external_objects)
-			{
-				F.w_stringZ(elem.name);
-				F.w(&elem.transform, sizeof(Fmatrix));
-				F.w_u16(elem.sector);
-			}
-		});
-
 		F->open_chunk	(EB_Parameters);
 		F->w	  		(&Scene->m_LevelOp.m_BuildParams,sizeof(b_params));
 		F->close_chunk	();
@@ -838,61 +826,6 @@ bool SceneBuilder::BuildEditableObject(CEditableObject* obj, Fmatrix Transform, 
 
 	Fmatrix cv = Fidentity;
 
-	if (obj->m_objectFlags.test(CEditableObject::eoNotInLevel))
-	{
-		int SectorID = -1;
-		bool AllMaterialsShared = true;
-		for (EditMeshIt M = obj->FirstMesh(); M != obj->LastMesh(); M++)
-		{
-			for (auto& Surf : (*M)->Surfaces())
-			{
-				AllMaterialsShared = AllMaterialsShared && Surf.first->UseShared;
-				if (!AllMaterialsShared)
-				{
-					break;
-				}
-			}
-			CSector* S = PortalUtils.FindSector(Owner, *M);
-			int sect_num = S ? S->m_sector_num : m_iDefaultSectorNum;
-			if (SectorID != -1 && SectorID != sect_num)
-			{
-				SectorID = -1;
-				break;
-			}
-			SectorID = sect_num;
-		}
-		if (I_ASSERT_M(SectorID >= 0,
-			"Object [%s] is marked as external, but located in several sectors at once, which is not permitted! Fallback to non-external compilation",
-			Owner->GetName())
-			&& I_ASSERT_M(AllMaterialsShared,
-			"Object [%s] is marked as external, but some of it's materials are not shared! Fallback to non-external compilation",
-			Owner->GetName()))
-		{
-			auto& Slot = l_external_objects.emplace_back();
-			xr_strcpy(Slot.name, obj->GetName());
-			Slot.transform = T;
-			Slot.sector = SectorID;
-		
-			// parse mesh data
-			for (EditMeshIt M = obj->FirstMesh(); M != obj->LastMesh(); M++)
-			{
-				// fill DI vertices
-				for (u32 pt_id = 0; pt_id < (*M)->GetVCount(); pt_id++)
-				{
-					Fvector v_res1;
-					const Fvector& v_src = (*M)->m_Vertices[pt_id];
-
-					Fvector tmp;
-					cv.transform_tiny(tmp, v_src);
-					T.transform_tiny(v_res1, tmp);
-
-					l_scene_stat->add_svert(v_res1);
-				}
-			}
-			return true;
-		}
-	}
-
 	if (m_save_as_object)
 	{
 		cv.k.z = -1.f;
@@ -909,15 +842,13 @@ bool SceneBuilder::BuildEditableObject(CEditableObject* obj, Fmatrix Transform, 
 	{
 		CSector* S = PortalUtils.FindSector(Owner, *M);
 		int sect_num = S ? S->m_sector_num : m_iDefaultSectorNum;
-		if (!BuildMesh(T, obj, *M, sect_num, l_verts, l_vert_it, l_faces, l_face_it, l_smgroups, Transform, Owner))
-		{
+		if (!BuildMesh(T, obj, *M, sect_num, l_verts, /*l_vert_cnt, */l_vert_it, l_faces, /*l_face_cnt, */l_face_it, l_smgroups, Transform, Owner))
 			return false;
-		}
 
 		// fill DI vertices
 		for (u32 pt_id = 0; pt_id < (*M)->GetVCount(); pt_id++)
 		{
-			Fvector v_res1;
+			Fvector v_res1, v_res2;
 			const Fvector& v_src = (*M)->m_Vertices[pt_id];
 
 			Fvector tmp;
