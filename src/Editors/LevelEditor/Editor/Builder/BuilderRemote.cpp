@@ -608,10 +608,15 @@ bool SceneBuilder::BuildMesh(	const Fmatrix& parent,
 								CEditableMesh* mesh,
 								int sect_num,
 								xr_vector<b_vertex>& verts,
+								/*b_vertex* verts,
+								int& vert_cnt,*/
 								int& vert_it,
 								xr_vector<b_face>& faces,
+								/*b_face* faces,
+								int& face_cnt,*/
 								int& face_it,
 								xr_vector<u32>& smooth_groups,
+								//u32* smgroups,
 								const Fmatrix& real_transform,
 								CSceneObject* obj)
 {

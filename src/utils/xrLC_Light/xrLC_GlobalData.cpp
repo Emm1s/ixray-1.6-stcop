@@ -90,204 +90,7 @@ bool	xrLC_GlobalData	::			b_r_vertices	()
 {
 	return false;
 }
-
-b_external_object_data& xrLC_GlobalData::LoadExternalObjectData(shared_str name)
-{
-	auto it = _cl_globs.external_objects.find(name);
-	if (it != _cl_globs.external_objects.end())
-	{
-		return it->second;
-	}
-
-	_cl_globs.external_objects.emplace(name, b_external_object_data());
-	auto& slot = _cl_globs.external_objects[name];
-	string_path fn;
-	FS.update_path(fn, _objects_, EFS.ChangeFileExt(name.c_str(), ".object").c_str());
-	if (FS.TryLoad(fn))
-	{
-		auto F = FS.rg_open(fn); R_ASSERT(F);
-		F->open_chunk(EEditableObjectChunks::OBJECT_BODY, [this, &fn, &slot](IReader* OBJ){
-			I_ASSERT_M(OBJ,"Corrupted file [%s].", &fn);
-
-			u32 version = 0;
-			shared_str buf;
-			shared_str sh_name;
-			I_ASSERT_M(OBJ->r_chunk(EEditableObjectChunks::VERSION,&version), "Corrupted file [%s].", &fn);
-			I_ASSERT_M(version==(u32)EEditableObjectVersions::Vanilla, "Unsupported file version. Object [%s] can't load.", &fn);
-
-		
-			if (OBJ->find_chunk(EEditableObjectChunks::SURFACES_SHARED))
-			{
-				slot.m_Surfaces.resize(OBJ->r_u32());
-				for (auto& elem : slot.m_Surfaces)
-				{
-					I_ASSERT_M(OBJ->r_u8(),"Object [%s] contains non-shared material!", &fn);
-					shared_str mat_name;
-					OBJ->r_stringZ(mat_name);
-					elem = CSharedMaterialLibrary::Instance().GetData(mat_name);
-				}
-			}
-			
-			OBJ->open_chunk(EEditableObjectChunks::EDITMESHES, [this, &fn, &slot](IReader& F)
-			{
-				bool Stop = false;
-				u32 count = 0;
-				while (!Stop)
-				{
-					F.open_chunk(count++, [this, &fn, &slot, &Stop](IReader* F)
-					{
-						if (!F)
-						{
-							Stop = true;
-							return;
-						}
-						
-						u32 version=0;
-						R_ASSERT(F->r_chunk(EEditableMeshChunks::EMESH_CHUNK_VERSION,&version));
-						if (!I_ASSERT_M(version==(u32)EEditableMeshVersions::EMESH_CURRENT_VERSION,
-							"CEditableMesh [%s]: unsuported file version. Mesh can't load.", &fn)){
-							return;
-						}
-
-						auto& mesh_slot = slot.m_meshes.emplace_back();
-						
-						F->open_chunk(EEditableMeshChunks::EMESH_CHUNK_MESHNAME, [this, &mesh_slot](IReader& F)
-						{
-							F.r_stringZ(mesh_slot.m_Name);
-						});
-						F->open_chunk(EEditableMeshChunks::EMESH_CHUNK_BBOX,[this, &mesh_slot](IReader& F)
-						{
-							F.r(&mesh_slot.m_Box, sizeof(mesh_slot.m_Box));
-						});
-						
-						F->open_chunk(EEditableMeshChunks::EMESH_CHUNK_VERTS,[this, &mesh_slot](IReader& F)
-						{
-							mesh_slot.m_Vertices.resize(F.r_u32());
-							F.r(mesh_slot.m_Vertices.data(), mesh_slot.m_Vertices.size()*sizeof(Fvector));
-						});
-
-						xr_vector<b_external_object_vmap> VMaps;
-						F->open_chunk(EEditableMeshChunks::EMESH_CHUNK_VMAPS_2, [this, &VMaps](IReader& F)
-						{
-							VMaps.resize(F.r_u32());
-							for (auto& elem : VMaps)
-							{
-								F.r_stringZ(elem.Name);
-								elem.dim = F.r_u8();
-								elem.polymap = F.r_u8();
-								elem.type = F.r_u8();
-								elem.resize(F.r_u32());
-								F.r(elem.vm.data(), elem.vm.size()*sizeof(float));
-								F.r(elem.vindices.data(), elem.vindices.size()*sizeof(int));
-								if (elem.polymap)
-								{
-									F.r(elem.pindices.data(), elem.pindices.size()*sizeof(int));
-								}
-							}
-						});
-						xr_vector<b_external_object_vmap_list> VMapRefs;
-						F->open_chunk(EEditableMeshChunks::EMESH_CHUNK_VMREFS,[this, &VMapRefs](IReader& F)
-						{
-							VMapRefs.resize(F.r_u32());
-							for (auto& elem : VMapRefs)
-							{
-								elem.list.resize(F.r_u8());
-								F.r(elem.list.data(), elem.list.size()*sizeof(b_external_object_vmap_pt));
-							}
-						});
-						xr_vector<b_external_object_face_data> m_FacesRaw;
-						F->open_chunk(EEditableMeshChunks::EMESH_CHUNK_FACES,[this, &m_FacesRaw](IReader& F)
-						{
-							m_FacesRaw.resize(F.r_u32());
-							F.r(m_FacesRaw.data(), m_FacesRaw.size()*sizeof(b_external_object_face_data));
-						});
-						xr_vector<b_external_object_face_mat_link> links;
-						F->open_chunk(EEditableMeshChunks::EMESH_CHUNK_SFACE, [this, &links](IReader& F)
-						{
-							links.resize(F.r_u16());
-							for (auto& elem : links)
-							{
-								F.r_stringZ(elem.name);
-								elem.Faces.resize(F.r_u32());
-								F.r(elem.Faces.data(), elem.Faces.size()*sizeof(int));
-							}
-						});
-
-						mesh_slot.m_Faces.reserve(m_FacesRaw.size()*2);
-						for (auto& link : links)
-						{
-							u16 MatID = u16(-1);
-							for (u16 i = 0; i < slot.m_Surfaces.size(); i++)
-							{
-								if (slot.m_Surfaces[i]->m_Name == link.name)
-								{
-									MatID = i;
-									break;
-								}
-							}
-							
-							for (auto FIndex : link.Faces)
-							{
-								auto& raw = m_FacesRaw[FIndex];
-								auto& target = mesh_slot.m_Faces.emplace_back();
-								target.flags = b_face_flags::UseSharedMaterial;
-								target.dwMaterial = MatID;
-								target.dwMaterialGame = slot.m_Surfaces[MatID]->m_GameMtlName;
-								for (int i = 0; i < 3; ++i)
-								{
-									target.v[i] = raw.pv[i].pindex;
-									auto& VMRefList = VMapRefs[raw.pv[i].vmref].list;
-									for (auto& elem : VMRefList)
-									{
-										auto& vmap = VMaps[elem.vmap_index];
-										if (vmap.type!=0)
-										{
-											continue;
-										}
-										target.t[i].set(vmap.getUV(elem.index));
-									}
-								}
-
-								if (slot.m_Surfaces[MatID]->m_Flags.test(SSurfaceData::sf2Sided))
-								{
-									auto& target2 = mesh_slot.m_Faces.emplace_back();
-									target2.flags = b_face_flags::UseSharedMaterial;
-									target2.dwMaterial = target.dwMaterial;
-									target2.dwMaterialGame = target2.dwMaterial;
-									target2.v[0] = target.v[0];
-									target2.v[1] = target.v[1];
-									target2.v[2] = target.v[2];
-									target2.t[0] = target.t[0];
-									target2.t[1] = target.t[1];
-									target2.t[2] = target.t[2];
-								}
-							}
-						}
-						mesh_slot.m_Faces.shrink_to_fit();
-						
-						/*F->open_chunk(EEditableMeshChunks::EMESH_CHUNK_SG,[this, &mesh_slot](IReader& F)
-						{
-							mesh_slot.m_SmoothGroups.resize(mesh_slot.m_Vertices.size());
-							F.r(mesh_slot.m_SmoothGroups.data(), mesh_slot.m_SmoothGroups.size()*sizeof(u32));
-						});
-						F->open_chunk(EEditableMeshChunks::EMESH_CHUNK_NORMALS,[this, &mesh_slot](IReader& F)
-						{
-							mesh_slot.m_Normals.resize(mesh_slot.m_Faces.size()*3);
-							F.r(mesh_slot.m_Normals.data(), mesh_slot.m_Normals.size()*sizeof(Fvector));
-							for (auto& Normal : mesh_slot.m_Normals)
-							{
-								Normal.x = -Normal.x;
-								Normal.z = -Normal.z;
-							}
-						});*/
-					});
-				}
-			});
-		});
-	}
-	return slot;
-}
-
+ 
 xrLC_GlobalData::~xrLC_GlobalData()
 {
  
@@ -347,7 +150,7 @@ void xrLC_GlobalData::destroy_vertex(Vertex*& v)
 
 void xrLC_GlobalData::clear() 
 {
-	// se7kills (пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ !)
+	// se7kills (Проверил это отгружается хорошо !)
 	for (auto& surface : textures())
 		surface.pSurface.Clear();
  	textures().clear();
@@ -357,7 +160,7 @@ void xrLC_GlobalData::clear()
 	_cl_globs._shaders.Unload();
 	clMsg("[xrLC_Remove] mem textures: %u mb", GetHeapMemory() / 1024 / 1024);
 
-	// пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ (_g_faces, _g_vertex) пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ !
+	// Пометка чтобы не трогало векторы (_g_faces, _g_vertex) в деструкторе !
 	g_bUnregister = false;
  	
 	for (auto F : _g_faces)
@@ -378,7 +181,7 @@ void xrLC_GlobalData::clear()
 	
 	clMsg("[xrLC_Remove] mem faces-vertex: %u mb", GetHeapMemory() / 1024 / 1024);
  
-	// пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ !
+	// Не замечал утечек памяти !
 	vec_clear(_mu_models); 
 	vec_clear(_mu_refs);
 	mu_mesh_clear();

@@ -297,12 +297,6 @@ public:
 	u32 m_last_pos;
 };
 
-template<typename F, typename R>
-concept callable_with_ref = requires(F&& f, R r)
-{
-	std::forward<F>(f)(r);
-};
-
 class XRCORE_API IReader :
 	public IReaderBase
 {
@@ -341,10 +335,10 @@ protected:
 
 public:
 	IC intptr_t		elapsed		()	const override {	return Size - Pos;		};
-	void			seek		(intptr_t ptr) override {	Pos=ptr; VERIFY((Pos<=Size) && (Pos>=0));};
-	intptr_t		tell		()	const override {	return Pos;				};
-	intptr_t		length		()	const override {	return Size;			};
-	void		advance		(intptr_t cnt) override {	Pos+=cnt;VERIFY((Pos<=Size) && (Pos>=0));};
+	   void			seek		(intptr_t ptr) override {	Pos=ptr; VERIFY((Pos<=Size) && (Pos>=0));};
+	   intptr_t		tell		()	const override {	return Pos;				};
+	   intptr_t		length		()	const override {	return Size;			};
+		void		advance		(intptr_t cnt) override {	Pos+=cnt;VERIFY((Pos<=Size) && (Pos>=0));};
 	IC void*		pointer		()	const		{	return &(data[Pos]);	};
 
 public:
@@ -411,39 +405,6 @@ public:
 	IReader* open_chunk(EnumT ID)
 	{
 		return open_chunk(u32(ID));
-	}
-	
-	void open_chunk(u32 type, auto&& lambda)
-	{
-		auto chunk = open_chunk(type);
-		if constexpr (callable_with_ref<decltype(lambda), decltype(*chunk)>)
-		{
-			if (chunk)
-			{
-				lambda(*chunk);
-			}
-		} else
-		{
-			lambda(chunk);
-		}
-		chunk->close();
-	}
-	
-	template<XRay::Concepts::Enum EnumT>
-	void open_chunk(EnumT type, auto&& lambda)
-	{
-		auto chunk = open_chunk(type);
-		if constexpr (callable_with_ref<decltype(lambda), decltype(*chunk)>)
-		{
-			if (chunk)
-			{
-				lambda(*chunk);
-			}
-		} else
-		{
-			lambda(chunk);
-		}
-		chunk->close();
 	}
 
 	// Use separate open_chunk with IReaderBase return to not break whole engine. But should be changed...

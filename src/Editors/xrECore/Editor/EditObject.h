@@ -608,6 +608,37 @@ private:
 
 };
 
+enum class EEditableObjectChunks
+{
+	OBJECT_BODY = 0x7777,
+	VERSION = 0x0900,
+	REFERENCE = 0x0902,
+	FLAGS = 0x0903,
+	SURFACES = 0x0905,
+	SURFACES2 = 0x0906,
+	SURFACES3 = 0x0907,
+	SURFACES_SHARED = 0x0908,
+	EDITMESHES = 0x0910,
+	CLASSSCRIPT = 0x0912,
+	BONES = 0x0913,
+	SMOTIONS = 0x0916,
+	SURFACES_XRLC = 0x0918,
+	BONEPARTS = 0x0919,
+	ACTORTRANSFORM = 0x0920,
+	BONES2 = 0x0921,
+	DESC = 0x0922,
+	BONEPARTS2 = 0x0923,
+	SMOTIONS2 = 0x0924,
+	LODS = 0x0925,
+	SMOTIONS3 = 0x0926,
+};
+
+
+enum class EEditableObjectVersions
+{
+	Vanilla = 0x0010,
+};
+
 //----------------------------------------------------
 /*#define EOBJ_CURRENT_VERSION		0x0010
 //----------------------------------------------------

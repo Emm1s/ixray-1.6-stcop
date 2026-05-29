@@ -71,7 +71,6 @@ public:
 	static base_lighting& L_static();
 	static xr_vector<xrMU_Model*>& mu_models();
 	static xr_vector<xrMU_Reference*>& mu_refs();
-	static xr_vector<b_external_object_reference>& external_object_references();
 
 	static Shader_xrLC_LIB& shaders();
 
