@@ -358,14 +358,17 @@ void CUIPdaWnd::Init()
 		pUIFactionWarWnd->hint_wnd = m_hint_wnd;
 		pUIFactionWarWnd->Init();
 	}
-	if (PdaCommunication().IsEnabled() && tabPresentLambda(PdaSectionId::Contacts) && !UIPdaContactsWnd)
+	if (tabPresentLambda(PdaSectionId::Contacts) && !UIPdaContactsWnd)
 	{
 		UIPdaContactsWnd = new CUIPdaContactsWnd();
 		UIPdaContactsWnd->Init();
-		CUIGameCustom* gameUi = CurrentGameUI();
-		if (gameUi && gameUi->TalkMenu)
+		if (PdaCommunication().IsEnabled())
 		{
-			gameUi->TalkMenu->BeginPdaEmbed(UIPdaContactsWnd);
+			CUIGameCustom* gameUi = CurrentGameUI();
+			if (gameUi && gameUi->TalkMenu)
+			{
+				gameUi->TalkMenu->BeginPdaEmbed(UIPdaContactsWnd);
+			}
 		}
 	}
 	if (tabPresentLambda(PdaSectionId::Ranking) && !pUIRankingWnd)
@@ -629,7 +632,7 @@ CUIWindow* CUIPdaWnd::ResolveNativeSubdialog(const shared_str& resolvedSection)
 	}
 	if (PdaSectionId::Equals(resolvedSection, PdaSectionId::Contacts))
 	{
-		return UIPdaContactsWnd ? static_cast<CUIWindow*>(UIPdaContactsWnd) : static_cast<CUIWindow*>(pUITaskWnd);
+		return UIPdaContactsWnd;
 	}
 	if (PdaSectionId::Equals(resolvedSection, PdaSectionId::Ranking))
 	{
@@ -908,7 +911,7 @@ void CUIPdaWnd::DrawHint()
 	{
 		pUIRankingWnd->DrawHint();
 	}
-	else if (PdaSectionId::Equals(m_sActiveSection, PdaSectionId::Contacts))
+	else if (PdaSectionId::Equals(m_sActiveSection, PdaSectionId::Contacts) && UIPdaContactsWnd)
 	{
 		UIPdaContactsWnd->DrawHint();
 	}
