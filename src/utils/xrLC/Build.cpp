@@ -225,7 +225,7 @@ Shader_xrLC& CBuild::GetShaderXRLC(u32 ID, bool Shared)
 	return *Shader;
 }
 
-LPCSTR CBuild::GetMaterialShaderName(const Face& F) const
+str_c CBuild::GetMaterialShaderName(const Face& F) const
 {
 	if (F.flags.bSharedMaterial)
 	{
@@ -234,7 +234,7 @@ LPCSTR CBuild::GetMaterialShaderName(const Face& F) const
 	return shader_render[materials()[F.dwMaterial].shader].name;
 }
 
-LPCSTR CBuild::GetMaterialShaderName(u16 index, bool shared) const
+str_c CBuild::GetMaterialShaderName(u16 index, bool shared) const
 {
 	if (shared)
 	{
@@ -243,7 +243,7 @@ LPCSTR CBuild::GetMaterialShaderName(u16 index, bool shared) const
 	return shader_render[materials()[index].shader].name;
 }
 
-LPCSTR CBuild::GetMaterialShaderXRLCName(const Face& F) const
+str_c CBuild::GetMaterialShaderXRLCName(const Face& F) const
 {
 	if (F.flags.bSharedMaterial)
 	{
@@ -252,7 +252,7 @@ LPCSTR CBuild::GetMaterialShaderXRLCName(const Face& F) const
 	return shader_compile[materials()[F.dwMaterial].shader_xrlc].name;
 }
 
-LPCSTR CBuild::GetMaterialShaderXRLCName(u16 index, bool shared) const
+str_c CBuild::GetMaterialShaderXRLCName(u16 index, bool shared) const
 {
 	if (shared)
 	{

@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 #include "InventorySorter.h"
 #include "../inventory_item.h"
 #include "../Weapon.h"
@@ -144,10 +144,10 @@ void CInventorySorter::LoadCategoryFromXml(const shared_str& categoryId, EInvent
 
     SInventorySortCategoryInfo& info = it->second;
 
-    info._name = pSettings->read_if_exists<LPCSTR>("inventory_sort_categories", namePath, info._name.c_str());
-    info._hint = pSettings->read_if_exists<LPCSTR>("inventory_sort_categories", hintPath, info._hint.c_str());
+    info._name = pSettings->read_if_exists<str_c>("inventory_sort_categories", namePath, info._name.c_str());
+    info._hint = pSettings->read_if_exists<str_c>("inventory_sort_categories", hintPath, info._hint.c_str());
     
-    shared_str iconTexture = pSettings->read_if_exists<LPCSTR>("inventory_sort_categories",iconPath,nullptr);
+    shared_str iconTexture = pSettings->read_if_exists<str_c>("inventory_sort_categories",iconPath,nullptr);
     if (iconTexture && iconTexture.size() > 0)
     {
         info._iconTexture = iconTexture;
@@ -168,9 +168,9 @@ void CInventorySorter::LoadCustomCategories()
     u32 customCount = pSettings->line_count("inventory_sort_custom");
     for (u32 i = 0; i < customCount; ++i)
     {
-        const char* lineName = nullptr;
-        const char* lineValue = nullptr;
-        if (!pSettings->r_line("inventory_sort_custom", i, &lineName, &lineValue))
+        str_c lineName = nullptr;
+        str_c lineValue = nullptr;
+        if (!pSettings->r_line("inventory_sort_custom", i, lineName, lineValue))
         {
             continue;
         }
@@ -183,16 +183,16 @@ void CInventorySorter::LoadCustomCategories()
         xr_sprintf(path, "inventory_sort_custom:%s", lineName);
 
         shared_str name = pSettings->r_string(path, "name");
-        shared_str hint = pSettings->read_if_exists<LPCSTR>(path, "hint", "");
+        shared_str hint = pSettings->read_if_exists<str_c>(path, "hint", "");
         
         AddCustomCategory(lineName, name, hint);
 
         u32 itemCount = pSettings->line_count(path);
         for (u32 j = 0; j < itemCount; ++j)
         {
-            const char* itemName = nullptr;
-            const char* itemValue = nullptr;
-            if (!pSettings->r_line(path, j, &itemName, &itemValue))
+            str_c itemName = nullptr;
+            str_c itemValue = nullptr;
+            if (!pSettings->r_line(path, j, itemName, itemValue))
             {
                 continue;
             }
@@ -200,7 +200,7 @@ void CInventorySorter::LoadCustomCategories()
             {
                 continue;
             }
-            const char* itemLine = itemName;
+            str_c itemLine = itemName;
 
             if (xr_strcmp(itemLine, "name") == 0 || xr_strcmp(itemLine, "hint") == 0 || 
                 xr_strcmp(itemLine, "icon") == 0 || xr_strcmp(itemLine, "show_text") == 0)

@@ -5,7 +5,7 @@
 //	Description : UI Logs (PDA) window class implementation
 ////////////////////////////////////////////////////////////////////////////
 
-#include "StdAfx.h"
+#include "stdafx.h"
 #include "UILogsWnd.h"
 
 #include "../../xrUI/UIXmlInit.h"

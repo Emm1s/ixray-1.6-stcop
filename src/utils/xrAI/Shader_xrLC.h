@@ -57,7 +57,7 @@ using Shader_xrLCIt = Shader_xrLCVec::iterator;
 class Shader_xrLC_LIB
 {
 	Shader_xrLCVec library;
-	xr_hash_map<LPCSTR, u32> NameToIndex;
+	xr_hash_map<str_c, u32> NameToIndex;
 	
 	void Rehash()
 	{

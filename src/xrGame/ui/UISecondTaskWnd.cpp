@@ -5,7 +5,7 @@
 //	Description : UI Secondary Task Wnd class impl
 ////////////////////////////////////////////////////////////////////////////
 
-#include "StdAfx.h"
+#include "stdafx.h"
 #include "UISecondTaskWnd.h"
 
 #include "../../xrUI/xrUIXmlParser.h"
@@ -142,7 +142,7 @@ void UITaskListWnd::UpdateList()
 	vGameTasks::iterator ite = tasks.end();
 	for ( ; itb != ite; ++itb )
 	{
-		CGameTask* task = (*itb).getGameTask();
+		CGameTask* task = itb->getGameTask();
 		if ( task && task->GetTaskState() == eTaskStateInProgress )
 		{
 			if (m_show_only_secondary_tasks && task->GetTaskType() == eTaskTypeStoryline)

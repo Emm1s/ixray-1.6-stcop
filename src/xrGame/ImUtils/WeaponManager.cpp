@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 #include "../Actor.h"
 #include "../Inventory.h"
 #include "../inventory_item.h"
@@ -203,7 +203,7 @@ void RenderWeaponManagerWindow()
 
 			if (Render)
 			{
-				const auto surface = pSettings->read_if_exists<LPCSTR>(pItem->m_section_id,"icons_texture","ui\\ui_icon_equipment");
+				const auto surface = pSettings->read_if_exists<str_c>(pItem->m_section_id,"icons_texture","ui\\ui_icon_equipment");
 				imgui_weapon_manager.ui_icons = Render->getSurface(surface);
 			}
 

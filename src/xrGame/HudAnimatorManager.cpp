@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 #include "HudAnimatorManager.h"
 #include "player_hud.h"
 #include "CustomDevice.h"
@@ -29,12 +29,12 @@ void CHudAnimatorBase::Load()
 	m_fHudFov = pSettings->read_if_exists<float>(m_section,"hud_fov",0.0f);
 	m_fHudFovFactor = pSettings->read_if_exists<float>(m_section,"hud_fov_factor",1.0f);
 
-	m_sLuaLeftCallback = pSettings->read_if_exists<LPCSTR>(m_section,"left_lua_callback","null");
-	m_sLuaLeft2Callback = pSettings->read_if_exists<LPCSTR>(m_section,"left2_lua_callback","null");
-	m_sLuaRightCallback = pSettings->read_if_exists<LPCSTR>(m_section,"right_lua_callback","null");
-	m_sLuaRight2Callback = pSettings->read_if_exists<LPCSTR>(m_section,"right2_lua_callback","null");
-	m_sLuaStartCallback = pSettings->read_if_exists<LPCSTR>(m_section,"start_lua_callback","null");
-	m_sLuaEndCallback = pSettings->read_if_exists<LPCSTR>(m_section,"end_lua_callback","null");
+	m_sLuaLeftCallback = pSettings->read_if_exists<str_c>(m_section,"left_lua_callback","null");
+	m_sLuaLeft2Callback = pSettings->read_if_exists<str_c>(m_section,"left2_lua_callback","null");
+	m_sLuaRightCallback = pSettings->read_if_exists<str_c>(m_section,"right_lua_callback","null");
+	m_sLuaRight2Callback = pSettings->read_if_exists<str_c>(m_section,"right2_lua_callback","null");
+	m_sLuaStartCallback = pSettings->read_if_exists<str_c>(m_section,"start_lua_callback","null");
+	m_sLuaEndCallback = pSettings->read_if_exists<str_c>(m_section,"end_lua_callback","null");
 }
 
 void CHudAnimatorBase::StopAnimator()
@@ -787,7 +787,7 @@ void CHudStateAnimator::SwitchAnimator()
 	}
 	else if (!m_bNeedActivated && GetState() == eHidden && g_player_hud->GetAnimator() == nullptr)
 	{
-		m_sLuaModifySect = pSettings->read_if_exists<LPCSTR>(m_section,"modify_sect_lua_callback","null");
+		m_sLuaModifySect = pSettings->read_if_exists<str_c>(m_section,"modify_sect_lua_callback","null");
 
 		if (m_sLuaModifySect != "null")
 		{
@@ -824,7 +824,7 @@ void CHudStateAnimator::ShowStateAnimator(const shared_str& section)
 {
 	m_section = section;
 
-	m_sLuaModifySect = pSettings->read_if_exists<LPCSTR>(m_section,"modify_sect_lua_callback","null");
+	m_sLuaModifySect = pSettings->read_if_exists<str_c>(m_section,"modify_sect_lua_callback","null");
 
 	if (m_sLuaModifySect != "null")
 	{

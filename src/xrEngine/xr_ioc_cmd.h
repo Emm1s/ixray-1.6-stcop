@@ -235,7 +235,7 @@ public :
 			*new_cmd->value = default_value;
 			return *(new_cmd)->value;
 		}
-		return *static_cast<CCC_Mask32*>((*it).second)->value;
+		return *static_cast<CCC_Mask32*>(it->second)->value;
 	}
 
 	virtual CCC_Mask32* dcast_mask32() { return this; }
@@ -300,7 +300,7 @@ public		:
 			return *static_cast<CCC_Mask16*>(new_cmd)->value;
 		}
 		else
-			return *static_cast<CCC_Mask16*>((*it).second)->value;
+			return *static_cast<CCC_Mask16*>(it->second)->value;
 	}
 
 	virtual CCC_Mask16* dcast_mask16() { return this; }
@@ -351,7 +351,7 @@ public		:
 			return *static_cast<CCC_ToggleMask*>(new_cmd)->value;
 		}
 		else
-			return *static_cast<CCC_ToggleMask*>((*it).second)->value;
+			return *static_cast<CCC_ToggleMask*>(it->second)->value;
 	}
 
 	virtual CCC_ToggleMask* dcast_tmask() { return this; }
@@ -452,7 +452,7 @@ public		:
 			return *static_cast<CCC_Token*>(new_cmd)->value;
 		}
 		else
-			return *static_cast<CCC_Token*>((*it).second)->value;
+			return *static_cast<CCC_Token*>(it->second)->value;
 	}
 
 	virtual CCC_Token* dcast_token() { return this; }
@@ -516,7 +516,7 @@ public:
 			return *static_cast<CCC_Float*>(new_cmd)->value;
 		}
 		else
-			return *static_cast<CCC_Float*>((*it).second)->value;
+			return *static_cast<CCC_Float*>(it->second)->value;
 	}
 
 	virtual CCC_Float* dcast_float() { return this; }
@@ -596,7 +596,7 @@ public:
 			return *static_cast<CCC_Vector3*>(new_cmd)->value;
 		}
 		else
-			return *static_cast<CCC_Vector3*>((*it).second)->value;
+			return *static_cast<CCC_Vector3*>(it->second)->value;
 	}
 
 	virtual CCC_Vector3* dcast_vector() { return this; }
@@ -749,7 +749,7 @@ public:
 			return *static_cast<CCC_Boolean*>(new_cmd)->value;
 		}
 		else
-			return *static_cast<CCC_Boolean*>((*it).second)->value;
+			return *static_cast<CCC_Boolean*>(it->second)->value;
 	}
 
 	virtual CCC_Boolean* dcast_bool() { return this; }
@@ -806,7 +806,7 @@ public:
 			return static_cast<CCC_String*>(new_cmd)->value;
 		}
 		else
-			return static_cast<CCC_String*>((*it).second)->value;
+			return static_cast<CCC_String*>(it->second)->value;
 	}
 
 	virtual CCC_String* dcast_string() { return this; }

@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 #include "player_hud.h"
 #include "HudItem.h"
 #include "Actor.h"
@@ -32,7 +32,7 @@ player_hud_motion* player_hud_motion_container::find_motion(const shared_str& na
 	xr_vector<player_hud_motion>::iterator it_e = m_anims.end();
 	for (; it != it_e; ++it)
 	{
-		const shared_str& s = (true) ? (*it).m_alias_name : (*it).m_base_name;
+		const shared_str& s = (true) ? it->m_alias_name : it->m_base_name;
 		if (s == name)
 		{
 			return &(*it);
@@ -48,7 +48,7 @@ attachable_hud_item_motion* player_hud_motion_container::find_item_motion(const 
 	xr_vector<attachable_hud_item_motion>::iterator it_e = m_item_anims.end();
 	for (; it != it_e; ++it)
 	{
-		const shared_str& s = (true) ? (*it).m_alias_name : (*it).m_name;
+		const shared_str& s = (true) ? it->m_alias_name : it->m_name;
 		if (s == name)
 		{
 			return &(*it);
@@ -3034,7 +3034,7 @@ void player_hud::animator_fx_play(const shared_str& anim_name, u16 place_idx, u1
 
 void player_hud::load_default()
 {
-	static auto actorHudDefault = pSettings->read_if_exists<LPCSTR>("actor", "player_hud_default", "actor_hud");
+	static auto actorHudDefault = pSettings->read_if_exists<str_c>("actor", "player_hud_default", "actor_hud");
 	load(actorHudDefault);
 }
 

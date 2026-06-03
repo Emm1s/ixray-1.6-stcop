@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 #include "poltergeist.h"
 
 #include <algorithm>
@@ -143,7 +143,7 @@ void CPoltergeist::Load(const char* section)
 		}
 	}
 
-	m_detection_pp_effector_name		= pSettings->read_if_exists<LPCSTR>(section, "detection_pp_effector_name",		"");
+	m_detection_pp_effector_name		= pSettings->read_if_exists<str_c>(section, "detection_pp_effector_name",		"");
 	m_detection_near_range_factor		= pSettings->read_if_exists<float>(section, "detection_near_range_factor",		2.f);
 	m_detection_far_range_factor		= pSettings->read_if_exists<float>(section, "detection_far_range_factor",		1.f);
 	m_detection_speed_factor			= pSettings->read_if_exists<float>(section, "detection_speed_factor",			1.f);

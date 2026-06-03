@@ -54,7 +54,7 @@ class Shader_xrLC_LIB
 {
 	Shader_xrLCVec			library;
 public:
-	void					Load	(LPCSTR name)
+	void					Load	(str_c name)
 	{
 		IReader* fs			= FS.r_open(name);
 		if(NULL==fs){
@@ -73,7 +73,7 @@ public:
 		fs->r				(library.data(),fs->length());
         FS.r_close			(fs);
 	}
-	bool					Save	(LPCSTR name)
+	bool					Save	(str_c name)
 	{
 		IWriter* F			= FS.w_open(name);
         if (F){
@@ -88,7 +88,7 @@ public:
 	{
 		library.clear();
 	}
-	u32 GetID(LPCSTR name) const
+	u32 GetID(str_c name) const
 	{
 		for (auto it = library.begin(); it!=library.end(); ++it)
 		{
@@ -99,7 +99,7 @@ public:
 		}
 		return u32(-1);
 	}
-	Shader_xrLC* Get(LPCSTR name)
+	Shader_xrLC* Get(str_c name)
 	{
 		for (auto& elem : library)
 		{
@@ -123,7 +123,7 @@ public:
 		library.push_back(parent?Shader_xrLC(*parent):Shader_xrLC());
 		return library.back();
 	}
-	void					Remove	(LPCSTR name)
+	void Remove(str_c name)
 	{
 		for (Shader_xrLCIt it=library.begin(); it!=library.end(); it++)
 			if (0==_stricmp(name,it->Name)){
@@ -131,7 +131,7 @@ public:
                 break;
             }
 	}
-	void					Remove	(int id)
+	void Remove(int id)
 	{
 		library.erase(library.begin()+id);
 	}

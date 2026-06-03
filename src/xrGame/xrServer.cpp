@@ -2,7 +2,7 @@
 //
 //////////////////////////////////////////////////////////////////////
 
-#include "StdAfx.h"
+#include "stdafx.h"
 #include "pch_script.h"
 #include "xrServer.h"
 #include "xrMessages.h"
@@ -1371,7 +1371,6 @@ void xrServer::GetServerInfo( CServerInfo* si )
 		xr_strcat( tmp256, " [" );
 		xr_strcat( tmp256, _itoa( g_sv_ah_dwArtefactsNum, tmp, 10 ) );
 		xr_strcat( tmp256, "] " );
-		g_sv_ah_iReinforcementTime;
 	}
 	
 	//if ( g_sv_dm_dwTimeLimit > 0 )

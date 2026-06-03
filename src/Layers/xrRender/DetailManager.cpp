@@ -159,7 +159,7 @@ void CDetailManager::Render()
 
 		Device.details_task.run
 		(
-			[=]()
+			[=, this]()
 			{
 #ifndef _EDITOR
 				if (!dtFS) return;

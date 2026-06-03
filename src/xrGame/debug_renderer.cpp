@@ -6,7 +6,7 @@
 //	Description : debug renderer
 ////////////////////////////////////////////////////////////////////////////
 
-#include "StdAfx.h"
+#include "stdafx.h"
 #ifdef DEBUG_DRAW
 #	include "debug_renderer.h"
 
@@ -129,7 +129,7 @@ void CDebugRenderer::draw_ellipse	(const Fmatrix &matrix, const u32 &color)
 		113,105, 113,106, 113,107, 113,108, 113,109, 113,110, 113,111, 113,112
 	};
 
-	int								count	= sizeof(vertices)/(sizeof(float));
+	constexpr int count	= std::size(vertices)/3;
 	Fvector							*I = (Fvector*)vertices;
 	Fvector							*E = (Fvector*)(vertices + count);
 	for ( ; I != E; ++I)

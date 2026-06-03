@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 #include "RandomSoundEmmiter.h"
 
 CRandomSoundEmmiter::CRandomSoundEmmiter(const char* section, const char* soundParameter, esound_type _sound_type, int _game_type)
