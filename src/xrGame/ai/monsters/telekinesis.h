@@ -3,18 +3,6 @@
 #include "telekinetic_object.h"
 #include "../../../xrPhysics/PHUpdateObject.h"
 
-struct TelekineticParams
-{
-	float distance;
-	u32 keep_time;
-	
-	void Load(LPCSTR section)
-	{
-		distance = READ_IF_EXISTS(pSettings, r_float, section, "Tele_Distance", 50.f);
-		keep_time = READ_IF_EXISTS(pSettings, r_u32, section, "Tele_Time_Object_Keep", 10000);
-	}
-};
-
 class ITelekineticEnemy
 {
 public:
@@ -39,8 +27,6 @@ protected:
 	bool active;
 
 public:
-	TelekineticParams telekinetic_params;
-	
 	CTelekinesis();
 	~CTelekinesis() override;
 	
