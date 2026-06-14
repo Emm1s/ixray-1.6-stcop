@@ -230,12 +230,12 @@ void CPoltergeist::update_detection()
 		if (!m_detection_pp_type_index)
 		{
 			for (m_detection_pp_type_index = (u32)effPoltergeistTeleDetectStartEffect;
-			     Actor()->Cameras().GetPPEffector((EEffectorPPType)m_detection_pp_type_index);
-			     ++m_detection_pp_type_index) { ; }
+				 Actor()->Cameras().GetPPEffector((EEffectorPPType)m_detection_pp_type_index);
+				 ++m_detection_pp_type_index)
+			{
+			}
 
-			// !!!! ПОТОМ ВЕРНУТЬ ЭФФЕКТОР !!!!!
-			// AddEffector						(Actor(), m_detection_pp_type_index, m_detection_pp_effector_name, 
-			// 								xr_make_delegate(this, &CPoltergeist::get_post_process_factor));
+			AddEffector(Actor(), m_detection_pp_type_index, m_detection_pp_effector_name, xr_make_delegate(this, &CPoltergeist::get_post_process_factor));
 		}
 	}
 	else if (m_detection_pp_type_index != 0)
