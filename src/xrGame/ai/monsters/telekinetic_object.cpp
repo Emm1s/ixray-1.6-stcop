@@ -491,7 +491,7 @@ void STelekineticWeaponObject::update_auto_aim()
 	{
 		angle_difference_signed(target_eulers.x, curr_eulers.x),
 		angle_difference_signed(target_eulers.y, curr_eulers.y),
-		0.f
+		angle_difference_signed(target_eulers.z, curr_eulers.z)
 	};
 	
 	diff.mul(weapon->m_pPhysicsShell->getMass() * weapon_params.autoaim_torque_factor);
