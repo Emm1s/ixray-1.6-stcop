@@ -291,7 +291,7 @@ void CStateBurerAttackTele<Object>::ExecuteTeleContinue()
 {
 	// if (time_started + this->object->m_tele_time_to_hold > Device.dwTimeGlobal) return;
 
-	// if (!this->object->EnemyMan.see_enemy_now()) return;
+	if (!this->object->EnemyMan.see_enemy_now()) return;
 	
 
 	for (STelekineticObject* telekinetic_object : this->object->CTelekinesis::get_tele_objects())
