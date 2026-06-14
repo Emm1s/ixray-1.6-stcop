@@ -170,13 +170,13 @@ protected:
 	xr_shared_ptr<CParticlesObject> m_pSmokeSilencerParticles;
 	xr_shared_ptr<CParticlesObject> m_pFlameSilencerParticles;
 	xr_shared_ptr<CParticlesObject> m_pFlameGlaucherParticles;
-	
-	u16								initiator_id;
+
+	ALife::_OBJECT_ID initiator_id;
 
 public:
-	virtual void				DumpActiveParams		(shared_str const & section_name, CInifile & dst_ini) const;
-	
-	void SetInitiator(u16 id) override { initiator_id = id; }
+	virtual void DumpActiveParams(shared_str const& section_name, CInifile& dst_ini) const;
+
+	void SetInitiator(ALife::_OBJECT_ID id) override { initiator_id = id; }
 	u16 Initiator() override { return initiator_id; }
 	IDamageSource* cast_IDamageSource() override { return this; }
 };
