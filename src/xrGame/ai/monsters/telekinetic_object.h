@@ -145,6 +145,12 @@ struct STelekineticWeaponObject : STelekineticObject
 	void weapon_start_shooting(u32 shoot_time);
 	void weapon_end_shooting(u32 pause_time = 0);
 	bool is_enemy_tracing();
+	
+	/**
+	 * Погрешность наведения в градусах, после которой можно стрелять.
+	 * @param threshold указывается исключительно в градусах!!!
+	 */
+	bool is_angle_aim_error_correct(float threshold = 10.0f);
 
 	void perform_keep_object() override;
 	bool can_be_thrown() override;

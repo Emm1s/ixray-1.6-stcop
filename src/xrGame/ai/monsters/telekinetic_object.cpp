@@ -491,7 +491,7 @@ void STelekineticWeaponObject::update_auto_aim()
 	{
 		angle_difference_signed(target_eulers.x, curr_eulers.x),
 		angle_difference_signed(target_eulers.y, curr_eulers.y),
-		angle_difference_signed(target_eulers.z, curr_eulers.z)
+		0.f
 	};
 	
 	diff.mul(weapon->m_pPhysicsShell->getMass() * weapon_params.autoaim_torque_factor);
@@ -591,6 +591,23 @@ bool STelekineticWeaponObject::is_enemy_tracing()
 	);
 	
 	return rq_result.O == enemy;
+}
+
+bool STelekineticWeaponObject::is_angle_aim_error_correct(float threshold)
+{
+	const CEntityAlive* enemy = telekinetic_enemy->get_enemy();
+
+	if (enemy == nullptr)
+	{
+		return false;
+	}
+
+	Fvector to_enemy;
+	to_enemy.sub(enemy->Position(), weapon->get_LastFP());
+	to_enemy.normalize();
+
+	const float dot = weapon->get_LastFD().dotproduct(to_enemy);
+	return dot >= cosf(deg2rad(threshold));
 }
 
 void STelekineticWeaponObject::perform_keep_object()
