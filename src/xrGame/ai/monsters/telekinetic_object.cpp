@@ -455,6 +455,7 @@ void STelekineticWeaponObject::debug_draw()
 	);
         
 	HUD().world_prims.append_text3d(weapon->Position(), main_text);
+	HUD().world_prims.append_line(weapon->get_LastFP(), Fvector().mad(weapon->get_LastFP(), weapon->get_LastFD(), telekinetic_enemy->get_tele_distance()), color_rgba(0, 255, 0, 255));
 }
 
 void STelekineticWeaponObject::update_auto_aim()
