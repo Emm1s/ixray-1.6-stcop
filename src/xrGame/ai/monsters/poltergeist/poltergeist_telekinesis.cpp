@@ -89,7 +89,7 @@ void CTelekineticPoltergeist::load(LPCSTR section)
 	m_pmt_fly_velocity = READ_IF_EXISTS(pSettings, r_float, section, "Tele_Fly_Velocity", 30.f);
 
 	m_pmt_shooting_from_weapon_enable = READ_IF_EXISTS(pSettings, r_bool, section, "Tele_Shooting_From_Weapon_Enable", true);
-	m_pmt_shooting_from_weapon_enable = READ_IF_EXISTS(pSettings, r_bool, section, "Tele_Activate_N_Throw_Grenade", true);
+	m_pmt_activate_n_throw_grenade = READ_IF_EXISTS(pSettings, r_bool, section, "Tele_Activate_N_Throw_Grenade", true);
 	m_pmt_max_pickuped_weapons = READ_IF_EXISTS(pSettings, r_u32, section, "Tele_Max_Pickuped_Weapons", 2);
 	m_pmt_autoaim_torque_factor = READ_IF_EXISTS(pSettings, r_float, section, "Tele_AutoAim_Torque_Factor", 0.33f);
 	m_pmt_delay_before_first_shot = READ_IF_EXISTS(pSettings, r_u32, section, "Tele_Delay_Before_First_Shoot", 0);
