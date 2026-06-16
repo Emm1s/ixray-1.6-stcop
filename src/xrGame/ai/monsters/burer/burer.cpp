@@ -171,11 +171,8 @@ void CBurer::Load(const char* section)
 	m_shooting_from_weapon_enable = READ_IF_EXISTS(pSettings, r_bool, section, "Tele_Shooting_From_Weapon_Enable", true);
 	m_activate_n_throw_grenade = READ_IF_EXISTS(pSettings, r_bool, section, "Tele_Activate_N_Throw_Grenade", true);
 	m_max_pickuped_weapons = READ_IF_EXISTS(pSettings, r_u32, section, "Tele_Max_Pickuped_Weapons", 2);
-	m_min_slide_delay = READ_IF_EXISTS(pSettings, r_u32, section, "Tele_Min_Slide_Delay", 1000);
-	m_max_slide_delay = READ_IF_EXISTS(pSettings, r_u32, section, "Tele_Max_Slide_Delay", 1500);
 	m_autoaim_torque_factor = READ_IF_EXISTS(pSettings, r_float, section, "Tele_AutoAim_Torque_Factor", 0.33f);
 	m_delay_before_first_shot = READ_IF_EXISTS(pSettings, r_u32, section, "Tele_Delay_Before_First_Shoot", 0);
-	m_weapon_slide_enable = READ_IF_EXISTS(pSettings, r_bool, section, "Tele_Weapon_Slide_Enable", false);
 	
 	SVelocityParam &velocity_none		= 	move().get_velocity(MonsterMovement::eVelocityParameterIdle);	
 	SVelocityParam &velocity_turn		= 	move().get_velocity(MonsterMovement::eVelocityParameterStand);

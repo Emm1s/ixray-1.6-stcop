@@ -445,10 +445,7 @@ void CStateBurerAttackTele<Object>::SelectObjects()
 			STelekineticWeaponParams weapon_params 
 			{
 				.autoaim_torque_factor = this->object->m_autoaim_torque_factor,
-				.min_slide_delay = this->object->m_min_slide_delay,
-				.max_slide_delay = this->object->m_max_slide_delay,
 				.delay_before_first_shot = this->object->m_delay_before_first_shot,
-				.weapon_slide_enable = this->object->m_weapon_slide_enable,
 			};
 
 			tele_obj = new STelekineticWeaponObject(this->object,

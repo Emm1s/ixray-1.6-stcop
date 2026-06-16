@@ -307,7 +307,6 @@ STelekineticWeaponObject::STelekineticWeaponObject(ITelekineticEnemy* tele_enemy
 	telekinetic_enemy(tele_enemy),
 	weapon(owner->cast_weapon_magazined()),
 	weapon_next_phase_time(0),
-	last_slide_time(time()),
 	weapon_params(weapon_params)
 {
 	STelekineticWeaponObject::switch_state(ETelekineticState::TS_RAISE);
@@ -613,32 +612,6 @@ bool STelekineticWeaponObject::is_angle_aim_error_correct(float threshold)
 void STelekineticWeaponObject::perform_keep_object()
 {
 	inherited::perform_keep_object();
-	
-	if (weapon_params.weapon_slide_enable && last_slide_time + delay_between_weapon_slides < time())
-	{
-		Fvector random_lr_dir;
-		Fvector object_position = object->Position();
-		
-		float horizontal_angle = Random.randF(0, 2.f * M_PI);
-		
-		random_lr_dir.x = sinf(horizontal_angle);
-		random_lr_dir.y = 0.1f;
-		random_lr_dir.z = cosf(horizontal_angle);
-		
-		random_lr_dir.normalize();
-		
-		object->m_pPhysicsShell->applyImpulseTrace(object_position, random_lr_dir, object->GetMass() * 5.0f);
-		
-		u32 max_keep_time = telekinetic_enemy->get_tele_keep_time();
-		
-		// Скалируем случайное время для слайдов в зависимости от max_keep_time, нижний порог не <1s и верхний не <2s.
-		// Ибо если max_keep_time = 2000ms, то 2000 / 5 = 400ms, а 2000 / 2 = 1000ms, то будет слишком дико)))
-		u32 min = std::max<u32>(max_keep_time / 5, weapon_params.min_slide_delay);
-		u32 max = std::max<u32>(max_keep_time / 2, weapon_params.max_slide_delay);
-		
-		last_slide_time = time();
-		delay_between_weapon_slides = Random.randI(static_cast<s32>(min), static_cast<s32>(max));
-	}
 	
 	update_auto_aim();
 

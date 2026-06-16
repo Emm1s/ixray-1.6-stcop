@@ -347,12 +347,9 @@ public:
 	u32 m_state_next_update;
 	
 	u32 m_pmt_max_pickuped_weapons;
-	u32 m_pmt_min_slide_delay;
-	u32 m_pmt_max_slide_delay;
 	float m_pmt_autoaim_torque_factor;
 	u32 m_pmt_delay_before_first_shot;
 	shared_str m_pmt_particle_tele_object;
-	bool m_pmt_weapon_slide_enable;
 	bool m_pmt_shooting_from_weapon_enable;
 	bool m_pmt_activate_n_throw_grenade;
 

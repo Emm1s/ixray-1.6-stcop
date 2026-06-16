@@ -128,11 +128,8 @@ public:
 	bool m_shooting_from_weapon_enable;
 	bool m_activate_n_throw_grenade;
 	u32 m_max_pickuped_weapons;
-	u32 m_min_slide_delay;
-	u32 m_max_slide_delay;
 	float m_autoaim_torque_factor;
 	u32 m_delay_before_first_shot;
-	bool m_weapon_slide_enable;
 
 public:
 					CBurer				();

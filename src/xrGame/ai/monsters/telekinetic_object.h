@@ -102,10 +102,7 @@ struct STelekineticObject
 struct STelekineticWeaponParams
 {
 	f32 autoaim_torque_factor;
-	u32 min_slide_delay;
-	u32 max_slide_delay;
 	u32 delay_before_first_shot;
-	bool weapon_slide_enable;
 };
 
 struct STelekineticWeaponObject : STelekineticObject
@@ -119,10 +116,7 @@ struct STelekineticWeaponObject : STelekineticObject
 	
 	u32 weapon_phase_start_time; // Когда оружие начало/перестало стрелять.
 	u32 weapon_next_phase_time; // Когда оружию перестать/начать стрелять.
-	
-	u32 last_slide_time; // Последнее время слайда оружия влево-право.
-	u32 delay_between_weapon_slides; //
-	
+
 	float backup_weapon_dispersion = 9999.f;
 	u32 first_shot_delay_ms = 0;
 	s8 backup_weapon_fire_mode = s8(-1);
