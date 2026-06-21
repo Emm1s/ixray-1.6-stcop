@@ -430,7 +430,7 @@ void CImageManager::SynchronizeTextures(bool sync_thm, bool sync_game, bool bFor
 		// check thumbnail
 		if (sync_thm&&bThm){
 			THM = new ETextureThumbnail(Current.name.c_str());
-			bool bRes = Stbi_Load(fn,data,w,h,a);
+			bool bRes = LoadRawImage(fn,data,w,h,a);
 			R_ASSERT(bRes);
 			THM->Save(Current.time_write);
 			bUpdated = true;
@@ -441,7 +441,7 @@ void CImageManager::SynchronizeTextures(bool sync_thm, bool sync_game, bool bFor
 			R_ASSERT(THM);
 			if (data.empty())
 			{
-				bool bRes = Stbi_Load(fn,data,w,h,a); R_ASSERT(bRes);
+				bool bRes = LoadRawImage(fn,data,w,h,a); R_ASSERT(bRes);
 			}
 			string_path game_name;
 			xr_strconcat(game_name, base_name.c_str(), ".dds");
