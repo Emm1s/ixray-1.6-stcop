@@ -366,10 +366,10 @@ void global_claculation_data::xrLoadGeometry(IReader* fs)
 				xform.transform_tiny(P[1], F.v2);
 				xform.transform_tiny(P[2], F.v3);
 				
-				// Косяк по видимости MU! 
+				// пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ MU! 
 				auto& Fnew = building_embree_faces.emplace_back();
  				Fnew.SetFace(P[0], P[1], P[2], &F);
-				Fnew.SetMaterial(F.dwMaterial, F.dwMaterialGame, F.getTC0());			
+				Fnew.SetMaterial(F.dwMaterial, F.dwMaterialGame, F.getTC0(), F.bSharedMaterial);			
 			}
    		}
 		MUChunkRef->close();
@@ -377,7 +377,7 @@ void global_claculation_data::xrLoadGeometry(IReader* fs)
 
 	xrCalculateOpacity();
  
-	// Изза сраного BOX-QUERY Для расщета t_n !
+	// пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ BOX-QUERY пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ t_n !
 	if (true) // Rcast - Model
 	{
 		TriangleContainer container;
