@@ -674,7 +674,7 @@ void hud_item_measures::load(const shared_str& sect_name, IKinematics* K, bool c
 		m_fire_bone2 = K->LL_BoneID(bone_name);
 	}
 	// St4lker0k765: got to move this param from fire_bone2 because SoC don't have it in configs
-	m_fire_point2_offset = READ_IF_EXISTS(pSettings, r_fvector3, sect_name, "fire_point2", zero_vel);
+	m_fire_point2_offset = pSettings->read_if_exists<Fvector3>(sect_name, "fire_point2", zero_vel);
 
 	m_prop_flags.set(e_shell_point, pSettings->line_exist(sect_name, "shell_bone"));
 	if (m_prop_flags.test(e_shell_point))
@@ -1681,7 +1681,7 @@ void player_hud::load(const shared_str& player_hud_sect)
 
 	m_sect_name = player_hud_sect;
 
-	const shared_str& model_name = READ_IF_EXISTS(pSettings, r_string, player_hud_sect, "visual", nullptr);
+	const shared_str& model_name = pSettings->read_if_exists<str_c>(player_hud_sect, "visual", nullptr);
 	
 	if (model_name.size())
 	{

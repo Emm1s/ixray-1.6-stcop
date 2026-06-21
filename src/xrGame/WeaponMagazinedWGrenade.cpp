@@ -29,7 +29,7 @@ void CWeaponMagazinedWGrenade::Load(const char* section)
 	{
 		CRocketLauncher::m_fLaunchSpeed = pSettings->r_float(section, "grenade_vel");
 	}
-	grenade_bone_name = READ_IF_EXISTS(pSettings, r_string, hud_sect, "grenade_bone", "grenade");
+	grenade_bone_name = pSettings->read_if_exists<str_c>(hud_sect, "grenade_bone", "grenade");
 
 	// load ammo classes SECOND (grenade_class)
 	m_ammoTypes2.clear();
