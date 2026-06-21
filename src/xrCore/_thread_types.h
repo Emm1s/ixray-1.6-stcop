@@ -120,16 +120,6 @@ inline void xr_parallel_sort(It Begin, It End, Body Functor, size_t GrainSize = 
 #endif
 }
 
-template<typename It, typename Body>
-inline void xr_parallel_sort(It Begin, It End, Body Functor, size_t GrainSize = 2048)
-{
-#ifdef IXR_WINDOWS
-	concurrency::parallel_sort(Begin, End, Functor, GrainSize);
-#else
-	tbb::parallel_sort(Begin, End, Functor, GrainSize);
-#endif
-}
-
 // Run Threads
 inline void xr_std_parallel_for(std::function<void()>&& function_to_call, u32 ThreadsMax)
 {
