@@ -48,7 +48,6 @@ void IComputeData::xrLoadData(const char* name, bool draft_mode, bool skipThm)
 		{
 			xr_strconcat(N__, name, "build.prj");
 			IReader* fs = FS.r_open(N__);
-			IReader* F;
 
 			// Version
 			u32 version;
@@ -62,6 +61,7 @@ void IComputeData::xrLoadData(const char* name, bool draft_mode, bool skipThm)
 
 			// Load level data
 			transfer("materials", comp_data.g_materials, *fs, EB_Materials);
+			transfer("materials", comp_data.g_materials_shared, *fs, EB_MaterialsShared);
 			transfer("shaders_xrlc", comp_data.g_shader_compile, *fs, EB_Shaders_Compile);
 
 			// process textures
@@ -70,20 +70,8 @@ void IComputeData::xrLoadData(const char* name, bool draft_mode, bool skipThm)
 
 			Status("Processing textures...");
 			{
-				F = fs->open_chunk(EB_Textures);
-				u32 tex_count = F->length() / sizeof(b_texture_real);
-				for (u32 t = 0; t < tex_count; t++)
+				auto TextureProcess = [&](b_BuildTexture& BT)
 				{
-					Progress(float(t) / float(tex_count));
-
-					b_texture_real TEX;
-					F->r(&TEX, sizeof(TEX));
-					b_BuildTexture BT;
-
-					// ptr should be copied separately
-					CopyMemory(&BT, &TEX, sizeof(TEX) - 4);
-
-					// load thumbnail
 					string128& N_ = BT.name;
 					LPSTR extension = strext(N_);
 
@@ -93,6 +81,7 @@ void IComputeData::xrLoadData(const char* name, bool draft_mode, bool skipThm)
 					}
 
 					xr_strlwr(N_);
+					
 
 					if (0 == xr_strcmp(N_, "level_lods"))
 					{
@@ -114,8 +103,7 @@ void IComputeData::xrLoadData(const char* name, bool draft_mode, bool skipThm)
 							BT.bHasAlpha = false;
 							clMsg("cannot find thm: %s", th_name);
 							is_thm_missing = true;
-							comp_data.g_textures.push_back(BT);
-							continue;
+							return;
 						}
 
 						// version
@@ -154,8 +142,7 @@ void IComputeData::xrLoadData(const char* name, bool draft_mode, bool skipThm)
 								{
 									clMsg("cannot find tga texture: %s", N_);
 									is_tga_missing = true;
-									comp_data.g_textures.push_back(BT);
-									continue;
+									return;
 								}
 
 								BT.pSurface.ClearMipLevels();
@@ -172,9 +159,42 @@ void IComputeData::xrLoadData(const char* name, bool draft_mode, bool skipThm)
 							}
 						}
 					}
+				};
+				
+				u32 TotalCount = g_materials_shared.size();
+				u32 tex_count = 0;
+				if (auto F = fs->open_chunk(EB_Textures); F)
+				{
+					u32 tex_count = F->length() / sizeof(b_texture_real);
+					TotalCount += tex_count;
+					for (u32 t = 0; t < tex_count; t++)
+					{
+						Progress(float(t) / float(tex_count));
 
-					// save all the stuff we've created
-					comp_data.g_textures.push_back(BT);
+						b_texture_real TEX;
+						F->r(&TEX, sizeof(TEX));
+						b_BuildTexture BT;
+
+						// ptr should be copied separately
+						CopyMemory(&BT, &TEX, sizeof(TEX) - 4);
+
+						// load thumbnail
+						TextureProcess(BT);
+
+						// save all the stuff we've created
+						comp_data.g_textures.push_back(BT);
+					}
+				}
+				
+				for (auto& elem : g_materials_shared)
+				{
+					Progress(float(tex_count++) / float(TotalCount));
+					
+					auto Data = CSharedMaterialLibrary::Instance().GetData(elem.Name);
+					b_BuildTexture& BT = g_textures_shared.try_emplace(&elem).first->second;
+					xr_strcpy(BT.name, Data->m_Texture.c_str());
+					
+					TextureProcess(BT);
 				}
 
 				if (!skipThm)
@@ -254,13 +274,6 @@ void IComputeData::xrLoadData(const char* name, bool draft_mode, bool skipThm)
 
 void IComputeData::xrLoadGeometry(IReader* fs)
 {
-	auto GetShader = [&](u32 dwMaterial) -> const Shader_xrLC&
-	{
-		u32 shader_id = g_materials[dwMaterial].reserved;
-		return *g_shaders_xrlc->Get(shader_id);
-	};
- 
-
 	Status("Loading Vertices...");
 	xr_vector<Fvector> vertexs;
 	{
@@ -284,7 +297,7 @@ void IComputeData::xrLoadGeometry(IReader* fs)
 			ChunkFaces->r(&B, sizeof(B));
 			R_ASSERT(B.dwMaterialGame < 65536);
 
-			const Shader_xrLC& SH = GetShader(B.dwMaterial);
+			const Shader_xrLC& SH = GetShaderXRLC(B.dwMaterial, (bool)(B.flags&b_face_flags::UseSharedMaterial));
 			if (!SH.flags.bLIGHT_CastShadow) continue;
  			 
 			FaceDataEmbree& bFace = build_faces.emplace_back();
@@ -356,26 +369,26 @@ void IComputeData::xrLoadGeometry(IReader* fs)
 			auto& faces = mu_faces[R.model_index]; // Model Buffer by Index !
 			for (auto& F : faces)
 			{
-				const Shader_xrLC& SH = GetShader(F.dwMaterial);
+				const Shader_xrLC& SH = GetShaderXRLC(F.dwMaterial, F.bSharedMaterial);
 				if (!SH.flags.bLIGHT_CastShadow) continue;
  
-				// косяки по MU-Models !
+				// пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ MU-Models !
 				Fvector P[3];
 				xform.transform_tiny(P[0], F.v1);
 				xform.transform_tiny(P[1], F.v2);
 				xform.transform_tiny(P[2], F.v3);
 
-				// Поченил !
+				// пїЅпїЅпїЅпїЅпїЅпїЅпїЅ !
 				auto& Fnew = build_faces.emplace_back();
 				Fnew.SetFace(P[0], P[1], P[2], nullptr);
-				Fnew.SetMaterial(F.dwMaterial, F.dwMaterialGame, F.getTC0());
+				Fnew.SetMaterial(F.dwMaterial, F.dwMaterialGame, F.getTC0(), F.bSharedMaterial);
 			}
 		}
 		MUChunkRef->close();
 	}
 	xrCalculateOpacity();
 
-	// Изза сраного BOX-QUERY Для расщета t_n !
+	// пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ BOX-QUERY пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ t_n !
 	if (gCompilerMode.Embree)
 	{
 		auto& CDATA = CAIRayTrace.static_geom;
@@ -439,6 +452,6 @@ void IComputeData::xrUnload()
 	build_faces.clear();
 	build_faces.shrink_to_fit();
 
-	LevelPtr.reset();		    // Выгрузка !
-	CAIRayTrace.Deinitialize(); // Выгрузка !
+	LevelPtr.reset();		    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ !
+	CAIRayTrace.Deinitialize(); // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ !
 }

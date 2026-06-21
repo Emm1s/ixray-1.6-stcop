@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../xrCore/SharedMaterialLibrary.h"
+
 struct Shader_xrLC
 {
 public:
@@ -72,7 +74,7 @@ public:
 	void Load(const char* name)
 	{
 		IReader* fs = FS.r_open(name);
-		if (NULL == fs) 
+		if (!fs) 
 		{
 			string256		inf;
 			xr_sprintf(inf, "Build failed!\nCan't load shaders library: '%s'", name);
@@ -83,7 +85,7 @@ public:
 		int count = fs->length() / sizeof(Shader_xrLC);
 		R_ASSERT(int(fs->length()) == int(count * sizeof(Shader_xrLC)));
 		library.resize(count);
-		fs->r(&*library.begin(), fs->length());
+		fs->r(library.data(),fs->length());
 		FS.r_close(fs);
 
 	}
@@ -93,7 +95,7 @@ public:
 		IWriter* F = FS.w_open(name);
 		if (F) 
 		{
-			F->w(&*library.begin(), (u32)library.size() * sizeof(Shader_xrLC));
+			F->w(library.data(),(u32)library.size()*sizeof(Shader_xrLC));
 			FS.w_close(F);
 			return true;
 		}
@@ -126,34 +128,6 @@ public:
 		}
 		return &library[ID];
 	}
-
-	Shader_xrLC* Get(int id)
-	{
-		return &library[id];
-	}
-
-	/*Shader_xrLC* Append(Shader_xrLC* parent = 0)
-	{
-		library.push_back(parent ? Shader_xrLC(*parent) : Shader_xrLC());
-		return &library.back();
-	}
-
-	void Remove(const char* name)
-	{
-		for (Shader_xrLCIt it = library.begin(); it != library.end(); it++)
-		{
-			if (0 == _stricmp(name, it->Name))
-			{
-				library.erase(it);
-				break;
-			}
-		}
-		Rehash();
-	}
-
-	void Remove(int id)
-	{
-		library.erase(library.begin() + id);
-	}*/
+	
 	Shader_xrLCVec& Library() { return library; }
 };

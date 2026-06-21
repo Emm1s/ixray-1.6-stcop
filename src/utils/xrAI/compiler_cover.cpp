@@ -42,7 +42,7 @@ IC float rayTrace(CDB::COLLIDER* DB, Fvector& P, Fvector& D, float R)
 			CDB::RESULT& RP = DB->r_begin()[I];
 			FaceDataEmbree& F = (*(FaceDataEmbree*)(CAIRayTrace.static_geom.dummy[RP.id]));
 
-			b_texture& T = SAICompilerGlobalData::GetTexture(F.dwMaterial, F.extra_data.bSharedMaterial);
+			b_texture& T = IComputeData::GetTexture(F.dwMaterial, F.bSharedMaterial);
 			if (T.pSurface.Empty())
 			{
 				T.bHasAlpha = false;
@@ -75,8 +75,7 @@ void FilterRayTraceAI(const struct RTCFilterFunctionNArguments* args)
 	float& hit_u = RTCHitN_u(args->hit, args->N, 0);
 	float& hit_v = RTCHitN_v(args->hit, args->N, 0);
 
-	const b_material& M = comp_data.g_materials[F->dwMaterial];
-	const b_texture& T = comp_data.g_textures[M.surfidx];
+	const b_texture& T = IComputeData::GetTexture(F->dwMaterial, F->bSharedMaterial);
 
 	// fetch pixel
 	if (T.pSurface.Empty() || F->bOpaque)
@@ -166,7 +165,7 @@ void	xrCover	(bool pure_covers)
 		g_cover_nodes.assign(g_nodes.size(),true);
 
 	// Start threads, wait, continue --- perform all the work 
-	// se7kills : Переработал 
+	// se7kills : пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ 
 	static xr_atomic_u32 tAtomicIndex = 0;
 	tAtomicIndex = 0;
 	thread_local CDB::COLLIDER		DB;
