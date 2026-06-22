@@ -604,15 +604,10 @@ bool SceneBuilder::BuildMesh(	const Fmatrix& parent,
 								CEditableMesh* mesh,
 								int sect_num,
 								xr_vector<b_vertex>& verts,
-								/*b_vertex* verts,
-								int& vert_cnt,*/
 								int& vert_it,
 								xr_vector<b_face>& faces,
-								/*b_face* faces,
-								int& face_cnt,*/
 								int& face_it,
 								xr_vector<u32>& smooth_groups,
-								//u32* smgroups,
 								const Fmatrix& real_transform,
 								CSceneObject* obj)
 {
@@ -809,10 +804,16 @@ bool SceneBuilder::BuildMesh(	const Fmatrix& parent,
 			}
 		}
 		if (dwInvalidFaces)
+		{
+			faces.resize(faces.size() - dwInvalidFaces);
+			smooth_groups.resize(smooth_groups.size() - dwInvalidFaces);
 			Msg("!Object '%s' - '%s' has %d invalid face(s). Removed.",object->GetName(),mesh->Name().c_str(),dwInvalidFaces);
+		}
 
 		if (!bResult)
+		{
 			break;
+		}
 	}
 	return bResult;
 }
@@ -1059,6 +1060,14 @@ bool SceneBuilder::BuildMUObjectModel(CSceneObject* obj)
 			if (!BuildMesh(T, O, *MESH, sect_num, M.vertices, /*M.m_iVertexCount, */vert_it, M.faces, /*M.m_iFaceCount, */face_it, M.smgroups, obj->_Transform(), obj))
 			{
 				return false;
+			}
+		}
+
+		for (auto& elem : M.faces)
+		{
+			if ((bool)(elem.flags^b_face_flags::UseSharedMaterial))
+			{
+				__nop();
 			}
 		}
 
