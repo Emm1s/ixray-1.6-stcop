@@ -31,7 +31,10 @@ void CBuild::validate_splits			()
 		}
 	}
 
-	clMsg("! Validate errors splits: %u", Errors);
+	if (Errors)
+	{
+		clMsg("! Validate errors splits: %u", Errors);
+	}
 }
 
 void Face2OGF_Vertices( const Face &FF, OGF_Vertex	V[3] ) 
