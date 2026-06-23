@@ -222,7 +222,7 @@ inline void GbufferPack(inout IXRayGbufferPack O, inout IXRayMaterial M)
 	O.Material += Jitter.yxyx;
 	O.Color += Jitter.yxyx;
 	
-	O.Normal.xyz += Jitter.yxyx * 0.25f;
+	O.Normal.xyz += Jitter.yxy * 0.25f;
 }
 
 inline void GbufferUnpackMaterial(inout IXRayGbufferPack O, inout IXRayMaterial M)
