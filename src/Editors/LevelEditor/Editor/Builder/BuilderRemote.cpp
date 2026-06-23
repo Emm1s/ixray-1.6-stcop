@@ -1057,30 +1057,61 @@ bool SceneBuilder::BuildMUObjectModel(CSceneObject* obj)
 			{
 				continue;
 			}
-			if (!BuildMesh(T, O, *MESH, sect_num, M.vertices, /*M.m_iVertexCount, */vert_it, M.faces, /*M.m_iFaceCount, */face_it, M.smgroups, obj->_Transform(), obj))
+			if (!BuildMesh(T, O, *MESH, sect_num, M.vertices, vert_it, M.faces, face_it, M.smgroups, obj->_Transform(), obj))
 			{
 				return false;
 			}
+			CMemoryWriter Writer;
+			(*MESH)->m_CFModel->store(Writer);
 		}
 
-		for (auto& elem : M.faces)
+		CDB::MODEL Collision;
+		b_mu_collision& Slot = l_mu_collsions.emplace_back();
+		auto& CollisionVerts = Slot.verts;
+		auto& CollisionTris = Slot.faces;
+		for (auto& face : M.faces)
 		{
-			if ((bool)(elem.flags^b_face_flags::UseSharedMaterial))
+			str_c cshader_name = nullptr;
+			bool IsShared = (bool)(face.flags^b_face_flags::UseSharedMaterial);
+			if (IsShared)
 			{
-				__nop();
+				auto MatName = l_materials_shared[face.dwMaterial].Name;
+				cshader_name = CSharedMaterialLibrary::Instance().GetData(MatName)->m_ShaderXRLCName.c_str();
+			} else
+			{
+				cshader_name = l_shaders_xrlc[l_materials[face.dwMaterial].shader_xrlc].name;
 			}
+			Shader_xrLC* c_sh = EDevice->ShaderXRLC.Get(cshader_name);
+			if (!c_sh->flags.bCollision)
+			{
+				continue;
+			}
+			CDB::TRI tri;
+			tri.verts[0] = face.v[0];
+			tri.verts[1] = face.v[1];
+			tri.verts[2] = face.v[2];
+			tri.material = face.dwMaterial;
+			tri.shared_material = IsShared;
+			tri.sector = -1;
+			CollisionTris.emplace_back(std::move(tri));
 		}
-
-		/*M.m_iFaceCount			= face_it;
-		M.m_iVertexCount		= vert_it;*/
+		if (CollisionVerts.size() >= 4 && CollisionTris.size() >= 2)
+		{
+			Collision.build(
+				CollisionVerts.data(), CollisionVerts.size(), CollisionTris.data(), CollisionTris.size(),
+				nullptr, nullptr, nullptr, false, false);
+			Slot.raw_data.resize(Collision.memory());
+			CBufferMemoryWriter Writer(Slot.raw_data);
+			Collision.store(Writer);
+		}
 	}
 
 	l_mu_refs.push_back	(b_mu_reference());
-	b_mu_reference&	R	= l_mu_refs.back();
-	R.model_index		= model_idx;
-	R.transform			= obj->_Transform();
-	R.flags.zero		();
-	R.sector			= (u16)sect_num;
+	b_mu_reference&	R = l_mu_refs.back();
+	R.model_index = model_idx;
+	R.transform = obj->_Transform();
+	R.flags.zero();
+	R.sector = (u16)sect_num;
 
 	xr_stack_string256 debug_name;
 	if (obj->m_pOwnerObject)

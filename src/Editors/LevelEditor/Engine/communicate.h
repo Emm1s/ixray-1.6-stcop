@@ -157,6 +157,13 @@ struct b_mu_reference
     u32					reserved	[8];
 };
 
+struct b_mu_collision
+{
+	xr_vector<Fvector> verts;
+	xr_vector<CDB::TRI> faces;
+	xr_vector<u8> raw_data;
+};
+
 struct b_params
 {
 	// Normals & optimization

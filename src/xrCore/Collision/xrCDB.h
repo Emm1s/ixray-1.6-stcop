@@ -12,6 +12,7 @@
 #else
 #define ALIGN(a)
 #endif 
+#include "override/Model.h"
 
 // forward declarations
 class CFrustum;
@@ -72,6 +73,8 @@ namespace CDB
 
 		ICF xr_vector<Fvector>& get_verts() { return verts; }
 		ICF xr_vector<TRI>& get_tris() { return tris; }
+
+		ICF void store(IWriter& Writer){ VERIFY(tree); tree->Store(&Writer); }
 
 		ICF void wait_loading() const
 		{

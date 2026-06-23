@@ -56,7 +56,9 @@ enum class CFormVersions : u32 // because old CForm version was just an 4-b int
 {
 	Vanilla = 4,
 	VanillaChunked,
-	VanillaChunkedData
+	VanillaChunkedData,
+	PreBuild,
+	// TODO: Add chunked
 };
 
 #pragma pack(push,8)

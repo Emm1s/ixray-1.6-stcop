@@ -33,7 +33,10 @@ bool CDB_Model::Restore(IReader* reader)
 
 bool CDB_Model::Build(const Opcode::OPCODECREATE& create)
 {
-	if (!create.mIMesh || !create.mIMesh->IsValid())	return false;
+	if (!create.mIMesh || !create.mIMesh->IsValid())
+	{
+		return false;
+	}
 
 	if (create.mSettings.mLimit != 1)
 	{
@@ -44,41 +47,51 @@ bool CDB_Model::Build(const Opcode::OPCODECREATE& create)
 	u64 NbDegenerate = create.mIMesh->CheckTopology();
 
 	if (NbDegenerate)
+	{
 		Msg("OPCODE WARNING: found %d degenerate faces in model! Collision might report wrong results!\n", NbDegenerate);
+	}
 
 	ReleaseBase();
 	SetMeshInterface(create.mIMesh);
 
 	u64 NbTris = create.mIMesh->GetNbTriangles();
-	bool Status = false;
 
 	if (NbTris == 1)
 	{
 		mModelCode |= ModelFlag::OPC_SINGLE_NODE;
-		Status = true;
-		goto FreeAndExit;
+		return false;
 	}
 
 	mSource = new Opcode::AABBTree();
+	xr_scope_exit OnExit = [&]()
+	{
+		if (!create.mKeepOriginal)
+		{
+			xr_delete(mSource);
+		}
+	};
 	{
 		Opcode::AABBTreeOfTrianglesBuilder TB;
 		TB.mIMesh = create.mIMesh;
 		TB.mSettings = create.mSettings;
 		TB.mNbPrimitives = (udword)NbTris;
-		if (!mSource->Build(&TB))	goto FreeAndExit;
+		if (!mSource->Build(&TB))
+		{
+			return false;
+		}
 	}
 
-	if (!CreateTree(create.mNoLeaf, create.mQuantized))	goto FreeAndExit;
-	if (!pTree->Build(mSource))	goto FreeAndExit;
+	if (!CreateTree(create.mNoLeaf, create.mQuantized))
+	{
+		return false;
+	}
+	if (!pTree->Build(mSource))
+	{
+		return false;
+	}
 
 	// Finally ok...
-	Status = true;
-
-FreeAndExit:
-	if (!create.mKeepOriginal)
-		xr_delete(mSource);
-
-	return Status;
+	return true;
 }
 
 void CDB_Model::Release()
