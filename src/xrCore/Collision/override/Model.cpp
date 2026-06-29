@@ -3,6 +3,9 @@
 #include <OPC_TreeBuilders.h>
 #include <Opcode.h>
 
+#include "InstanceNoLeafBuilder.h"
+#include "Tree.h"
+
 CDB_Model::CDB_Model()
 {
 	pTree = new CDB_OptimizeTree();
@@ -71,7 +74,7 @@ bool CDB_Model::Build(const Opcode::OPCODECREATE& create)
 		}
 	};
 	{
-		Opcode::AABBTreeOfTrianglesBuilder TB;
+		InstanceNoLeafBuilder TB;
 		TB.mIMesh = create.mIMesh;
 		TB.mSettings = create.mSettings;
 		TB.mNbPrimitives = (udword)NbTris;

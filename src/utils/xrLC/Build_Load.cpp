@@ -194,6 +194,35 @@ void CBuild::Load	(const b_params& Params, const IReader& _in_FS)
 		}		
 		F->close				();
 	}
+	
+	F = fs.open_chunk(EB_MU_collisions);
+	if (F)
+	{
+		auto& vec = mu_models();
+		u32 CollisionsNum = F->r_u32();
+		for (i = 0; i < CollisionsNum; ++i)
+		{
+			auto& Model = vec[i]->CollisionModel;
+			auto& VertsArr = Model.get_verts();
+			auto& TrisArr = Model.get_tris();
+			{
+				u32 Size = F->r_u32();
+				VertsArr.resize(Size);
+				F->r(VertsArr.data(), Size*sizeof(Fvector));
+			}
+			{
+				u32 Size = F->r_u32();
+				TrisArr.resize(Size);
+				F->r(TrisArr.data(), Size*sizeof(CDB::TRI));
+			}
+			{
+				u64 Size = F->r_u64();
+				IReader reader(F->pointer(), Size);
+				F->advance(Size);
+				Model.build(VertsArr.data(), VertsArr.size(), TrisArr.data(), TrisArr.size(), nullptr, nullptr, &reader, true, false);
+			}
+		}
+	}
 
 	F = fs.open_chunk(EB_MU_refs_debug);
 	if (F)

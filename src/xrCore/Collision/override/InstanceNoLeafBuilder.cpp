@@ -21,56 +21,57 @@ void InstanceNoLeafBuilder::TransformAABB(AABB& aabb, const Matrix4x4& transform
 	aabb.SetMinMax(min, max);
 }
 
-bool InstanceNoLeafBuilder::ValidateSubdivision(const dTriIndex* primitives, udword nb_prims, const IceMaths::AABB& global_box)
+bool InstanceNoLeafBuilder::ComputeGlobalBox(const dTriIndex* primitives, udword nb_prims, IceMaths::AABB& global_box) const
 {
-	if (IsSingleInstanceGroup(primitives, nb_prims))
+	if (!nb_prims)
 	{
 		return false;
 	}
 	
-	return AABBTreeOfTrianglesBuilder::ValidateSubdivision(primitives, nb_prims, global_box);
-}
-
-bool InstanceNoLeafBuilder::IsSingleInstanceGroup(const dTriIndex* primitives, udword nb_prims)
-{
-	if (!mInstanceMesh || nb_prims == 0)
-	{
-		return false;
-	}
-	
-	auto FirstIndex = primitives[0];
-	if (!mInstanceMesh->IsInstanceIndex(FirstIndex))
-	{
-		return false;
-	}
-	
-	auto FirstIndexID = mInstanceMesh->GetInstanceID(FirstIndex);
+	global_box.SetEmpty();
 	
 	for (udword i = 0; i < nb_prims; ++i)
 	{
-		auto Index = primitives[i];
-		if (!mInstanceMesh->IsInstanceIndex(Index))
+		auto PrimIndex = primitives[i];
+		if (XRay::Collision::IsInstance(PrimIndex))
 		{
-			return false;
-		}
-		if (mInstanceMesh->GetInstanceID(Index) != FirstIndexID)
+			auto ID = XRay::Collision::GetInstanceID(PrimIndex);
+			auto& data = (*mInstanceData)[ID];
+			
+			global_box.Add(data.worldAABB);
+		} else
 		{
-			return false;
+			
 		}
 	}
 	
-	return true;
+	return AABBTreeOfTrianglesBuilder::ComputeGlobalBox(primitives, nb_prims, global_box);
 }
 
-AABB InstanceNoLeafBuilder::GetInstanceAABB(const InstanceData& instance_data)
+float InstanceNoLeafBuilder::GetSplittingValue(udword index, udword axis) const
 {
-	auto tree = instance_data.tree;
-	auto nodes = tree->GetNodes();
-	
-	AABB rootAABB;
-	rootAABB.SetCenterExtents(nodes[0].mAABB.mCenter, nodes[0].mAABB.mExtents);
-	
-	TransformAABB(rootAABB, instance_data.transform);
-	
-	return rootAABB;
+	if (XRay::Collision::IsInstance(index))
+	{
+		auto ID = XRay::Collision::GetInstanceID(index);
+		auto& data = (*mInstanceData)[ID];
+		
+		Point center;
+		data.worldAABB.GetCenter(center);
+		return center[axis];
+	}
+	return AABBTreeOfTrianglesBuilder::GetSplittingValue(index, axis);
+}
+
+Point InstanceNoLeafBuilder::GetSplittingValues(udword index) const
+{
+	if (XRay::Collision::IsInstance(index))
+	{
+		auto ID = XRay::Collision::GetInstanceID(index);
+		auto& data = (*mInstanceData)[ID];
+		
+		Point center;
+		data.worldAABB.GetCenter(center);
+		return center;
+	}
+	return AABBTreeOfTrianglesBuilder::GetSplittingValues(index);
 }

@@ -12,7 +12,6 @@
 #else
 #define ALIGN(a)
 #endif 
-#include "override/Model.h"
 
 // forward declarations
 class CFrustum;
@@ -63,18 +62,17 @@ namespace CDB
 			S_forcedword		= u32(-1)
 		};
 	private:
-		CDB_Model* tree = nullptr;
 		xr_vector<TRI> tris;
 		xr_vector<Fvector> verts;
 		mutable xr_atomic_u32 status = S_INIT;		// 0=ready, 1=init, 2=building
 		mutable xr_task_group load_task;
 	public:
+		CDB_Model* tree = nullptr;
+		
 		~MODEL();
 
 		ICF xr_vector<Fvector>& get_verts() { return verts; }
 		ICF xr_vector<TRI>& get_tris() { return tris; }
-
-		ICF void store(IWriter& Writer){ VERIFY(tree); tree->Store(&Writer); }
 
 		ICF void wait_loading() const
 		{
@@ -256,10 +254,11 @@ namespace CDB
 		void add_face_D( const Fvector& v0, const Fvector& v1, const Fvector& v2, u32 dummy , u32 flags );
 
 		ICF xr_vector<Fvector>& getV_Vec()			{ return verts;				}
-		ICF Fvector*			getV()				{ return &*verts.begin();	}
+		ICF xr_vector<TRI>& getT_Vec()				{ return faces;				}
+		ICF Fvector*			getV()				{ return verts.data();	}
 		ICF size_t				getVS()				{ return verts.size();		}
 		ICF xr_span<Fvector> getVSpan(){return verts;}
-		ICF TRI*				getT()				{ return &*faces.begin();	}
+		ICF TRI*				getT()				{ return faces.data();	}
 		ICF u32					getfFlags(u32 index){ return flags[index];		}	
 		ICF TRI&				getT(u32 index)		{ return faces[index];		}
 		ICF size_t				getTS()				{ return faces.size();		}

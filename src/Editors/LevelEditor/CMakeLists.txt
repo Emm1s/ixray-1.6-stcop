@@ -67,6 +67,7 @@ target_link_libraries(LevelEditor PUBLIC xrSound)
 target_link_libraries(LevelEditor PUBLIC xrEngineCore)
 target_link_libraries(LevelEditor PUBLIC xrScripts)
 target_link_libraries(LevelEditor PUBLIC "Shell32.lib")
+target_link_libraries(LevelEditor PRIVATE opcode-prosectors)
 add_dependencies(LevelEditor xrGame)
 add_dependencies(LevelEditor xrSE_Factory)
 

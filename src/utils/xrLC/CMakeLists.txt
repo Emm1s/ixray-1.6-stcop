@@ -90,6 +90,7 @@ target_link_libraries(xrLC PUBLIC xrCore)
 target_link_libraries(xrLC PUBLIC xrLC_Light)
 target_link_libraries(xrLC PUBLIC MagicFM)
 target_link_libraries(xrLC PUBLIC NvMender2003)
+target_link_libraries(xrLC PRIVATE opcode-prosectors)
 #target_link_libraries(xrLC PUBLIC "meshoptimizer.lib")
 
 if (WIN32)

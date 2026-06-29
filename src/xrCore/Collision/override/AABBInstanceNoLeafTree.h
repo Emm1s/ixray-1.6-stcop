@@ -1,8 +1,6 @@
 ﻿#pragma once
 #include <Opcode.h>
 
-#include "AABBInstanceNoLeafNode.h"
-
 class AABBInstanceNoLeafNode;
 
 class AABBInstanceNoLeafTree : public Opcode::AABBNoLeafTree
@@ -24,13 +22,9 @@ public:
 private:
 	
 	const InstanceData* mInstanceData;
-	udword mNumInstances;
+	size_t mNumInstances;
 	
 	void ConvertLeavesToInstances();
-	
-    static constexpr udword INSTANCE_FLAG = 0x80000000;
-	IC bool IsInstancePrimitive(size_t primIndex) const { return (primIndex & size_t(AABBInstanceNoLeafNode::DataFlags::Instance)) != 0; }
-	IC size_t GetInstanceIdFromPrimitive(size_t primIndex) const { return primIndex & ~INSTANCE_FLAG; }
 	
 public:
 	AABBInstanceNoLeafTree() = default;
@@ -40,6 +34,14 @@ public:
 		mInstanceData = InstanceData;
 		mNumInstances = NumInstances;
 	}
+	
+	IC const InstanceData* GetInstanceData(size_t InstanceID) const
+	{
+		IVERIFY(InstanceID < mNumInstances);
+		return mInstanceData + InstanceID;
+	}
+	
+	IC size_t GetNumInstances() const { return mNumInstances; }
 	
 	bool Build(Opcode::AABBTree* tree) override;
 };

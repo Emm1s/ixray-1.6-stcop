@@ -11,6 +11,7 @@ public:
 		const Opcode::AABBNoLeafTree* tree;
 		Matrix4x4 transform;
 		size_t id;
+		AABB worldAABB;
 	};
 	
 private:
@@ -24,7 +25,7 @@ public:
 	
 	void SetInstanceMesh(InstanceMeshInterface* instanceMesh){ mInstanceMesh = instanceMesh; }
 	void SetInstanceData(const xr_vector<InstanceData>* instanceData){ mInstanceData = instanceData; }
-	bool ValidateSubdivision(const dTriIndex* primitives, udword nb_prims, const IceMaths::AABB& global_box) override;
-	bool IsSingleInstanceGroup(const dTriIndex* primitives, udword nb_prims);
-	AABB GetInstanceAABB(const InstanceData& instance_data);
+	bool ComputeGlobalBox(const dTriIndex* primitives, udword nb_prims, IceMaths::AABB& global_box) const override;
+	float GetSplittingValue(udword index, udword axis) const override;
+	Point GetSplittingValues(udword index) const override;
 };

@@ -4,10 +4,11 @@
 // Update : 20.04.2020 - Support for Hybrid Trees System 
 //////////////////////////////////////////////////////////
 #pragma once
-#include "stdafx.h"
-#include "Tree.h"
+#include <Opcode.h>
 
-class CDB_Model : public Opcode::Model
+class CDB_OptimizeTree;
+
+class XRCORE_API CDB_Model : public Opcode::Model
 {
 public:
 	CDB_Model();
@@ -20,7 +21,7 @@ public:
 	bool Build(const Opcode::OPCODECREATE& create);
 	virtual void Release() override;
 
-	IC  CDB_OptimizeTree* GetTree() { return pTree; }
+	IC  CDB_OptimizeTree* GetCDBTree() const { return pTree; }
 
 protected:
 	CDB_OptimizeTree* pTree;

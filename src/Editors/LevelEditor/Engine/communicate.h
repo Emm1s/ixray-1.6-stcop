@@ -1,6 +1,7 @@
 #pragma once
 #include <RedImage/RedImage.hpp>
 #include "../../xrEngine/xrLevel.h"
+#include "src/xrCore/Collision/xrCDB.h"
 #pragma pack(push,4)
 
 const u32 XR_MAX_PORTAL_VERTS	= 6;
@@ -268,6 +269,7 @@ enum EBUILD_CHUNKS
     EB_SmoothGroups,
 	EB_MaterialsShared,
 	EB_MU_refs_debug,
+    EB_MU_collisions,
 
 	EB_FORCE_DWORD = u32(-1)
 };

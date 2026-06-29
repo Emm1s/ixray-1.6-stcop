@@ -2,6 +2,8 @@
 #include "xrCDB.h"
 #include "override/Model.h"
 #include "API/xrAPI.h"
+#include "src/xrServerEntities/object_destroyer.h"
+
 namespace Opcode 
 {
 #	include <OPC_TreeBuilders.h>
@@ -48,9 +50,13 @@ IReader* CDB::GetModelCache(const xr_stack_string_path& LevelName, u32 crc)
 CDB::MODEL::~MODEL()
 {
 	if (S_READY != status.load())
+	{
 		load_task.wait();
+	}
 
 	xr_delete(tree);
+	delete_data(verts);
+	delete_data(tris);
 }
 
 void MODEL::build(Fvector* V, size_t Vcnt, TRI* T, size_t Tcnt, build_callback* bc, void* bcp, void* pRW, bool RWMode, bool UseDelay)

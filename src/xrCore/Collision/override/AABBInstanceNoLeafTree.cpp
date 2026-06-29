@@ -9,14 +9,14 @@ void AABBInstanceNoLeafTree::ConvertLeavesToInstances()
 	{
 		AABBInstanceNoLeafNode* node = (AABBInstanceNoLeafNode*)(mNodes+i);
 		
-		if (node->HasPosLeaf() && IsInstancePrimitive(node->GetPosPrimitive()))
+		if (node->HasPosLeaf() && XRay::Collision::IsInstance(node->GetPosPrimitive()))
 		{
-			node->SetPosInstance(GetInstanceIDFromPrimitive(node->GetPosPrimitive()));
+			node->SetPosInstance(XRay::Collision::GetInstanceID(node->GetPosPrimitive()));
 		}
 		
-		if (node->HasNegLeaf() && IsInstancePrimitive(node->GetNegPrimitive()))
+		if (node->HasNegLeaf() && XRay::Collision::IsInstance(node->GetNegPrimitive()))
 		{
-			node->SetNegInstance(GetInstanceIDFromPrimitive(node->GetNegPrimitive()));
+			node->SetNegInstance(XRay::Collision::GetInstanceID(node->GetNegPrimitive()));
 		}
 	}
 }
@@ -33,7 +33,7 @@ bool AABBInstanceNoLeafTree::Build(Opcode::AABBTree* tree)
 		return false;
 	}
 	
-	OptimizeInstances();
+	ConvertLeavesToInstances();
 	
 	return true;
 }

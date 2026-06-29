@@ -5,6 +5,7 @@
 #include "override/Model.h"
 
 #include "Frustum.h"
+#include "override/Tree.h"
 
 using namespace CDB;
 using namespace Opcode;
@@ -102,7 +103,7 @@ void COLLIDER::frustum_query(const MODEL* m_def, const CFrustum& F)
 		!!(frustum_mode & OPT_FULL_TEST),
 		!!(frustum_mode & OPT_ONLYFIRST)
 	};
-	BC.Stab(m_def->tree->GetTree()->GetNodes(), F.getMask());
+	BC.Stab(m_def->tree->GetCDBTree()->GetNodes(), F.getMask());
 }
 
 struct cform_custom_collider final
@@ -152,5 +153,5 @@ void COLLIDER::custom_query(const MODEL* m_def, bool(AABBCheckF)(const Fvector&,
 		GetTrisF,
 		ptric
 	};
-	CC.Stab(m_def->tree->GetTree()->GetNodes());
+	CC.Stab(m_def->tree->GetCDBTree()->GetNodes());
 }

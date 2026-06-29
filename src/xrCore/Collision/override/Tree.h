@@ -4,8 +4,9 @@
 //////////////////////////////////////////////////////////
 #pragma once
 #include <Opcode.h>
+#include "Collision/override/AABBInstanceNoLeafTree.h"
 
-class CDB_OptimizeTree : public Opcode::AABBNoLeafTree
+class XRCORE_API CDB_OptimizeTree : public AABBInstanceNoLeafTree
 {
 public:
 	CDB_OptimizeTree();

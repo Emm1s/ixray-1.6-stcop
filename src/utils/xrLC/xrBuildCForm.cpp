@@ -9,6 +9,9 @@
 #include "../../xrCore/Collision/xrCDB.h"
 #include "../../xrCore/FormatParsers/LevelCForm/CFormIO.h"
 #include "../xrLC_Light/embree_raytracing/EmbreeGeometryBuilder.h"
+#include "Collision/override/AABBInstanceNoLeafTree.h"
+#include "Collision/override/Model.h"
+#include "Collision/override/Tree.h"
 
 int GetVertexIndex(Vertex* Vert)
 {
@@ -280,6 +283,25 @@ void CBuild::BuildCTree()
 	}
 	cfFaces.clear(); cfFaces.shrink_to_fit();
 	cfVertices.clear(); cfVertices.shrink_to_fit();
+
+	// Models
+	Status("Models...");
+	auto& mu_refs_arr = mu_refs();
+	xr_vector<AABBInstanceNoLeafTree::InstanceData> instances;
+	for (u32 ref = 0; ref < mu_refs_arr.size(); ref++)
+	{
+		Progress(float(ref) / float(mu_refs_arr.size()));
+		auto& Slot = instances.emplace_back();
+		Slot.tree = mu_refs_arr[ref]->model->CollisionModel.tree->GetCDBTree();
+		static_assert(sizeof(Fmatrix) == sizeof(Matrix4x4));
+		std::memcpy(&Slot.transform.m, mu_refs_arr[ref]->xform.m, sizeof(Matrix4x4));
+		//Slot.worldAABB = Slot.tree.
+	}
+
+	// bb?
+	BB.invalidate();
+	for (size_t it = 0; it < CL.getVS(); it++)
+		BB.modify(CL.getV()[it]);
 }
 
 void CBuild::BuildPortals(IWriter& fs)
