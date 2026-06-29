@@ -73,7 +73,7 @@
 		public:
 		// Constructor / Destructor
 											MeshInterface();
-											~MeshInterface();
+		virtual ~MeshInterface();
 		// Common settings
 		inline_			MeshInterfaceType   GetInterfaceType()	const	{ return mMIType;	}
 		inline_			udword				GetNbTriangles()	const	{ return mNbTris;	}
@@ -136,7 +136,7 @@
 		 *	\param		index	[in] triangle index
 		 */
 		///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		inline_			void				GetTriangle(VertexPointers& vp, udword index)	const
+		inline_ virtual void GetTriangle(VertexPointers& vp, udword index)	const
 											{
 #ifdef OPC_USE_CALLBACKS
 												// if we are using callbacks there is nothing to do!
