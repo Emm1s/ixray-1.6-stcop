@@ -25,7 +25,10 @@ class CDB_Model;
 #pragma pack(push,8)
 namespace CDB
 {
-	// Triangle
+	struct BuilderConfig;
+	class BVHModel;
+
+// Triangle
 	struct XRCORE_API TRI final						//*** 16 bytes total (was 32 :)
 	{
 		u32 verts[3];		// 3*4 = 12b
@@ -67,7 +70,7 @@ namespace CDB
 		mutable xr_atomic_u32 status = S_INIT;		// 0=ready, 1=init, 2=building
 		mutable xr_task_group load_task;
 	public:
-		CDB_Model* tree = nullptr;
+		BVHModel* tree = nullptr;
 		
 		~MODEL();
 
@@ -81,7 +84,7 @@ namespace CDB
 
 			load_task.wait();
 		}
-		void build(Fvector* V, size_t Vcnt, TRI* T, size_t Tcnt, build_callback* bc=nullptr, void* bcp=nullptr, void* pRW = nullptr, bool RWMode = false, bool UseDelay = true);
+		void build(const BuilderConfig& config, build_callback* bc=nullptr, void* bcp=nullptr, void* pRW = nullptr, bool RWMode = false, bool UseDelay = true);
 		u32 memory();
 	};
 

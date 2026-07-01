@@ -5,6 +5,7 @@
 #include "../xrEngine/xr_object.h"
 //#include "../xrEngine/xrLevel.h"
 #include "../xrEngine/xr_collide_form.h"
+#include "override/Model.h"
 
 using namespace	collide;
 
@@ -136,7 +137,10 @@ void CObjectSpace::Create(const XRay::CForm::IFormat& Data, CDB::build_callback 
 			xr_vector<Fvector>& Verts = Static.get_verts();
 			xr_vector<CDB::TRI>& Tris = Static.get_tris();
 			Data.GetStaticGeom(Verts, Tris);
-			Static.build(Verts.data(), Verts.size(), Tris.data(), Tris.size(), build_callback, nullptr, pRW, RWMode);
+			CDB::BuilderConfig Config;
+			Config.Vertices = &Verts;
+			Config.Faces = &Tris;
+			Static.build(Config, build_callback, nullptr, pRW, RWMode);
 			break;
 		}
 	default:

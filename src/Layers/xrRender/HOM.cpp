@@ -8,7 +8,8 @@
 #include "../../xrEngine/GameFont.h"
 
 #include "dxRenderDeviceRender.h"
- 
+#include "src/xrCore/Collision/override/Model.h"
+
 float	psOSSR		= .001f;
 
 void CHOM::MT_RENDER()
@@ -131,15 +132,18 @@ void CHOM::Load()
 	// Create AABB-tree
 	m_pModel = new CDB::MODEL();
 
+	CDB::BuilderConfig Config;
 	if (pReaderCache != nullptr)
 	{
-		m_pModel->build(CL.getV(), CL.getVS(), CL.getT(), CL.getTS(), nullptr, nullptr, pReaderCache, true);
+		m_pModel->build(Config, nullptr, nullptr, pReaderCache, true);
 	}
 	else
 	{
 		IWriter* pWriterCache = FS.w_open("$app_data_root$", LevelName);
 		pWriterCache->w_u32(crc);
-		m_pModel->build(CL.getV(), CL.getVS(), CL.getT(), CL.getTS(), nullptr, nullptr, pWriterCache, false);
+		Config.Vertices = &CL.verts;
+		Config.Faces = &CL.faces;
+		m_pModel->build(Config, nullptr, nullptr, pWriterCache, false);
 	}
 
 	bEnabled = true;

@@ -59,12 +59,12 @@ CDB::MODEL::~MODEL()
 	delete_data(tris);
 }
 
-void MODEL::build(Fvector* V, size_t Vcnt, TRI* T, size_t Tcnt, build_callback* bc, void* bcp, void* pRW, bool RWMode, bool UseDelay)
+void MODEL::build(const BuilderConfig& config, build_callback* bc, void* bcp, void* pRW, bool RWMode, bool UseDelay)
 {
-	R_ASSERT((Vcnt >= 4) && (Tcnt >= 2));
-
 	if (status.load() != S_INIT)
+	{
 		return;
+	}
 
 	status.store(S_BUILD);
 
@@ -72,9 +72,12 @@ void MODEL::build(Fvector* V, size_t Vcnt, TRI* T, size_t Tcnt, build_callback* 
 	{
 		PROF_START_THREAD("build cform");
 		PROF_EVENT("build cform");
+		xr_scope_exit ThreadStop([&](){
+			PROF_STOP_THREAD();
+		});
 
 		// verts
-		if (verts.empty())
+		/*if (verts.empty())
 		{
 			verts.resize(Vcnt);
 			CopyMemory(verts.data(), V, Vcnt * sizeof(Fvector));
@@ -85,13 +88,22 @@ void MODEL::build(Fvector* V, size_t Vcnt, TRI* T, size_t Tcnt, build_callback* 
 		{
 			tris.resize(Tcnt);
 			CopyMemory(tris.data(), T, Tcnt * sizeof(TRI));
-		}
+		}*/
 
 		// callback
 		if (bc)
+		{
 			bc(verts.data(), Vcnt, tris.data(), Tcnt, bcp);
+		}
+		
+		tree = CDB::BuildModel(config);
+		if (pRW && RWMode)
+		{
+			IVERIFY(tree->Restore((IReader*)pRW));
+			return;
+		}
 
-		tree = new CDB_Model();
+		/*tree = new CDB_Model();
 
 		if (pRW != nullptr && RWMode)
 		{
@@ -99,7 +111,6 @@ void MODEL::build(Fvector* V, size_t Vcnt, TRI* T, size_t Tcnt, build_callback* 
 			{
 				Msg("* Collision DB cache found...");
 				status.store(S_READY);
-				PROF_STOP_THREAD();
 				return;
 			}
 			else
@@ -126,9 +137,8 @@ void MODEL::build(Fvector* V, size_t Vcnt, TRI* T, size_t Tcnt, build_callback* 
 #ifdef DEBUG
 			Msg("! Collision build failed");
 #endif
-			PROF_STOP_THREAD();
 			return;
-		}
+		}*/
 
 		// Write cache
 		if (!RWMode && pRW)
@@ -140,7 +150,6 @@ void MODEL::build(Fvector* V, size_t Vcnt, TRI* T, size_t Tcnt, build_callback* 
 		Msg("+ Collision build succeeded");
 #endif
 		status.store(S_READY);
-		PROF_STOP_THREAD();
 	};
 
 	if (UseDelay)

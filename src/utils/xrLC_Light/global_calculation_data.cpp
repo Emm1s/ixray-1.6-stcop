@@ -4,6 +4,7 @@
 #include "../Shader_xrLC.h"
 #include "embree_raytracing/EmbreeRayTrace.h"
 #include "../xrForms/CompilersUI.h"
+#include "Collision/override/Model.h"
 #include "src/utils/xrLC/Build.h"
 
 global_claculation_data	gl_data;
@@ -399,8 +400,10 @@ void global_claculation_data::xrLoadGeometry(IReader* fs)
 		}
 
 		Msg("RayQuery Box Model: Faces : %u | Vertex: %u", triangles.size(), verts.size());
-		RCAST_Model->build(verts.data(), verts.size(), triangles.data(), triangles.size(), 
-			nullptr, nullptr, nullptr, false , false);
+		CDB::BuilderConfig Config;
+		Config.Vertices = &verts;
+		Config.Faces = &triangles;
+		RCAST_Model->build(Config, nullptr, nullptr, nullptr, false , false);
 	}
 }
 
