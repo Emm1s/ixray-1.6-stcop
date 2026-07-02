@@ -79,11 +79,6 @@ namespace CDB
 
 	struct BuilderConfig
 	{
-		struct InstanceData
-		{
-			Fmatrix Transform;
-			size_t ModelIndex;
-		};
 		xr_vector<Fvector>* Vertices = nullptr;
 		xr_vector<TRI>* Faces = nullptr;
 		xr_vector<BVHModel*>* Models = nullptr;
