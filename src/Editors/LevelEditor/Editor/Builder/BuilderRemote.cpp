@@ -1110,13 +1110,12 @@ bool SceneBuilder::BuildMUObjectModel(CSceneObject* obj)
 		}
 		if (CollisionVerts.size() >= 4 && CollisionTris.size() >= 2)
 		{
-			CDB::BuilderConfig Config;
-			Config.Vertices = &CollisionVerts;
-			Config.Faces = &CollisionTris;
-			Collision.build(Config, nullptr, nullptr, nullptr, false, false);
+			Collision.build(
+				CollisionVerts.data(), CollisionVerts.size(), CollisionTris.data(), CollisionTris.size(),
+				nullptr, nullptr, nullptr, false, false);
 			Slot.raw_data.resize(Collision.memory());
 			CBufferMemoryWriter Writer(Slot.raw_data);
-			Collision.tree->Store(&Writer);
+			Collision.tree->GetCDBTree()->Store(&Writer);
 		}
 	}
 

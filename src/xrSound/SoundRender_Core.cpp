@@ -9,7 +9,6 @@
 #include "../xrEngine/IRenderable.h"
 #include "Recorder/SoundVoiceChat.h"
 #include "ai_sounds.h"
-#include "Collision/override/Model.h"
 
 using namespace XRay::Sound;
 
@@ -328,10 +327,7 @@ void CSoundRender_Core::set_geometry_som(IReader* I)
 	}
 
 	geom_SOM = new CDB::MODEL();
-	CDB::BuilderConfig Config;
-	Config.Vertices = &CL.verts;
-	Config.Faces = &CL.faces;
-	geom_SOM->build(Config);
+	geom_SOM->build(CL.getV(), CL.getVS(), CL.getT(), CL.getTS());
 
 	geom->close();
 }

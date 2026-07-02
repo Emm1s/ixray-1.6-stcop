@@ -7,7 +7,6 @@
 #include "../xrLC_Light/xrFace.h"
 #include "../xrLC_Light/xrMU_Model.h"
 #include "../xrLC_Light/xrMU_Model_Reference.h"
-#include "Collision/override/Model.h"
 
 extern u32	version;
 template <class T>
@@ -220,8 +219,7 @@ void CBuild::Load	(const b_params& Params, const IReader& _in_FS)
 				u64 Size = F->r_u64();
 				IReader reader(F->pointer(), Size);
 				F->advance(Size);
-				CDB::BuilderConfig Config;
-				Model.build(Config, nullptr, nullptr, &reader, true, false);
+				Model.build(VertsArr.data(), VertsArr.size(), TrisArr.data(), TrisArr.size(), nullptr, nullptr, &reader, true, false);
 			}
 		}
 	}

@@ -4,7 +4,6 @@
 #include "EditObject.h"
 #include "ui_main.h"
 #include "pick_defs.h"
-#include "src/xrCore/Collision/override/Model.h"
 
 static IntVec		sml_processed;
 static Fvector		sml_normal;
@@ -43,10 +42,7 @@ void CEditableMesh::GenerateCFModel()
 	if (I_ASSERT(CL.getVS() >= 4 && CL.getTS() >= 2))
 	{
 		m_CFModel = new CDB::MODEL();
-		CDB::BuilderConfig Config;
-		Config.Vertices = &CL.verts;
-		Config.Faces = &CL.faces;
-		m_CFModel->build(Config, nullptr, nullptr, nullptr, false, false);
+		m_CFModel->build(CL.getV(), CL.getVS(), CL.getT(), CL.getTS(), nullptr, nullptr, nullptr, false, false);
 	}
 }
 

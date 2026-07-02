@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "../Terrain/ESceneTerrainTools.h"
 #include"../xrCore/Collision/cl_intersect.h"
-#include "Collision/override/Model.h"
 static SPickQuery	PQ;
 
 IC void SnapXZ	(Fvector&	V, float ps)
@@ -674,12 +673,8 @@ bool ESceneAIMapTool::GenerateMap(bool bFromSelectedOnly)
 
 			UI->SetStatus("Building collision model...");
 
-			// TODO: Add Instanced?
 			m_CFModel = new CDB::MODEL();
-			CDB::BuilderConfig Config;
-			Config.Vertices = &CL.verts;
-			Config.Faces = &CL.faces;
-			m_CFModel->build(Config);
+			m_CFModel->build(CL.getV(), CL.getVS(), CL.getT(), CL.getTS());
 		}
 
 		// building

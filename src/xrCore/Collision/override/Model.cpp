@@ -338,7 +338,7 @@ CDB::BVHModel* CDB::BuildModel(const BuilderConfig& config)
 	{
 		TotalPrimitives += config.Instances->size();
 	}
-	if (!TotalPrimitives)
+	if (!IVERIFY(TotalPrimitives))
 	{
 		return model;
 	}
