@@ -1,7 +1,7 @@
 #ifndef _CYLINDER_H
 #define _CYLINDER_H
 
-template <XRay::Concepts::Arithmetic T>
+template <class T>
 class _cylinder
 {
 public:
