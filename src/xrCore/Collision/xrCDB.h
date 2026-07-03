@@ -61,6 +61,8 @@ namespace CDB
 		xr_vector<TRI> tris;
 		xr_vector<Fvector> verts;
 		xr_hash_map<MODEL*, xr_vector<Fmatrix>> instances;
+		const MODEL* Parent = nullptr;
+		//Fmatrix SelfTransform{Fmatrix::EIdentity::Identity};
 		
 		~MODEL();
 
@@ -70,7 +72,11 @@ namespace CDB
 	// Collider result
 	struct XRCORE_API RESULT final
 	{
-		Fvector			verts	[3];
+		Fmatrix ParentTransform{Fmatrix::EIdentity::Identity};
+		const MODEL* model;
+		size_t tris_id;
+		float range, u, v;
+		/*Fvector			verts	[3];
 		union	{
 			u32			dummy;				// 4b
 			struct {
@@ -83,7 +89,7 @@ namespace CDB
 		};
 		int				id;
 		float			range;
-		float			u,v;
+		float			u,v;*/
 	};
 
 	// Collider Options

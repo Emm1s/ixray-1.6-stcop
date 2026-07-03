@@ -110,8 +110,10 @@ void CForm::CFormatVanilla::ReadData(CDB::MODEL& Model, CDB::build_callback* bc,
 	{
 		bc(Model.verts.data(), Header.vertcount, Model.tris.data(), Header.facecount, bcp);
 	}
+
+	Model.build_simple();
 	
-	auto& EmbreeDevice = CDB::GetEmbreeDevice();
+	/*auto& EmbreeDevice = CDB::GetEmbreeDevice();
 	Model.InstaceScene = rtcNewScene(CDB::GetEmbreeDevice());
 	rtcSetSceneBuildQuality(Model.InstaceScene, RTC_BUILD_QUALITY_HIGH);
 	
@@ -119,13 +121,14 @@ void CForm::CFormatVanilla::ReadData(CDB::MODEL& Model, CDB::build_callback* bc,
 	
 	rtcSetSharedGeometryBuffer(BatchedGeometry, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, VertsPtr, 0, sizeof(Fvector), Header.vertcount);
 	rtcSetSharedGeometryBuffer(BatchedGeometry, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, TrisPtr, 0, sizeof(CDB::TRI), Header.facecount);
+	rtcSetGeometryUserData(BatchedGeometry, &Model);
 	
 	rtcCommitGeometry(BatchedGeometry);
 	
 	rtcAttachGeometry(Model.InstaceScene, BatchedGeometry);
 	rtcReleaseGeometry(BatchedGeometry);
 	
-	rtcCommitScene(Model.InstaceScene);
+	rtcCommitScene(Model.InstaceScene);*/
 }
 
 CForm::CFormatVanillaChunked::CFormatVanillaChunked(u32 ChunkNumber)
@@ -385,7 +388,9 @@ void CForm::CFormatInstanced::ReadData(CDB::MODEL& Model, CDB::build_callback* b
 {
 	for (auto& elem : instances)
 	{
-		auto& Slot = Model.instances[ReadInstance(elem.first, bc, bcp)];
+		auto InstanceMesh = ReadInstance(elem.first, bc, bcp);
+		InstanceMesh->Parent = &Model;
+		auto& Slot = Model.instances[InstanceMesh];
 		Slot = elem.second;
 	}
 	
@@ -398,8 +403,10 @@ void CForm::CFormatInstanced::ReadData(CDB::MODEL& Model, CDB::build_callback* b
 	{
 		bc(Model.verts.data(), Header.vertcount, Model.tris.data(), Header.facecount, bcp);
 	}
+
+	Model.build_simple();
 	
-	auto& EmbreeDevice = CDB::GetEmbreeDevice();
+	/*auto& EmbreeDevice = CDB::GetEmbreeDevice();
 	Model.InstaceScene = rtcNewScene(CDB::GetEmbreeDevice());
 	rtcSetSceneBuildQuality(Model.InstaceScene, RTC_BUILD_QUALITY_HIGH);
 	
@@ -441,7 +448,7 @@ void CForm::CFormatInstanced::ReadData(CDB::MODEL& Model, CDB::build_callback* b
 	rtcAttachGeometry(Model.InstaceScene, BatchedGeometry);
 	rtcReleaseGeometry(BatchedGeometry);
 	
-	rtcCommitScene(Model.InstaceScene);
+	rtcCommitScene(Model.InstaceScene);*/
 }
 
 XRCORE_API xr_unique_ptr<CForm::IFormat> CForm::Read(const char* Initial, xr_string_view Filename)

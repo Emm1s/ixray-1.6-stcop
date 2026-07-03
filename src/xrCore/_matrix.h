@@ -877,6 +877,9 @@ public:
 typedef		_matrix<float>	Fmatrix;
 typedef		_matrix<double>	Dmatrix;
 
+static_assert(sizeof(Fmatrix) == 64);
+static_assert(sizeof(Dmatrix) == 128);
+
 template <class T>
 ICF bool	_valid			(const _matrix<T>& m)
 { 

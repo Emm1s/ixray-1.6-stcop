@@ -6,112 +6,8 @@
 
 #include "xrCDB.h"
 #include "override/Model.h"
-#include "cl_intersect.h"
+
 using namespace CDB;
-using namespace Opcode;
-
-struct cform_ray_collider final
-{
-	Fvector pos, fwd_dir;
-  	COLLIDER* dest;
-	const xr_vector<TRI>& tris;
-	const xr_vector<Fvector>& verts;
-	float rRange, rRange2;
-
-	bool bCull = false;
-	bool bFirst = false;
-	bool bNearest = false;
-
-	ICF void _prim(size_t prim)
-	{
-		float u,v,r;
-		auto& Tri = tris[prim];
-		auto& TriVerts = Tri.verts;
-		Fvector tri_verts[3] = { verts[TriVerts[0]], verts[TriVerts[1]], verts[TriVerts[2]] };
-
-		if (!TestRayTri(pos, fwd_dir, tri_verts, u, v, r, bCull))
-			return;
-
-		if (r<=0 || r>rRange)
-			return;
-
-		u32 dummy = Tri.dummy;
-		if (bNearest)	
-		{
-			if (dest->r_count())	
-			{
-				RESULT& R = *dest->r_begin();
-				if (r<R.range)
-				{
-					R.id		= prim;
-					R.range		= r;
-					R.u			= u;
-					R.v			= v;
-					R.verts	[0]	= tri_verts[0];
-					R.verts	[1]	= tri_verts[1];
-					R.verts	[2]	= tri_verts[2];
-					R.dummy		= dummy;
-					rRange		= r;
-					rRange2		= r*r;
-				}
-			}
-			else
-			{
-				RESULT& R	= dest->r_add();
-				R.id		= prim;
-				R.range		= r;
-				R.u			= u;
-				R.v			= v;
-				R.verts	[0]	= tri_verts[0];
-				R.verts	[1]	= tri_verts[1];
-				R.verts	[2]	= tri_verts[2];
-				R.dummy		= dummy;
-				rRange		= r;
-				rRange2		= r*r;
-			}
-		}
-		else
- 		{
-			RESULT& R	= dest->r_add();				// �� ������� ������� RESULT
-			R.id		= prim;
-			R.range		= r;
-			R.u			= u;
-			R.v			= v;
-			R.verts	[0]	= tri_verts[0];
-			R.verts	[1]	= tri_verts[1];
-			R.verts	[2]	= tri_verts[2];
-			R.dummy		= dummy;
-		}
-	}
-
-	void _stab(const AABBNoLeafNode* node)
-	{
-		Fvector& center = (Fvector&)node->mAABB.mCenter;
-		Fvector& extents = (Fvector&)node->mAABB.mExtents;
-
-		Fvector P;
-		if (!Fbox(center-extents,center+extents).Pick2(pos, fwd_dir, P))
-			return;
-		
-		if (P.distance_to_sqr(pos) > rRange2)
-			return;
-
-		// 1st chield
-		if (node->HasPosLeaf())	_prim(node->GetPosPrimitive());
-		else					_stab(node->GetPos());
-
-		// Early exit for "only first"
-		if (bFirst)
-		{
-			if (dest->r_count())
-				return;
-		}
-
-		// 2nd chield
-		if (node->HasNegLeaf())	_prim(node->GetNegPrimitive());
-		else					_stab(node->GetNeg());
-	}
-};
 
 void COLLIDER::ray_query(const MODEL* m_def, const Fvector& r_start, const Fvector& r_dir, float r_range)
 {
@@ -135,11 +31,62 @@ void COLLIDER::ray_query(const MODEL* m_def, const Fvector& r_start, const Fvect
 	ray.ray.flags = 0;
 	ray.hit.geomID = RTC_INVALID_GEOMETRY_ID;
 	
+	r_clear();
+	r_vec().reserve(16);
 	
 	if(!!(ray_mode & OPT_ONLYFIRST))
 	{
 		RTCOccludedArguments args;
 		rtcInitOccludedArguments(&args);
+		struct Filter
+		{
+			static void Execute(const RTCFilterFunctionNArguments* args)
+			{
+				VERIFY(args->N == 1);
+				if (*args->valid != -1)
+				{
+					return;
+				}
+				auto model = (MODEL*)args->geometryUserPtr;
+				VERIFY(model);
+
+				if(!!(ray_mode & OPT_CULL))
+				{
+					auto Nx = RTCHitN_Ng_x(args->hit, 1, 0);
+					auto Ny = RTCHitN_Ng_y(args->hit, 1, 0);
+					auto Nz = RTCHitN_Ng_z(args->hit, 1, 0);
+					auto Dx = RTCRayN_dir_x(args->ray, 1, 0);
+					auto Dy = RTCRayN_dir_y(args->ray, 1, 0);
+					auto Dz = RTCRayN_dir_z(args->ray, 1, 0);
+					float dot = Nx*Dx+Ny*Dy+Nz*Dz;
+					if(dot > 0)
+					{
+						args->valid[0] = 0;
+						return;
+					}
+				}
+				
+				auto PrimID = RTCHitN_primID(args->hit, 1, 0);
+				VERIFY(PrimID < model->tris.size());
+				
+				RESULT& R	= r_add(); // Нам нужен же просто факт, есть ли хит, а не то с чем столкнулись, да?
+				/*R.model = model;
+				R.tris_id = PrimID;
+				R.range		= RTCRayN_tfar(args->ray, 1, 0);
+				R.u			= RTCHitN_u(args->hit, 1, 0);
+				R.v			= RTCHitN_v(args->hit, 1, 0);
+
+				if(model->Parent)
+				{
+					rtcGetGeometryTransformFromScene(
+						model->Parent->InstaceScene,
+						RTCHitN_instID(args->hit, 1, 0, 0),
+						0, RTC_FORMAT_FLOAT4X4_ROW_MAJOR, &R.ParentTransform);
+				}*/
+			}
+		};
+		args.filter = Filter::Execute;
+		args.flags = RTC_RAY_QUERY_FLAG_INVOKE_ARGUMENT_FILTER;
 		rtcOccluded1(m_def->InstaceScene, &ray, &args);
 	} else
 	{
@@ -150,35 +97,55 @@ void COLLIDER::ray_query(const MODEL* m_def, const Fvector& r_start, const Fvect
 			static void Execute(const RTCFilterFunctionNArguments* args)
 			{
 				VERIFY(args->N == 1);
+				if (*args->valid != -1)
+				{
+					return;
+				}
 				auto model = (MODEL*)args->geometryUserPtr;
+				VERIFY(model);
+
+				if(!!(ray_mode & OPT_CULL))
+				{
+					auto Nx = RTCHitN_Ng_x(args->hit, 1, 0);
+					auto Ny = RTCHitN_Ng_y(args->hit, 1, 0);
+					auto Nz = RTCHitN_Ng_z(args->hit, 1, 0);
+					auto Dx = RTCRayN_dir_x(args->ray, 1, 0);
+					auto Dy = RTCRayN_dir_y(args->ray, 1, 0);
+					auto Dz = RTCRayN_dir_z(args->ray, 1, 0);
+					float dot = Nx*Dx+Ny*Dy+Nz*Dz;
+					if(dot > 0)
+					{
+						args->valid[0] = 0;
+						return;
+					}
+				}
+
+				auto PrimID = RTCHitN_primID(args->hit, 1, 0);
+				VERIFY(PrimID < model->tris.size());
 				
-				
+				RESULT& R	= r_add();
+				R.model = model;
+				R.tris_id = PrimID;
+				R.range		= RTCRayN_tfar(args->ray, 1, 0);
+				R.u			= RTCHitN_u(args->hit, 1, 0);
+				R.v			= RTCHitN_v(args->hit, 1, 0);
+
+				if(model->Parent)
+				{
+					rtcGetGeometryTransformFromScene(
+						model->Parent->InstaceScene,
+						RTCHitN_instID(args->hit, 1, 0, 0),
+						0, RTC_FORMAT_FLOAT4X4_ROW_MAJOR, &R.ParentTransform);
+				}
+
+				if(!(ray_mode & OPT_ONLYNEAREST))
+				{
+					args->valid[0] = 0;
+				}
 			}
 		};
 		args.filter = Filter::Execute;
 		args.flags = RTC_RAY_QUERY_FLAG_INVOKE_ARGUMENT_FILTER;
 		rtcIntersect1(m_def->InstaceScene, &ray, &args);
 	}
-	
-	const AABBNoLeafTree* T = (const AABBNoLeafTree*)m_def->tree->GetTree();
-	const AABBNoLeafNode* N = T->GetNodes();
-
-	r_clear();
-	r_vec().reserve(16);
-
-	cform_ray_collider RC
-	{
-		r_start,
-		r_dir,
-		this,
-		m_def->tris,
-		m_def->verts,
-		r_range,
-		r_range*r_range,
-
-		!!(ray_mode & OPT_CULL),
-		!!(ray_mode & OPT_ONLYFIRST),
-		!!(ray_mode & OPT_ONLYNEAREST)
-	};
-	RC._stab(N);
 }

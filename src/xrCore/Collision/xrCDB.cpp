@@ -111,6 +111,35 @@ void MODEL::build_simple()
 	rtcSetSceneBuildQuality(InstaceScene, RTC_BUILD_QUALITY_HIGH);
 	
 	RTCGeometry BatchedGeometry = rtcNewGeometry(EmbreeDevice, RTC_GEOMETRY_TYPE_TRIANGLE);
+
+	for (auto& elem : instances)
+	{
+		auto InstanceScene = rtcNewScene(EmbreeDevice);
+		rtcSetSceneBuildQuality(InstanceScene, RTC_BUILD_QUALITY_HIGH);
+		
+		RTCGeometry InstanceGeometry = rtcNewGeometry(EmbreeDevice, RTC_GEOMETRY_TYPE_TRIANGLE);
+	
+		rtcSetSharedGeometryBuffer(InstanceGeometry, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, elem.first->verts.data(), 0, sizeof(Fvector), elem.first->verts.size());
+		rtcSetSharedGeometryBuffer(InstanceGeometry, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, elem.first->tris.data(), 0, sizeof(CDB::TRI), elem.first->tris.size());
+		rtcSetGeometryUserData(InstanceGeometry, elem.first);
+		
+		rtcCommitGeometry(InstanceGeometry);
+	
+		rtcAttachGeometry(InstanceScene, InstanceGeometry);
+		rtcReleaseGeometry(InstanceGeometry);
+		
+		rtcCommitScene(InstanceScene);
+		
+		for (auto& xform : elem.second)
+		{
+			auto InstanceOnLevel = rtcNewGeometry(EmbreeDevice, RTC_GEOMETRY_TYPE_INSTANCE);
+			rtcSetGeometryInstancedScene(InstanceOnLevel, InstanceScene);
+			rtcSetGeometryTransform(InstanceOnLevel, 0, RTC_FORMAT_FLOAT4X4_ROW_MAJOR, &xform);
+			
+			rtcAttachGeometry(InstaceScene, InstanceOnLevel);
+			rtcReleaseGeometry(InstanceOnLevel);
+		}
+	}
 	
 	rtcSetSharedGeometryBuffer(BatchedGeometry, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, verts.data(), 0, sizeof(Fvector), verts.size());
 	rtcSetSharedGeometryBuffer(BatchedGeometry, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, verts.data(), 0, sizeof(CDB::TRI), verts.size());
