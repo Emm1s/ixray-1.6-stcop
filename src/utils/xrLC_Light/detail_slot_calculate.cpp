@@ -43,8 +43,8 @@ bool detail_slot_calculate(u32 _x, u32 _z)
 	BB.getsphere( S.P, S.R );
 
 
-	CDB::TRI*	tris	= gl_data.RCAST_Model->get_tris().data();
-	Fvector*	verts	= gl_data.RCAST_Model->get_verts().data();
+	CDB::TRI*	tris	= gl_data.RCAST_Model->tris.data();
+	Fvector*	verts	= gl_data.RCAST_Model->verts.data();
 
 	// select lights
 	Selected.select		( gl_data.g_lights, S.P, S.R );

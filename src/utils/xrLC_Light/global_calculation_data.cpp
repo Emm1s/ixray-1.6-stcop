@@ -389,8 +389,8 @@ void global_claculation_data::xrLoadGeometry(IReader* fs)
 		container.RemoveDublicates();
 
 		RCAST_Model = new CDB::MODEL();
-		xr_vector<Fvector>& verts = RCAST_Model->get_verts();
-		xr_vector<CDB::TRI>& triangles = RCAST_Model->get_tris();
+		xr_vector<Fvector>& verts = RCAST_Model->verts;
+		xr_vector<CDB::TRI>& triangles = RCAST_Model->tris;
 	
 		verts = container.vertex();
 		for (auto& F : container.faces())
@@ -399,8 +399,7 @@ void global_claculation_data::xrLoadGeometry(IReader* fs)
 		}
 
 		Msg("RayQuery Box Model: Faces : %u | Vertex: %u", triangles.size(), verts.size());
-		RCAST_Model->build(verts.data(), verts.size(), triangles.data(), triangles.size(), 
-			nullptr, nullptr, nullptr, false , false);
+		RCAST_Model->build_simple();
 	}
 }
 

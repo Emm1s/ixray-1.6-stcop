@@ -419,17 +419,17 @@ void IComputeData::xrLoadGeometry(IReader* fs)
 
 		LevelPtr = xr_make_unique<CDB::MODEL>();
 
-		xr_vector<Fvector>& verts = LevelPtr->get_verts();
+		xr_vector<Fvector>& verts = LevelPtr->verts;
 		verts = container.vertex();
 
-		xr_vector<CDB::TRI>& triangles = LevelPtr->get_tris();
+		xr_vector<CDB::TRI>& triangles = LevelPtr->tris;
 		for (auto& F : container.faces())
 		{
 			triangles.push_back(F.Get());
 		}
 
 		Msg("RayQuery Box Model: Faces : %u | Vertex: %u", triangles.size(), verts.size());
-		LevelPtr->build(verts.data(), verts.size(), triangles.data(), triangles.size(), nullptr, nullptr, nullptr, false, false);
+		LevelPtr->build_simple();
 	}
 }
 

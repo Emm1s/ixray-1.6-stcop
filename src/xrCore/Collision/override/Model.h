@@ -5,6 +5,7 @@
 //////////////////////////////////////////////////////////
 #pragma once
 #include <Opcode.h>
+#include <embree4/rtcore_geometry.h>
 
 class CDB_OptimizeTree;
 
@@ -21,10 +22,11 @@ public:
 	bool Build(const Opcode::OPCODECREATE& create);
 	virtual void Release() override;
 
-	IC  CDB_OptimizeTree* GetCDBTree() const { return pTree; }
+	IC  RTCScene& GetCDBTree() { return InstaceScene; }
 
 protected:
-	CDB_OptimizeTree* pTree;
+	RTCScene InstaceScene;
+	//CDB_OptimizeTree* pTree;
 
 	enum ModelFlag
 	{

@@ -3688,8 +3688,8 @@ void LevelInspector::DrawHOM()
 		append_line({ verts[2], verts[1], hom_lclr });
 	}
 
-	xr_vector<CDB::TRI>& hom_tris = Render->GetHOMModel()->get_tris();
-	xr_vector<Fvector>& hom_verts = Render->GetHOMModel()->get_verts();
+	xr_vector<CDB::TRI>& hom_tris = Render->GetHOMModel()->tris;
+	xr_vector<Fvector>& hom_verts = Render->GetHOMModel()->verts;
 	xr_vector<u32>& inv_v = *Render->GetHOMInvaltids();
 	for (u32 i : inv_v)
 	{
@@ -3788,8 +3788,8 @@ void LevelInspector::DrawCFORM()
 				{
 					if (selected_prim.id == InPrim) return;
 
-					auto& StaticTris = g_pGameLevel->ObjectSpace.GetStaticModel()->get_tris();
-					auto& verts = g_pGameLevel->ObjectSpace.GetStaticModel()->get_verts();
+					auto& StaticTris = g_pGameLevel->ObjectSpace.GetStaticModel()->tris;
+					auto& verts = g_pGameLevel->ObjectSpace.GetStaticModel()->verts;
 					auto& TriVerts = StaticTris[InPrim].verts;
 					Fvector tri_verts[3] = { verts[TriVerts[0]], verts[TriVerts[1]], verts[TriVerts[2]] };
 

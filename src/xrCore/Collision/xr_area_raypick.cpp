@@ -87,8 +87,8 @@ bool CObjectSpace::RayTest(const Fvector& start, const Fvector& dir, float range
 				// cache polygon
 				cache->set(start, dir, range, true);
 				CDB::RESULT* R = CObjectSpaceThreadData::xrc.r_begin();
-				CDB::TRI& T = Static.get_tris()[R->id];
-				xr_vector<Fvector>& V = Static.get_verts();
+				CDB::TRI& T = Static.tris[R->id];
+				xr_vector<Fvector>& V = Static.verts;
 				cache->verts[0].set(V[T.verts[0]]);
 				cache->verts[1].set(V[T.verts[1]]);
 				cache->verts[2].set(V[T.verts[2]]);

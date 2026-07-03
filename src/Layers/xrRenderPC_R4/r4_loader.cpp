@@ -428,31 +428,18 @@ void CRender::LoadSectors(IReader* fs)
 			CL.add_face_packed_D(v1, v2, v3, 0);
 		}
 
-		// Make cache
-		string_path LevelName;
-		xr_strconcat(LevelName, "level_cache\\", FS.get_path("$level$")->m_Add, "Portals.cache");
-		IReader* pReaderCache = CDB::GetModelCache(LevelName, crc);
-
 		// build portal model
 		rmPortals = new CDB::MODEL();
-
-		if (pReaderCache != nullptr)
-		{
-			rmPortals->build(CL.getV(), CL.getVS(), CL.getT(), CL.getTS(), nullptr, nullptr, pReaderCache, true);
-		}
-		else
-		{
-			IWriter* pWriterCache = FS.w_open("$app_data_root$", LevelName);
-			pWriterCache->w_u32(crc);
-			rmPortals->build(CL.getV(), CL.getVS(), CL.getT(), CL.getTS(), nullptr, nullptr, pWriterCache, false);
-		}
+		rmPortals->verts = CL.verts;
+		rmPortals->tris = CL.faces;
+		rmPortals->build_simple();
 	}
 	else
 	{
-		rmPortals = 0;
+		rmPortals = nullptr;
 	}
 
-	pLastSector = 0;
+	pLastSector = nullptr;
 
 	// Search for default sector - assume "default" or "outdoor" sector is the largest one
 	//. hack: need to know real outdoor sector

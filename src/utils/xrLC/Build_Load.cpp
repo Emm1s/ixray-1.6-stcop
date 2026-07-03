@@ -203,8 +203,8 @@ void CBuild::Load	(const b_params& Params, const IReader& _in_FS)
 		for (i = 0; i < CollisionsNum; ++i)
 		{
 			auto& Model = vec[i]->CollisionModel;
-			auto& VertsArr = Model.get_verts();
-			auto& TrisArr = Model.get_tris();
+			auto& VertsArr = Model.verts;
+			auto& TrisArr = Model.tris;
 			{
 				u32 Size = F->r_u32();
 				VertsArr.resize(Size);
@@ -215,12 +215,7 @@ void CBuild::Load	(const b_params& Params, const IReader& _in_FS)
 				TrisArr.resize(Size);
 				F->r(TrisArr.data(), Size*sizeof(CDB::TRI));
 			}
-			{
-				u64 Size = F->r_u64();
-				IReader reader(F->pointer(), Size);
-				F->advance(Size);
-				Model.build(VertsArr.data(), VertsArr.size(), TrisArr.data(), TrisArr.size(), nullptr, nullptr, &reader, true, false);
-			}
+			Model.build_simple();
 		}
 	}
 

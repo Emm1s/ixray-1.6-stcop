@@ -1479,8 +1479,8 @@ Mixer::Update(void* event_handler, float time_factor, float volume, float eff_vo
 						Fvector	dir = { 0,-1,0 };
 						collider->ray_options(CDB::OPT_ONLYNEAREST);
 						collider->ray_query(env_model, pos, dir, 1000.f);
-						xr_vector<Fvector>& Verts = env_model->get_verts();
-						xr_vector<CDB::TRI>& Tris = env_model->get_tris();
+						xr_vector<Fvector>& Verts = env_model->verts;
+						xr_vector<CDB::TRI>& Tris = env_model->tris;
 						if (collider->r_count()) {
 							CDB::RESULT* r = collider->r_begin();
 							CDB::TRI& T = Tris[r->id];

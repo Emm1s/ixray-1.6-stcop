@@ -1,4 +1,5 @@
 #pragma once
+#include <embree4/rtcore_geometry.h>
 
 //#pragma once
 // The following ifdef block is the standard way of creating macros which make exporting
@@ -25,6 +26,8 @@ class CDB_Model;
 #pragma pack(push,8)
 namespace CDB
 {
+
+	RTCDevice& GetEmbreeDevice();
 	// Triangle
 	struct XRCORE_API TRI final						//*** 16 bytes total (was 32 :)
 	{
@@ -53,36 +56,15 @@ namespace CDB
 	
 	class XRCORE_API MODEL final
 	{
-		friend class COLLIDER;
-		enum
-		{
-			S_READY				= 0,
-			S_INIT				= 1,
-			S_BUILD				= 2,
-			S_forcedword		= u32(-1)
-		};
-	private:
+	public:
+		RTCScene InstaceScene;
 		xr_vector<TRI> tris;
 		xr_vector<Fvector> verts;
-		mutable xr_atomic_u32 status = S_INIT;		// 0=ready, 1=init, 2=building
-		mutable xr_task_group load_task;
-	public:
-		CDB_Model* tree = nullptr;
+		xr_hash_map<MODEL*, xr_vector<Fmatrix>> instances;
 		
 		~MODEL();
 
-		ICF xr_vector<Fvector>& get_verts() { return verts; }
-		ICF xr_vector<TRI>& get_tris() { return tris; }
-
-		ICF void wait_loading() const
-		{
-			if (S_READY==status.load())
-				return;
-
-			load_task.wait();
-		}
-		void build(Fvector* V, size_t Vcnt, TRI* T, size_t Tcnt, build_callback* bc=nullptr, void* bcp=nullptr, void* pRW = nullptr, bool RWMode = false, bool UseDelay = true);
-		u32 memory();
+		void build_simple();
 	};
 
 	// Collider result

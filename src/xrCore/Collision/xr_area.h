@@ -37,7 +37,7 @@ public:
 	void								Load				(  const char* initial, const char* fname, CDB::build_callback build_callback, bool NotFromLevel = false);
 	//void								Load				(  IReader* R, CDB::build_callback build_callback  );
 	//void								Create				(  Fvector*	verts, CDB::TRI* tris, const hdrCFORM &H, CDB::build_callback build_callback, void* pRW, bool RWMode);
-	void								Create				(  const XRay::CForm::IFormat& Data, CDB::build_callback build_callback, void* pRW, bool RWMode);
+	void								Create				(  const XRay::CForm::IFormat& Data, CDB::build_callback build_callback);
 	
 	// Occluded/No
 	bool								RayTest				( const Fvector &start, const Fvector &dir, float range, collide::rq_target tgt, collide::ray_cache* cache, CObject* ignore_object);

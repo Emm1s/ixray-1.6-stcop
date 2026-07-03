@@ -414,8 +414,8 @@ void CLightShadows::render	()
 {
 	// Gain access to collision-DB
 	CDB::MODEL*		DB		= g_pGameLevel->ObjectSpace.GetStaticModel();
-	xr_vector<CDB::TRI>& TRIS	= DB->get_tris();
-	xr_vector<Fvector>& VERTS	= DB->get_verts();
+	xr_vector<CDB::TRI>& TRIS	= DB->tris;
+	xr_vector<Fvector>& VERTS	= DB->verts;
 
 	int			slot_line	= S_rt_size/S_size;
 	

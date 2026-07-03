@@ -24,13 +24,19 @@ public:
 
 		OGF*	ogf;
 
-		u32		vb_id;
-		u32		vb_start;
-
-		u32		ib_id;
-		u32		ib_start;
-
-		u32		sw_id;
+		union
+		{
+			shared_str external_path;
+			struct
+			{
+				u32 vb_id;
+				u32 vb_start;
+				u32 ib_id;
+				u32 ib_start;
+				u32 sw_id;
+			};
+		};
+		
 		bool bSharedMaterial;
 	};
 

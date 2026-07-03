@@ -102,8 +102,8 @@ struct OGF_Base
 	virtual void		GetGeometry	(xr_vector<Fvector> &RES)	= 0;
 	void				CalcBounds	(bool useProgressBar=false); 
 
-	void				SaveForCompile(IWriter* W);
-	void				LoadForCompile(IReader* R);
+	/*void				SaveForCompile(IWriter* W);
+	void				LoadForCompile(IReader* R);*/
 
 	virtual size_t				SizeOF() { return sizeof(OGF_Base); };
 };
@@ -187,8 +187,8 @@ struct OGF : public OGF_Base
 			R.push_back(I->P);
 	}
 
-	void				SaveForCompile(IWriter* W);
-	void				LoadForCompile(IReader* R);
+	/*void				SaveForCompile(IWriter* W);
+	void				LoadForCompile(IReader* R);*/
 
 	virtual size_t SizeOF() override
 	{
@@ -215,11 +215,22 @@ struct OGF_Reference : public OGF_Base
 	u32					material;
 	vecOGF_T			textures;
 
-	u32					vb_id	;
-	u32					vb_start;
-	u32					ib_id	;
-	u32					ib_start;
-	u32					sw_id	;
+	union
+	{
+		struct
+		{
+			shared_str external_path;
+			u32 SplitID;
+		};
+		struct
+		{
+			u32 vb_id;
+			u32 vb_start;
+			u32 ib_id;
+			u32 ib_start;
+			u32 sw_id;
+		};
+	};
 
 	Fmatrix				xform;
 	base_color_c		c_scale;

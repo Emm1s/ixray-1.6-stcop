@@ -287,21 +287,62 @@ void CBuild::BuildCTree()
 	// Models
 	Status("Models...");
 	auto& mu_refs_arr = mu_refs();
-	xr_vector<AABBInstanceNoLeafTree::InstanceData> instances;
 	for (u32 ref = 0; ref < mu_refs_arr.size(); ref++)
 	{
 		Progress(float(ref) / float(mu_refs_arr.size()));
-		auto& Slot = instances.emplace_back();
-		Slot.tree = mu_refs_arr[ref]->model->CollisionModel.tree->GetCDBTree();
-		static_assert(sizeof(Fmatrix) == sizeof(Matrix4x4));
-		std::memcpy(&Slot.transform.m, mu_refs_arr[ref]->xform.m, sizeof(Matrix4x4));
-		//Slot.worldAABB = Slot.tree.
+		auto MUModel = mu_refs_arr[ref]->model;
+		
+		for (auto& elem : MUModel->CollisionModel.verts)
+		{
+			Fvector TransformedVert;
+			mu_refs_arr[ref]->xform.transform_tiny(TransformedVert,elem);
+			BB.modify(TransformedVert);
+		}
 	}
 
-	// bb?
-	BB.invalidate();
-	for (size_t it = 0; it < CL.getVS(); it++)
-		BB.modify(CL.getV()[it]);
+	// Saving
+	Status("Saving...");
+
+	xr_unique_ptr<XRay::CForm::IFormat> FormatPtr = nullptr;
+
+	switch (gCompilerMode.LC_CformType)
+	{
+		case CFormVersions::Instanced:
+		{
+			FormatPtr.reset(new XRay::CForm::CFormatVanilla());
+			break;
+		}
+		case CFormVersions::VanillaChunked:
+		{
+			size_t mem_bytes = CL.getTS()*sizeof(*CL.getT()) + CL.getVS()*sizeof(*CL.getV());
+			u32 Number = (mem_bytes / (1024ull*1024ull)) / gCompilerMode.LC_CFormChunkSize;
+			if (!Number)
+			{
+				FormatPtr.reset(new XRay::CForm::CFormatVanilla());
+			} else
+			{
+				FormatPtr.reset(new XRay::CForm::CFormatVanillaChunked(Number+1));
+			}
+			break;
+		}
+		default:
+		{
+			FATAL("Invalid CForm type!");
+		}
+	}
+
+	IVERIFY(FormatPtr.get());
+	FormatPtr->AddStaticGeom(CL.getVSpan(), CL.getTSpan());
+	xr_stack_string_path level_path = pBuild->path;
+	level_path.append("level");
+	XRay::CForm::Write(level_path.c_str(), *FormatPtr);
+ 
+	// Clear pDeflector (it is stored in the same memory space with dwMaterialGame)
+	for (vecFaceIt I = lc_global_data()->g_faces().begin(); I != lc_global_data()->g_faces().end(); I++)
+	{
+		Face* F = *I;
+		F->pDeflector = nullptr;
+	}
 }
 
 void CBuild::BuildPortals(IWriter& fs)

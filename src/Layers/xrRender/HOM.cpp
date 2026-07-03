@@ -123,24 +123,11 @@ void CHOM::Load()
 		rT.center.set(v0 + v1 + v2).div(3.f);
 	}
 
-	// Make cache
-	string_path LevelName;
-	xr_strconcat(LevelName, "level_cache\\", FS.get_path("$level$")->m_Add, "HOM.cache");
-	IReader* pReaderCache = CDB::GetModelCache(LevelName, crc);
-
 	// Create AABB-tree
 	m_pModel = new CDB::MODEL();
-
-	if (pReaderCache != nullptr)
-	{
-		m_pModel->build(CL.getV(), CL.getVS(), CL.getT(), CL.getTS(), nullptr, nullptr, pReaderCache, true);
-	}
-	else
-	{
-		IWriter* pWriterCache = FS.w_open("$app_data_root$", LevelName);
-		pWriterCache->w_u32(crc);
-		m_pModel->build(CL.getV(), CL.getVS(), CL.getT(), CL.getTS(), nullptr, nullptr, pWriterCache, false);
-	}
+	m_pModel->verts = CL.verts;
+	m_pModel->tris = CL.faces;
+	m_pModel->build_simple();
 
 	bEnabled = true;
 
@@ -244,8 +231,8 @@ void CHOM::Render_DB			(CFrustum& base)
 		{ T.skip=next; continue; }
 
 		// Access to triangle vertices
-		CDB::TRI& t		= m_pModel->get_tris()[it->id];
-		xr_vector<Fvector>& v = m_pModel->get_verts();
+		CDB::TRI& t		= m_pModel->tris[it->id];
+		xr_vector<Fvector>& v = m_pModel->verts;
 		src.clear		();	dst.clear	();
 		src.push_back	(v[t.verts[0]]);
 		src.push_back	(v[t.verts[1]]);
@@ -321,7 +308,7 @@ void CHOM::OnRender()
 
 			DebugRenderImpl.add_lines
 			(
-				m_pModel->get_verts().data(), m_pModel->get_verts().size(),
+				m_pModel->verts.data(), m_pModel->tris.size(),
 				pairs.data(), (u32)pairs.size() / 2, 0xFFFFFFFF
 			);
 		}

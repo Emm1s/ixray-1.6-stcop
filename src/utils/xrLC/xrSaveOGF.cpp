@@ -7,6 +7,7 @@
 SWIContainer g_SWI,x_SWI;
 VBContainer g_VB,x_VB;
 IBContainer g_IB,x_IB;
+xr_hash_map<xrMU_Model*, MUGeomData> g_MUGeomData;
 
 bool CBuild::IsOGFContainersEmpty()
 {
@@ -103,11 +104,13 @@ void CBuild::SaveTREE(IWriter& fs)
 		{
 		case GeomVanillaType::Vanilla:
 			{
+				VERIFY(!gCompilerMode.LC_UseExternalRefs);
 				FormatPtr.reset(new XRay::Geom::CGeomVanillaFormat);
 				break;
 			}
 		case GeomVanillaType::Chunked:
 			{
+				VERIFY(!gCompilerMode.LC_UseExternalRefs);
 				size_t mem_bytes = g_VB.size() + g_IB.size() + g_SWI.size();
 				u32 Number = (mem_bytes/(1024ull*1024ull))/gCompilerMode.LC_GeomChunkSize;
 				if (!Number)
@@ -143,11 +146,13 @@ void CBuild::SaveTREE(IWriter& fs)
 		{
 		case GeomVanillaType::Vanilla:
 			{
+				VERIFY(!gCompilerMode.LC_UseExternalRefs);
 				FormatPtr.reset(new XRay::Geom::CGeomVanillaFormat);
 				break;
 			}
 		case GeomVanillaType::Chunked:
 			{
+				VERIFY(!gCompilerMode.LC_UseExternalRefs);
 				size_t mem_bytes = x_VB.size() + x_IB.size() + x_SWI.size();
 				u32 Number = (mem_bytes/(1024ull*1024ull))/gCompilerMode.LC_GeomChunkSize;
 				if (!Number)

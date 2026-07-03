@@ -1,4 +1,9 @@
 #include "stdafx.h"
+
+#include <embree4/rtcore_ray.h>
+#include <embree4/rtcore_scene.h>
+#include <embree4/rtcore_common.h>
+
 #include "xrCDB.h"
 #include "override/Model.h"
 #include "cl_intersect.h"
@@ -67,7 +72,7 @@ struct cform_ray_collider final
 		}
 		else
  		{
-			RESULT& R	= dest->r_add();				// По порядку создает RESULT
+			RESULT& R	= dest->r_add();				// пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ RESULT
 			R.id		= prim;
 			R.range		= r;
 			R.u			= u;
@@ -111,11 +116,50 @@ struct cform_ray_collider final
 void COLLIDER::ray_query(const MODEL* m_def, const Fvector& r_start, const Fvector& r_dir, float r_range)
 {
 	PROF_EVENT("COLLIDER::ray_query");
-	if (!m_def || m_def->tree == nullptr)
+	if (!m_def || !m_def->InstaceScene)
+	{
 		return;
+	}
 
-	m_def->wait_loading();
 	// Get nodes
+	RTCRayHit ray;
+	ray.ray.org_x = r_start.x;
+	ray.ray.org_y = r_start.y;
+	ray.ray.org_z = r_start.z;
+	ray.ray.dir_x = r_dir.x;
+	ray.ray.dir_y = r_dir.y;
+	ray.ray.dir_z = r_dir.z;
+	ray.ray.tnear = 0.0f;
+	ray.ray.tfar = r_range;
+	ray.ray.mask = -1;
+	ray.ray.flags = 0;
+	ray.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+	
+	
+	if(!!(ray_mode & OPT_ONLYFIRST))
+	{
+		RTCOccludedArguments args;
+		rtcInitOccludedArguments(&args);
+		rtcOccluded1(m_def->InstaceScene, &ray, &args);
+	} else
+	{
+		RTCIntersectArguments args;
+		rtcInitIntersectArguments(&args);
+		struct Filter
+		{
+			static void Execute(const RTCFilterFunctionNArguments* args)
+			{
+				VERIFY(args->N == 1);
+				auto model = (MODEL*)args->geometryUserPtr;
+				
+				
+			}
+		};
+		args.filter = Filter::Execute;
+		args.flags = RTC_RAY_QUERY_FLAG_INVOKE_ARGUMENT_FILTER;
+		rtcIntersect1(m_def->InstaceScene, &ray, &args);
+	}
+	
 	const AABBNoLeafTree* T = (const AABBNoLeafTree*)m_def->tree->GetTree();
 	const AABBNoLeafNode* N = T->GetNodes();
 

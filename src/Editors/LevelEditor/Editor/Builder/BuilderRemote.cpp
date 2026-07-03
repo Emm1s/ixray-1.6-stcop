@@ -1108,15 +1108,6 @@ bool SceneBuilder::BuildMUObjectModel(CSceneObject* obj)
 			CollisionVerts = CL.getV_Vec();
 			CollisionTris = CL.getT_Vec();
 		}
-		if (CollisionVerts.size() >= 4 && CollisionTris.size() >= 2)
-		{
-			Collision.build(
-				CollisionVerts.data(), CollisionVerts.size(), CollisionTris.data(), CollisionTris.size(),
-				nullptr, nullptr, nullptr, false, false);
-			Slot.raw_data.resize(Collision.memory());
-			CBufferMemoryWriter Writer(Slot.raw_data);
-			Collision.tree->GetCDBTree()->Store(&Writer);
-		}
 	}
 
 	l_mu_refs.push_back	(b_mu_reference());

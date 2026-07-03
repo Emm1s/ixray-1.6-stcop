@@ -1,6 +1,8 @@
 #include "stdafx.h"
 #include "CFormIO.h"
 
+#include <embree4/rtcore_scene.h>
+
 using namespace XRay;
 
 CForm::ChunkHeader& CForm::IFormat::GetHeader()
@@ -23,6 +25,14 @@ CForm::CFormatVanilla::CFormatVanilla()
     Header.version = CFormVersions::Vanilla;
 }
 
+CForm::CFormatVanilla::~CFormatVanilla()
+{
+	if (FileReader)
+	{
+		xr_delete(FileReader);
+	}
+}
+
 bool CForm::CFormatVanilla::Write(xr_string_view FileName)
 {
     xr_stack_string_path Path = FileName.data();
@@ -35,8 +45,8 @@ bool CForm::CFormatVanilla::Write(xr_string_view FileName)
     }
 
     Writer->w(&Header, sizeof(Header));
-    Writer->w(Data.Verts.data(), Data.Verts.size()*sizeof(Fvector));
-    Writer->w(Data.Tris.data(), Data.Tris.size()*sizeof(CDB::TRI));
+    Writer->w(VertsPtr, Header.vertcount*sizeof(Fvector));
+    Writer->w(TrisPtr, Header.facecount*sizeof(CDB::TRI));
     
     return true;
 }
@@ -46,23 +56,22 @@ bool CForm::CFormatVanilla::Read(xr_string_view FileName)
     xr_stack_string_path Path = FileName.data();
     Path.append(".cform");
 
-    auto Reader = FS.rg_open(Path.c_str());
-    if (!I_ASSERT_M(Reader, "Unable to open file [%s]", Path.c_str()))
+    FileReader = FS.r_open(Path.c_str());
+    if (!I_ASSERT_M(FileReader, "Unable to open file [%s]", Path.c_str()))
     {
         return false;
     }
 
-    FileHash = crc32(Reader->pointer(), Reader->length());
+    FileHash = crc32(FileReader->pointer(), FileReader->length());
     
-    Reader->r(&Header, sizeof(Header));
+    FileReader->r(&Header, sizeof(Header));
     if (!I_ASSERT(Header.version == CFormVersions::Vanilla || Header.version == CFormVersions::VanillaChunkedData))
     {
         return false;
     }
-    Data.Verts.resize(Header.vertcount);
-    Data.Tris.resize(Header.facecount);
-    Reader->r(Data.Verts.data(), Data.Verts.size()*sizeof(Fvector));
-    Reader->r(Data.Tris.data(), Data.Tris.size()*sizeof(CDB::TRI));
+	VertsPtr = (Fvector*)FileReader->pointer();
+	FileReader->advance(Header.vertcount*sizeof(Fvector));
+	TrisPtr = (CDB::TRI*)FileReader->pointer();
 
     return true;
 }
@@ -76,10 +85,8 @@ void CForm::CFormatVanilla::AddStaticGeom(xr_span<Fvector> Verts, xr_span<CDB::T
     {
         Header.aabb.modify(elem);
     }
-    Data.Tris.resize(Tris.size());
-    std::memcpy(Data.Tris.data(), Tris.data(), sizeof(CDB::TRI) * Tris.size());
-    Data.Verts.resize(Verts.size());
-    std::memcpy(Data.Verts.data(), Verts.data(), sizeof(Fvector) * Verts.size());
+	VertsPtr = Verts.data();
+	TrisPtr = Tris.data();
 }
 
 void CForm::CFormatVanilla::GetStaticGeom(xr_vector<Fvector>& OutVertices, xr_vector<CDB::TRI>& OutTris) const
@@ -88,8 +95,37 @@ void CForm::CFormatVanilla::GetStaticGeom(xr_vector<Fvector>& OutVertices, xr_ve
     OutTris.clear();
     OutVertices.resize(Header.vertcount);
     OutTris.resize(Header.facecount);
-    std::memcpy(OutVertices.data(), Data.Verts.data(), sizeof(Fvector) * OutVertices.size());
-    std::memcpy(OutTris.data(), Data.Tris.data(), sizeof(CDB::TRI) * OutTris.size());
+    std::memcpy(OutVertices.data(), VertsPtr, sizeof(Fvector) * OutVertices.size());
+    std::memcpy(OutTris.data(), TrisPtr, sizeof(CDB::TRI) * OutTris.size());
+}
+
+void CForm::CFormatVanilla::ReadData(CDB::MODEL& Model, CDB::build_callback* bc, void* bcp) const
+{
+	Model.verts.resize(Header.vertcount);
+	std::memcpy(Model.verts.data(), VertsPtr, sizeof(Fvector) * Header.vertcount);
+	Model.tris.resize(Header.facecount);
+	std::memcpy(Model.tris.data(), TrisPtr, sizeof(CDB::TRI) * Header.facecount);
+	
+	if (bc)
+	{
+		bc(Model.verts.data(), Header.vertcount, Model.tris.data(), Header.facecount, bcp);
+	}
+	
+	auto& EmbreeDevice = CDB::GetEmbreeDevice();
+	Model.InstaceScene = rtcNewScene(CDB::GetEmbreeDevice());
+	rtcSetSceneBuildQuality(Model.InstaceScene, RTC_BUILD_QUALITY_HIGH);
+	
+	RTCGeometry BatchedGeometry = rtcNewGeometry(EmbreeDevice, RTC_GEOMETRY_TYPE_TRIANGLE);
+	
+	rtcSetSharedGeometryBuffer(BatchedGeometry, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, VertsPtr, 0, sizeof(Fvector), Header.vertcount);
+	rtcSetSharedGeometryBuffer(BatchedGeometry, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, TrisPtr, 0, sizeof(CDB::TRI), Header.facecount);
+	
+	rtcCommitGeometry(BatchedGeometry);
+	
+	rtcAttachGeometry(Model.InstaceScene, BatchedGeometry);
+	rtcReleaseGeometry(BatchedGeometry);
+	
+	rtcCommitScene(Model.InstaceScene);
 }
 
 CForm::CFormatVanillaChunked::CFormatVanillaChunked(u32 ChunkNumber)
@@ -212,8 +248,8 @@ void CForm::CFormatVanillaChunked::GetStaticGeom(xr_vector<Fvector>& OutVertices
 #ifdef IXR_WINDOWS
     for (auto& elem : Data)
     {
-        OutVertices.append_range(elem.Data.Verts);
-        OutTris.append_range(elem.Data.Tris);
+        OutVertices.append_range(xr_span<Fvector>{elem.VertsPtr, elem.GetHeader().vertcount});
+        OutTris.append_range(xr_span<CDB::TRI>{elem.TrisPtr, elem.GetHeader().facecount});
     }
 #else
 #pragma todo("FX: Wait C++23...")
@@ -230,6 +266,182 @@ void CForm::CFormatVanillaChunked::GetStaticGeom(xr_vector<Fvector>& OutVertices
         }
     }
 #endif
+}
+
+void CForm::CFormatVanillaChunked::ReadData(CDB::MODEL& Model, CDB::build_callback* bc, void* bcp) const
+{
+	GetStaticGeom(Model.verts, Model.tris);
+	
+	if (bc)
+	{
+		bc(Model.verts.data(), Header.vertcount, Model.tris.data(), Header.facecount, bcp);
+	}
+	
+	Model.build_simple();
+}
+
+CForm::CFormatInstanced::CFormatInstanced()
+{
+	Header.version = CFormVersions::Instanced;
+}
+
+CForm::CFormatInstanced::~CFormatInstanced()
+{
+	if (FileReader)
+	{
+		xr_delete(FileReader);
+	}
+}
+
+bool CForm::CFormatInstanced::Write(xr_string_view FileName)
+{
+	xr_stack_string_path Path = FileName.data();
+	Path.append(".cform");
+    
+	auto Writer = FS.wg_open(Path.c_str());
+	if (!I_ASSERT(Writer))
+	{
+		return false;
+	}
+
+	Writer->w(&Header, sizeof(Header));
+	Writer->w(VertsPtr, Header.vertcount*sizeof(Fvector));
+	Writer->w(TrisPtr, Header.facecount*sizeof(CDB::TRI));
+	
+	Writer->w_u64(instances.size());
+	for (auto& elem : instances)
+	{
+		Writer->w_stringZ(elem.first);
+		Writer->w_u64(elem.second.size());
+		Writer->w(elem.second.data(), elem.second.size()*sizeof(Fmatrix));
+	}
+    
+	return true;
+}
+
+bool CForm::CFormatInstanced::Read(xr_string_view FileName)
+{
+	xr_stack_string_path Path = FileName.data();
+	Path.append(".cform");
+
+	FileReader = FS.r_open(Path.c_str());
+	if (!I_ASSERT_M(FileReader, "Unable to open file [%s]", Path.c_str()))
+	{
+		return false;
+	}
+
+	FileHash = crc32(FileReader->pointer(), FileReader->length());
+    
+	FileReader->r(&Header, sizeof(Header));
+	if (!I_ASSERT(Header.version == CFormVersions::Vanilla || Header.version == CFormVersions::VanillaChunkedData))
+	{
+		return false;
+	}
+	VertsPtr = (Fvector*)FileReader->pointer();
+	FileReader->advance(Header.vertcount*sizeof(Fvector));
+	TrisPtr = (CDB::TRI*)FileReader->pointer();
+	FileReader->advance(Header.facecount*sizeof(CDB::TRI));
+	
+	size_t InstancesCount = FileReader->r_u64();
+	for (size_t i = 0; i < InstancesCount; ++i)
+	{
+		shared_str ObjectName;
+		FileReader->r_stringZ(ObjectName);
+		auto& Slot = instances[ObjectName];
+		
+		size_t xformCount = FileReader->r_u64();
+		Slot.resize(xformCount);
+		std::memcpy(Slot.data(), FileReader->pointer(), xformCount * sizeof(Fmatrix));
+		FileReader->advance(xformCount * sizeof(Fmatrix));
+	}
+
+	return true;
+}
+
+void CForm::CFormatInstanced::AddStaticGeom(xr_span<Fvector> Verts, xr_span<CDB::TRI> Tris)
+{
+	Header.vertcount = Verts.size();
+	Header.facecount = Tris.size();
+	Header.aabb.invalidate();
+	for (auto& elem : Verts)
+	{
+		Header.aabb.modify(elem);
+	}
+	VertsPtr = Verts.data();
+	TrisPtr = Tris.data();
+}
+
+void CForm::CFormatInstanced::AddInstanceRef(shared_str Path, const Fmatrix& xform)
+{
+	instances.try_emplace(Path).first->second.push_back(xform);
+}
+
+void CForm::CFormatInstanced::GetStaticGeom(xr_vector<Fvector>& OutVertices, xr_vector<CDB::TRI>& OutTris) const
+{
+	VERIFY(false);
+}
+
+void CForm::CFormatInstanced::ReadData(CDB::MODEL& Model, CDB::build_callback* bc, void* bcp) const
+{
+	for (auto& elem : instances)
+	{
+		auto& Slot = Model.instances[ReadInstance(elem.first, bc, bcp)];
+		Slot = elem.second;
+	}
+	
+	Model.verts.resize(Header.vertcount);
+	std::memcpy(Model.verts.data(), VertsPtr, sizeof(Fvector) * Header.vertcount);
+	Model.tris.resize(Header.facecount);
+	std::memcpy(Model.tris.data(), TrisPtr, sizeof(CDB::TRI) * Header.facecount);
+	
+	if (bc)
+	{
+		bc(Model.verts.data(), Header.vertcount, Model.tris.data(), Header.facecount, bcp);
+	}
+	
+	auto& EmbreeDevice = CDB::GetEmbreeDevice();
+	Model.InstaceScene = rtcNewScene(CDB::GetEmbreeDevice());
+	rtcSetSceneBuildQuality(Model.InstaceScene, RTC_BUILD_QUALITY_HIGH);
+	
+	for (auto& elem : Model.instances)
+	{
+		auto InstanceScene = rtcNewScene(EmbreeDevice);
+		rtcSetSceneBuildQuality(InstanceScene, RTC_BUILD_QUALITY_HIGH);
+		
+		RTCGeometry InstanceGeometry = rtcNewGeometry(EmbreeDevice, RTC_GEOMETRY_TYPE_TRIANGLE);
+	
+		rtcSetSharedGeometryBuffer(InstanceGeometry, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, elem.first->verts.data(), 0, sizeof(Fvector), elem.first->verts.size());
+		rtcSetSharedGeometryBuffer(InstanceGeometry, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, elem.first->tris.data(), 0, sizeof(CDB::TRI), elem.first->tris.size());
+	
+		rtcCommitGeometry(InstanceGeometry);
+	
+		rtcAttachGeometry(InstanceScene, InstanceGeometry);
+		rtcReleaseGeometry(InstanceGeometry);
+		
+		rtcCommitScene(InstanceScene);
+		
+		for (auto& xform : elem.second)
+		{
+			auto InstanceOnLevel = rtcNewGeometry(EmbreeDevice, RTC_GEOMETRY_TYPE_INSTANCE);
+			rtcSetGeometryInstancedScene(InstanceOnLevel, InstanceScene);
+			rtcSetGeometryTransform(InstanceOnLevel, 0, RTC_FORMAT_FLOAT4X4_ROW_MAJOR, &xform);
+			
+			rtcAttachGeometry(Model.InstaceScene, InstanceOnLevel);
+			rtcReleaseGeometry(InstanceOnLevel);
+		}
+	}
+	
+	RTCGeometry BatchedGeometry = rtcNewGeometry(EmbreeDevice, RTC_GEOMETRY_TYPE_TRIANGLE);
+	
+	rtcSetSharedGeometryBuffer(BatchedGeometry, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, VertsPtr, 0, sizeof(Fvector), Header.vertcount);
+	rtcSetSharedGeometryBuffer(BatchedGeometry, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, TrisPtr, 0, sizeof(CDB::TRI), Header.facecount);
+	
+	rtcCommitGeometry(BatchedGeometry);
+	
+	rtcAttachGeometry(Model.InstaceScene, BatchedGeometry);
+	rtcReleaseGeometry(BatchedGeometry);
+	
+	rtcCommitScene(Model.InstaceScene);
 }
 
 XRCORE_API xr_unique_ptr<CForm::IFormat> CForm::Read(const char* Initial, xr_string_view Filename)

@@ -58,6 +58,7 @@ enum OGF_Chuncks {
 	// New
 	OGF_SHARED_MATERIAL_SETTINGS,
 	OGF_DEBUG_DATA,
+	OGF_GCONTAINER_MU_EXTERNAL,
 	
     OGF_forcedword			= 0xFFFFFFFF         
 };							
