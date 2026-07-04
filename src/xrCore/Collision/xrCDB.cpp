@@ -562,10 +562,10 @@ struct cform_box_collider final
 void COLLIDER::box_query(const MODEL *m_def, const Fbox& _box)
 {
 	PROF_EVENT("COLLIDER::box_query");
-	if (!m_def || m_def->tree == nullptr)
+	/*if (!m_def || m_def->tree == nullptr)
 		return;
 
-	m_def->wait_loading();
+	m_def->wait_loading();*/
 
 	r_clear();
 	r_vec().reserve(16);
@@ -593,77 +593,69 @@ struct cform_obb_collider final
 	bool bClass3 = false;
 	bool bFirst = false;
 
-	ICF void _prim(ElementID prim)
+	ICF void Prim(ElementID prim)
 	{
 		VERIFY(prim.IsNotPointer);
 		if (prim.IsInstance)
 		{
 			auto& CurModel = stack->GetCurrentTree();
 			auto& Instances = CurModel.get_instances();
-			VERIFY(prim.Index < Instances.size());
-			auto& InstanceInvTransform = Instances[prim.Index].InvTransform;
-			auto& InstanceModel = CurModel.get_models()[Instances[prim.Index].ModelIndex];
-			stack->Push(InstanceModel);
-			
-			Fobb localOBB;
-			localOBB.transform(obb, InstanceInvTransform);
-			
-			if (false /*no rot and scale*/)
+			auto& Prototype = Instances[prim.Index];
+			auto& Models = CurModel.get_models();
+			auto& ChildModel = Models[Prototype.ModelIndex];
+			stack->Push(ChildModel);
+			xr_scope_exit g = [&]()
 			{
-				
-			}
-			else if (false /*uniform transform*/)
+				stack->Pop();
+			};
+
+			// TODO: SAT test will always works fine, but there are soem ways to optimize this
+			CFrustum LocalF;
+			auto PlaneFunc = [&](Fvector n, float d)
 			{
-				
-			}
-			else
-			{
-				xr_vector<RESULT> RawResults = {};
-				cform_box_collider InstanceCollider{
-					&RawResults,
-					stack,
-					{},
-					bClass3,
-					bFirst,
-				};
-				
-				Fvector aX = localOBB.m_rotate.i * localOBB.m_halfsize.x;
-				Fvector aY = localOBB.m_rotate.j * localOBB.m_halfsize.y;
-				Fvector aZ = localOBB.m_rotate.k * localOBB.m_halfsize.z;
-				
-				InstanceCollider.box.modify(localOBB.m_translate + aX + aY + aZ);
-				InstanceCollider.box.modify(localOBB.m_translate + aX + aY - aZ);
-				InstanceCollider.box.modify(localOBB.m_translate + aX - aY + aZ);
-				InstanceCollider.box.modify(localOBB.m_translate + aX - aY - aZ);
-				InstanceCollider.box.modify(localOBB.m_translate - aX + aY + aZ);
-				InstanceCollider.box.modify(localOBB.m_translate - aX + aY - aZ);
-				InstanceCollider.box.modify(localOBB.m_translate - aX - aY + aZ);
-				InstanceCollider.box.modify(localOBB.m_translate - aX - aY - aZ);
-				
-				_stab(InstanceModel.tree->GetNodes()[0]);
-				
-				
-				
-			}
-			
+				Fplane LocalPlane = {n, d};
+				Prototype.Transform.transform_dir(LocalPlane.n);
+				LocalPlane.d += Prototype.Transform.c.dotproduct(n);
+				LocalF._add(LocalPlane);
+			};
+			PlaneFunc(obb.m_rotate.i, -(obb.m_rotate.i*obb.m_translate + obb.m_halfsize.x));
+			PlaneFunc(-obb.m_rotate.i, obb.m_rotate.i*obb.m_translate - obb.m_halfsize.x);
+			PlaneFunc(obb.m_rotate.j, -(obb.m_rotate.j*obb.m_translate + obb.m_halfsize.y));
+			PlaneFunc(-obb.m_rotate.j, obb.m_rotate.j*obb.m_translate - obb.m_halfsize.y);
+			PlaneFunc(obb.m_rotate.k, -(obb.m_rotate.k*obb.m_translate + obb.m_halfsize.z));
+			PlaneFunc(-obb.m_rotate.k, obb.m_rotate.k*obb.m_translate - obb.m_halfsize.z);
+
+			cform_frustum_collider BC{
+				dest,
+				stack,
+				&LocalF,
+				bClass3,
+				bFirst
+			};
+			BC.Stab(ChildModel.tree->GetNodes()[0], LocalF.getMask());
 			return;
 		}
-		auto& Tri = tris[prim];
+		
+		auto& CurModel = stack->GetCurrentTree();
+		auto& Tri = CurModel.tris[prim.Index];
 		auto& TriVerts = Tri.verts;
-		Fvector tri_verts[3] = { verts[TriVerts[0]], verts[TriVerts[1]], verts[TriVerts[2]] };
+		Fvector tri_verts[3] = {
+			CurModel.verts[TriVerts[0]],
+			CurModel.verts[TriVerts[1]],
+			CurModel.verts[TriVerts[2]]
+		};
 
 		if (!obb.intersectTri(tri_verts, bClass3))
+		{
 			return;
+		}
 
-		RESULT& R = dest->r_add();
-		R.id = prim;
-		R.verts[0] = tri_verts[0];
-		R.verts[1] = tri_verts[1];
-		R.verts[2] = tri_verts[2];
-		R.dummy = Tri.dummy;
+		RESULT& R = dest->emplace_back();
+		R.model = &CurModel;
+		R.tris_id = prim.Index;
 	}
 
-	void _stab(const BVHNode& node)
+	void Stab(const BVHNode& node)
 	{
 		VERIFY(dest);
 		VERIFY(stack);
@@ -677,15 +669,15 @@ struct cform_obb_collider final
 		// 1st child
 		if (node.HasPosNode())
 		{
-			_stab(node.GetPosNode());
+			Stab(node.GetPosNode());
 		}
 		else
 		{
-			_prim(node.GetPos());
+			Prim(node.GetPos());
 		}
 
 		// Early exit for "only first"
-		if (bFirst && dest->r_count())
+		if (bFirst && dest->size())
 		{
 			return;
 		}
@@ -693,11 +685,11 @@ struct cform_obb_collider final
 		// 2nd child
 		if (node.HasNegNode())
 		{
-			_stab(node.GetNegNode());
+			Stab(node.GetNegNode());
 		}
 		else
 		{
-			_prim(node.GetNeg());
+			Prim(node.GetNeg());
 		}
 	}
 };
@@ -705,17 +697,20 @@ struct cform_obb_collider final
 void COLLIDER::obb_query(const MODEL* m_def, const Fobb& obb)
 {
 	PROF_EVENT("COLLIDER::obb_query");
-	if (!m_def || m_def->tree == nullptr)
+	/*if (!m_def || m_def->tree == nullptr)
 		return;
 
 	m_def->wait_loading();
 
 	// Get nodes
 	const AABBNoLeafTree* T = (const AABBNoLeafTree*)m_def->tree->GetTree();
-	const AABBNoLeafNode* N = T->GetNodes();
+	const AABBNoLeafNode* N = T->GetNodes();*/
 
 	r_clear();
 	r_vec().reserve(16);
+	
+	// Get nodes
+	auto& Nodes = m_def->tree->GetNodes();
 
 	cform_stack S = *m_def;
 	cform_obb_collider OC
@@ -726,7 +721,7 @@ void COLLIDER::obb_query(const MODEL* m_def, const Fobb& obb)
 		!!(obb_mode & OPT_FULL_TEST),
 		!!(obb_mode & OPT_ONLYFIRST)
 	};
-	OC._stab(N);
+	OC.Stab(Nodes[0]);
 }
 
 struct cform_sphere_collider final
