@@ -608,11 +608,11 @@ void ComputeOBB_WML		(Fobb &B, FvectorVec& V)
 		float hv			= BOX.Extents()[0]*BOX.Extents()[1]*BOX.Extents()[2];
 		if (hv<HV){
 			HV 				= hv;
-			B.m_rotate.i.set(BOX.Axis(0));
-			B.m_rotate.j.set(BOX.Axis(1));
-			B.m_rotate.k.set(BOX.Axis(2));
+			B.m_rotate.i.set((float*)BOX.Axis(0));
+			B.m_rotate.j.set((float*)BOX.Axis(1));
+			B.m_rotate.k.set((float*)BOX.Axis(2));
 
-			B.m_translate.set(BOX.Center());
+			B.m_translate.set((float*)BOX.Center());
 			B.m_halfsize.set(BOX.Extents()[0],BOX.Extents()[1],BOX.Extents()[2]);
 		}
 	}
