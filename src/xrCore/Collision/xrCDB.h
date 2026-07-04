@@ -57,6 +57,13 @@ namespace CDB
 	// Model definition
 	XRCORE_API IReader* GetModelCache(string_path Name, u32 crc);
 	XRCORE_API IReader* GetModelCache(const xr_stack_string_path& Name, u32 crc);
+
+	struct InstanceData
+	{
+		Fmatrix Transform;
+		Fmatrix InvTransform;
+		size_t ModelIndex;
+	};
 	
 	class XRCORE_API MODEL final
 	{
@@ -76,6 +83,13 @@ namespace CDB
 
 		ICF xr_vector<Fvector>& get_verts() { return verts; }
 		ICF xr_vector<TRI>& get_tris() { return tris; }
+		ICF xr_vector<MODEL>& get_models() { return models; }
+		ICF xr_vector<InstanceData>& get_instances() { return Instances; }
+		
+		ICF const xr_vector<Fvector>& get_verts() const { return verts; }
+		ICF const xr_vector<TRI>& get_tris() const { return tris; }
+		ICF const xr_vector<MODEL>& get_models() const { return models; }
+		ICF const xr_vector<InstanceData>& get_instances() const { return Instances; }
 
 		ICF void wait_loading() const
 		{
