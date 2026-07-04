@@ -464,35 +464,71 @@ struct cform_box_collider final
 	Fbox box;
 	bool bClass3, bFirst;
 
-	ICF void _prim(ElementID prim)
+	ICF void Prim(ElementID InPrim)
 	{
-		VERIFY(prim.IsNotPointer);
-		if (prim.IsInstance)
+		VERIFY(InPrim.IsNotPointer);
+		if (InPrim.IsInstance)
 		{
-			auto& CurModel = GetCurrentTree();
-			IVERIFY(++CurrentIndex < m_def_array.size());
-			CurModel
+			auto& CurModel = stack->GetCurrentTree();
+			auto& Instances = CurModel.get_instances();
+			auto& Prototype = Instances[InPrim.Index];
+			auto& Models = CurModel.get_models();
+			auto& ChildModel = Models[Prototype.ModelIndex];
+			stack->Push(ChildModel);
+			xr_scope_exit g = [&]()
+			{
+				stack->Pop();
+			};
+
+			// TODO: SAT test will always works fine, but there are soem ways to optimize this
+			CFrustum LocalF;
+			auto PlaneFunc = [&](Fvector n, float d)
+			{
+				Fplane LocalPlane = {n, d};
+				Prototype.Transform.transform_dir(LocalPlane.n);
+				LocalPlane.d += Prototype.Transform.c.dotproduct(n);
+				LocalF._add(LocalPlane);
+			};
+			PlaneFunc({1,0,0}, -box.min.x);
+			PlaneFunc({-1,0,0}, box.max.x);
+			PlaneFunc({0,1,0}, -box.min.y);
+			PlaneFunc({0,-1,0}, box.max.y);
+			PlaneFunc({0,0,1}, -box.min.z);
+			PlaneFunc({0,0,-1,}, box.max.z);
+
+			cform_frustum_collider FC{
+				dest,
+				stack,
+				&LocalF,
+				bClass3,
+				bFirst
+			};
+			FC.Stab(ChildModel.tree->GetNodes()[0], LocalF.getMask());
 			return;
 		}
 		
-		auto& Tri = tris[prim];
+		auto& CurModel = stack->GetCurrentTree();
+		auto& Tri = CurModel.tris[InPrim.Index];
 		auto& TriVerts = Tri.verts;
-		Fvector tri_verts[3] = { verts[TriVerts[0]], verts[TriVerts[1]], verts[TriVerts[2]] };
+		Fvector tri_verts[3] = {
+			CurModel.verts[TriVerts[0]],
+			CurModel.verts[TriVerts[1]],
+			CurModel.verts[TriVerts[2]]
+		};
 		if (!box.intersectTri(tri_verts, bClass3))
+		{
 			return;
-		RESULT& R = dest->r_add();
-		R.id = prim;
-		R.verts[0] = tri_verts[0];
-		R.verts[1] = tri_verts[1];
-		R.verts[2] = tri_verts[2];
-		R.dummy = Tri.dummy;
+		}
+
+		RESULT& R = dest->emplace_back();
+		R.model = &CurModel;
+		R.tris_id = InPrim.Index;
 	}
-	void _stab(const BVHNode& node)
+	
+	void Stab(const BVHNode& node)
 	{
 		// Actual box-box test
-		Fvector center, extents;
-		node.GetAABB().get_CD(center, extents);
-		if (!box.intersect(Fbox{center-extents,center+extents}))
+		if (!box.intersect(node.GetAABB()))
 		{
 			return;
 		}
@@ -500,14 +536,14 @@ struct cform_box_collider final
 		// 1st chield
 		if (node.HasPosNode())
 		{
-			_stab(node.GetPosNode());
+			Stab(node.GetPosNode());
 		} else
 		{
-			_prim(node.GetPos());
+			Prim(node.GetPos());
 		}
 		
 		// Early exit for "only first"
-		if (bFirst && dest->r_count())
+		if (bFirst && dest->size())
 		{
 			return;
 		}
@@ -515,10 +551,10 @@ struct cform_box_collider final
 		// 2nd chield
 		if (node.HasNegNode())
 		{
-			_stab(node.GetNegNode());
+			Stab(node.GetNegNode());
 		} else
 		{
-			_prim(node.GetNeg());
+			Prim(node.GetNeg());
 		}
 	}
 };
@@ -539,12 +575,12 @@ void COLLIDER::box_query(const MODEL *m_def, const Fbox& _box)
 
 	cform_stack S = *m_def;
 	cform_box_collider BC{};
-	BC.dest = this;
+	BC.dest = &rd;
 	BC.stack = &S;
 	BC.box = _box;
 	BC.bClass3 = box_mode & OPT_FULL_TEST;
 	BC.bFirst = box_mode & OPT_ONLYFIRST;
-	BC._stab(Nodes[0]);
+	BC.Stab(Nodes[0]);
 }
 
 struct cform_obb_collider final
