@@ -71,12 +71,10 @@ namespace CDB
 		RTCScene InstaceScene;
 		xr_vector<TRI> tris;
 		xr_vector<Fvector> verts;
-		xr_hash_map<MODEL*, xr_vector<Fmatrix>> instances;
+		xr_vector<MODEL*> models;
+		xr_vector<InstanceData> instances;
 		const MODEL* Parent = nullptr;
-		//Fmatrix SelfTransform{Fmatrix::EIdentity::Identity};
-		mutable xr_atomic_u32 status = S_INIT;		// 0=ready, 1=init, 2=building
-		mutable xr_task_group load_task;
-	public:
+
 		BVHModel* tree = nullptr;
 		
 		~MODEL();
@@ -106,7 +104,7 @@ namespace CDB
 	// Collider result
 	struct XRCORE_API RESULT final
 	{
-		Fmatrix ParentTransform{Fmatrix::EIdentity::Identity};
+		//Fmatrix ParentTransform{Fmatrix::EIdentity::Identity};
 		const MODEL* model;
 		size_t tris_id;
 		float range, u, v;

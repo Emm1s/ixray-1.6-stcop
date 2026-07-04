@@ -390,8 +390,13 @@ void CForm::CFormatInstanced::ReadData(CDB::MODEL& Model, CDB::build_callback* b
 	{
 		auto InstanceMesh = ReadInstance(elem.first, bc, bcp);
 		InstanceMesh->Parent = &Model;
-		auto& Slot = Model.instances[InstanceMesh];
-		Slot = elem.second;
+		Model.models.emplace_back(InstanceMesh);
+		for(auto& trans : elem.second)
+		{
+			Fmatrix Inv = trans;
+			Inv.invert();
+			Model.instances.emplace_back(trans, Inv, Model.models.size()-1);
+		}
 	}
 	
 	Model.verts.resize(Header.vertcount);
@@ -405,50 +410,6 @@ void CForm::CFormatInstanced::ReadData(CDB::MODEL& Model, CDB::build_callback* b
 	}
 
 	Model.build_simple();
-	
-	/*auto& EmbreeDevice = CDB::GetEmbreeDevice();
-	Model.InstaceScene = rtcNewScene(CDB::GetEmbreeDevice());
-	rtcSetSceneBuildQuality(Model.InstaceScene, RTC_BUILD_QUALITY_HIGH);
-	
-	for (auto& elem : Model.instances)
-	{
-		auto InstanceScene = rtcNewScene(EmbreeDevice);
-		rtcSetSceneBuildQuality(InstanceScene, RTC_BUILD_QUALITY_HIGH);
-		
-		RTCGeometry InstanceGeometry = rtcNewGeometry(EmbreeDevice, RTC_GEOMETRY_TYPE_TRIANGLE);
-	
-		rtcSetSharedGeometryBuffer(InstanceGeometry, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, elem.first->verts.data(), 0, sizeof(Fvector), elem.first->verts.size());
-		rtcSetSharedGeometryBuffer(InstanceGeometry, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, elem.first->tris.data(), 0, sizeof(CDB::TRI), elem.first->tris.size());
-	
-		rtcCommitGeometry(InstanceGeometry);
-	
-		rtcAttachGeometry(InstanceScene, InstanceGeometry);
-		rtcReleaseGeometry(InstanceGeometry);
-		
-		rtcCommitScene(InstanceScene);
-		
-		for (auto& xform : elem.second)
-		{
-			auto InstanceOnLevel = rtcNewGeometry(EmbreeDevice, RTC_GEOMETRY_TYPE_INSTANCE);
-			rtcSetGeometryInstancedScene(InstanceOnLevel, InstanceScene);
-			rtcSetGeometryTransform(InstanceOnLevel, 0, RTC_FORMAT_FLOAT4X4_ROW_MAJOR, &xform);
-			
-			rtcAttachGeometry(Model.InstaceScene, InstanceOnLevel);
-			rtcReleaseGeometry(InstanceOnLevel);
-		}
-	}
-	
-	RTCGeometry BatchedGeometry = rtcNewGeometry(EmbreeDevice, RTC_GEOMETRY_TYPE_TRIANGLE);
-	
-	rtcSetSharedGeometryBuffer(BatchedGeometry, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, VertsPtr, 0, sizeof(Fvector), Header.vertcount);
-	rtcSetSharedGeometryBuffer(BatchedGeometry, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, TrisPtr, 0, sizeof(CDB::TRI), Header.facecount);
-	
-	rtcCommitGeometry(BatchedGeometry);
-	
-	rtcAttachGeometry(Model.InstaceScene, BatchedGeometry);
-	rtcReleaseGeometry(BatchedGeometry);
-	
-	rtcCommitScene(Model.InstaceScene);*/
 }
 
 XRCORE_API xr_unique_ptr<CForm::IFormat> CForm::Read(const char* Initial, xr_string_view Filename)
