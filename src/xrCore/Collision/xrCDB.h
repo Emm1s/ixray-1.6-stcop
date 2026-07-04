@@ -26,6 +26,10 @@ class CDB_Model;
 #pragma pack(push,8)
 namespace CDB
 {
+	struct BuilderConfig;
+	class BVHModel;
+
+// Triangle
 
 	RTCDevice& GetEmbreeDevice();
 	// Triangle
@@ -63,9 +67,25 @@ namespace CDB
 		xr_hash_map<MODEL*, xr_vector<Fmatrix>> instances;
 		const MODEL* Parent = nullptr;
 		//Fmatrix SelfTransform{Fmatrix::EIdentity::Identity};
+		mutable xr_atomic_u32 status = S_INIT;		// 0=ready, 1=init, 2=building
+		mutable xr_task_group load_task;
+	public:
+		BVHModel* tree = nullptr;
 		
 		~MODEL();
 
+		ICF xr_vector<Fvector>& get_verts() { return verts; }
+		ICF xr_vector<TRI>& get_tris() { return tris; }
+
+		ICF void wait_loading() const
+		{
+			if (S_READY==status.load())
+				return;
+
+			load_task.wait();
+		}
+		void build(const BuilderConfig& config, build_callback* bc=nullptr, void* bcp=nullptr, void* pRW = nullptr, bool RWMode = false, bool UseDelay = true);
+		u32 memory();
 		void build_simple();
 	};
 

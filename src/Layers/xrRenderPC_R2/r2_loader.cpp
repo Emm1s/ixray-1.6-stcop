@@ -18,6 +18,7 @@
 
 #include "../../xrCore/FormatParsers/LevelGeom/GeomIO.h"
 #include "src/xrCore/SharedMaterialLibrary.h"
+#include "src/xrCore/Collision/override/Model.h"
 using namespace FVF;
 
 #pragma warning(pop)
@@ -364,11 +365,30 @@ void CRender::LoadSectors(IReader* fs) {
 			CL.add_face_packed_D(v1, v2, v3, 0);
 		}
 
+		// Make cache
+		string_path LevelName;
+		xr_strconcat(LevelName, "level_cache\\", FS.get_path("$level$")->m_Add, "Portals.cache");
+		IReader* pReaderCache = CDB::GetModelCache(LevelName, crc);
+
 		// build portal model
 		rmPortals = new CDB::MODEL();
 		rmPortals->verts = CL.verts;
 		rmPortals->tris = CL.faces;
 		rmPortals->build_simple();
+
+		CDB::BuilderConfig Config;
+		if (pReaderCache != nullptr)
+		{
+			rmPortals->build(Config, nullptr, nullptr, pReaderCache, true);
+		}
+		else
+		{
+			IWriter* pWriterCache = FS.w_open("$app_data_root$", LevelName);
+			pWriterCache->w_u32(crc);
+			Config.Vertices = &CL.verts;
+			Config.Faces = &CL.faces;
+			rmPortals->build(Config, nullptr, nullptr, pWriterCache, false);
+		}
 	}
 	else
 	{

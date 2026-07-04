@@ -32,7 +32,9 @@ namespace CDB
 		const Fbox& GetAABB() const { return AABB; }
 		Fbox& GetAABB() { return AABB; }
 		
+		ElementID GetPos() const { return ElemPos; }
 		ElementID& GetPos() { return ElemPos; }
+		ElementID GetNeg() const { return ElemNeg; }
 		ElementID& GetNeg() { return ElemNeg; }
 		
 		bool HasPosNode() const { return !ElemPos.IsNotPointer; }
@@ -82,10 +84,10 @@ namespace CDB
 			Fmatrix Transform;
 			size_t ModelIndex;
 		};
-		xr_vector<Fvector>* Vertices;
-		xr_vector<TRI>* Faces;
-		xr_vector<BVHModel*>* Models;
-		xr_vector<InstanceData>* Instances;
+		xr_vector<Fvector>* Vertices = nullptr;
+		xr_vector<TRI>* Faces = nullptr;
+		xr_vector<BVHModel*>* Models = nullptr;
+		xr_vector<InstanceData>* Instances = nullptr;
 		
 		Dvector GetPrimitiveMean(size_t Index) const;
 		void GetPrimitiveAABB(size_t Index, Dbox& Out) const;

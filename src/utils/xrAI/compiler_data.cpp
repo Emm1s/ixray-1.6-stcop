@@ -2,6 +2,7 @@
 #include "compiler.h"
 #include "../xrForms/CompilersUI.h"
 #include "compiler_embree.h"
+#include "src/xrCore/Collision/override/Model.h"
 
 template <class T>
 void transfer(const char* name, xr_vector<T>& dest, IReader& F, u32 chunk)
@@ -429,6 +430,10 @@ void IComputeData::xrLoadGeometry(IReader* fs)
 		}
 
 		Msg("RayQuery Box Model: Faces : %u | Vertex: %u", triangles.size(), verts.size());
+		CDB::BuilderConfig Config;
+		Config.Vertices = &verts;
+		Config.Faces = &triangles;
+		LevelPtr->build(Config, nullptr, nullptr, nullptr, false, false);
 		LevelPtr->build_simple();
 	}
 }
