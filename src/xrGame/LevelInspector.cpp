@@ -37,6 +37,7 @@
 #include "player_hud.h"
 #include "ImUtils/ImUtils.h"
 #include "script_game_object.h"
+#include "src/xrCore/Collision/override/Model.h"
 
 Fvector aabb_selection_vertices[32]
 {
@@ -3681,7 +3682,14 @@ void LevelInspector::DrawHOM()
 	constexpr u32 hom_lclr = color_rgba(20, 20, 20, 255);
 	for (CDB::RESULT& res : xrc.r_vec())
 	{
-		auto& verts = res.verts;
+		VERIFY(res.model);
+		auto& Model = *res.model;
+		auto& Tris = Model.tris[res.tris_id];
+		Fvector verts[] = {
+			Model.verts[Tris.verts[0]],
+			Model.verts[Tris.verts[1]],
+			Model.verts[Tris.verts[2]],
+		};
 		append_tri({ verts[0], verts[1], verts[2], color_rgba(150, 150, 150, 100) });
 		append_line({ verts[0], verts[1], hom_lclr });
 		append_line({ verts[0], verts[2], hom_lclr });
@@ -3721,7 +3729,7 @@ void LevelInspector::DrawCFORM()
 		static u32 prims_calc = 0, prims_render = 1;
 		
 		static xr_atomic_bool task_finished = true;
-		static CDB::RESULT selected_prim{{zero_vel,zero_vel,zero_vel},0u,-1,0.f,0.f,0.f};
+		static CDB::RESULT selected_prim{Fmatrix{Fmatrix::Identity}, nullptr,0u,-1,0.f,0.f};
 
 		if ((m_flags.test(ESCENE_FLAGS::ESF_DRAW_CFORM) || m_flags.test(ESCENE_FLAGS::ESF_DRAW_CFORM_TRIS)) && task_finished.load())
 		{
@@ -3738,59 +3746,92 @@ void LevelInspector::DrawCFORM()
 					xrc.ray_options(CDB::OPT_ONLYNEAREST);
 					xrc.ray_query(g_pGameLevel->ObjectSpace.GetStaticModel(), Device.vCameraPosition, Device.vCameraDirection);
 					if (!xrc.r_vec().empty())
+					{
 						selected_prim = xrc.r_vec()[0];
+					}
 					else
-						selected_prim.id = -1;
+					{
+						selected_prim.model = nullptr;
+						selected_prim.tris_id = -1;
+					}
 				}
 				else
-					selected_prim.id = -1;
+				{
+					selected_prim.model = nullptr;
+					selected_prim.tris_id = -1;
+				}
 
 				static u32 mask; mask = Render->ViewBase.getMask();
 				static float max_dist; max_dist = g_pGamePersistent->Environment().CurrentEnv->fog_distance;
 
 				xrc.custom_query(g_pGameLevel->ObjectSpace.GetStaticModel(),
-				[](const Fvector& center, const Fvector& extents, bool leaf, void* ptr)
+				[](const CDB::MODEL& Model, const Fmatrix& ToWorldTransform, const CDB::BVHNode& Node, void* ptr)
 				{
+					Fvector center, extents;
+					Node.GetAABB().get_CD(center, extents);
+					ToWorldTransform.transform_tiny(center);
+					extents.x *= ToWorldTransform.i.magnitude();
+					extents.y *= ToWorldTransform.j.magnitude();
+					extents.z *= ToWorldTransform.k.magnitude();
 					const Fvector& cam_pos = Device.vCameraPosition;
 					float distsqr = cam_pos.distance_to_sqr(center) + EPS;
 					float radius = extents.magnitude();
 					LevelInspector* LE = (LevelInspector*)ptr;
 					if (radius / distsqr <= LE->cform_ssa || distsqr > _sqr(max_dist + radius))
+					{
 						return false;
+					}
 
 					Fbox BB{ center - extents, center + extents };
 					if (fcvNone == Render->ViewBase.testAABB(BB.data(), mask))
+					{
 						return false;
+					}
 
-					if ((leaf || LE->m_flags.test(ESCENE_FLAGS::ESF_DRAW_CFORM_ALL)) && LE->m_flags.test(ESCENE_FLAGS::ESF_DRAW_CFORM) && !BB.contains(cam_pos))
+					if (((!Node.HasNegNode() && !Node.GetNeg().IsInstance) || (!Node.HasPosNode() && !Node.GetPos().IsInstance)
+						|| LE->m_flags.test(ESCENE_FLAGS::ESF_DRAW_CFORM_ALL)) && LE->m_flags.test(ESCENE_FLAGS::ESF_DRAW_CFORM) && !BB.contains(cam_pos))
 					{
 						Fvector vertices[8];
 						for (int i = 0; i < 8; i++)
+						{
 							BB.getpoint(i, vertices[i]);
+						}
 
 						const size_t line_count = std::size(aabb_lindices);
 						const size_t tri_count = std::size(aabb_tindices);
 						for (size_t i = 0; i < std::max(line_count, tri_count); ++i)
 						{
 							if (i < tri_count)
-								temp_prims[prims_calc].temp_tris.push_back({ vertices[aabb_tindices[i].i1], 
-																					vertices[aabb_tindices[i].i2], 
-																					vertices[aabb_tindices[i].i3], positionToColorWithAlpha(center) });
+							{
+								temp_prims[prims_calc].temp_tris.push_back({
+									vertices[aabb_tindices[i].i1], 
+									vertices[aabb_tindices[i].i2], 
+									vertices[aabb_tindices[i].i3],
+									positionToColorWithAlpha(center) });
+							}
 							if (i < line_count)
-								temp_prims[prims_calc].temp_lines.push_back({ vertices[aabb_lindices[i].i1], 
-																					vertices[aabb_lindices[i].i2], color_rgba(10, 10, 10, 122) });
+							{
+								temp_prims[prims_calc].temp_lines.push_back({
+									vertices[aabb_lindices[i].i1], 
+									vertices[aabb_lindices[i].i2],
+									color_rgba(10, 10, 10, 122) });
+							}
 						}
 					}
 					return true;
 				}, this,
 				m_flags.test(ESCENE_FLAGS::ESF_DRAW_CFORM_TRIS) ?
-				[](size_t InPrim, void* ptr)
+				[](const CDB::MODEL& Model, const Fmatrix& ToWorldTransform, CDB::ElementID InPrim, void* ptr)
 				{
-					if (selected_prim.id == InPrim) return;
+					VERIFY(InPrim.IsNotPointer);
+					if ((selected_prim.model == &Model && selected_prim.tris_id == InPrim.Index) || InPrim.IsInstance)
+					{
+						return;
+					}
 
-					auto& StaticTris = g_pGameLevel->ObjectSpace.GetStaticModel()->tris;
-					auto& verts = g_pGameLevel->ObjectSpace.GetStaticModel()->verts;
-					auto& TriVerts = StaticTris[InPrim].verts;
+					auto& StaticTris = Model.tris;
+					auto& verts = Model.verts;
+					auto& TriVerts = StaticTris[InPrim.Index].verts;
 					Fvector tri_verts[3] = { verts[TriVerts[0]], verts[TriVerts[1]], verts[TriVerts[2]] };
 
 					temp_prims[prims_calc].temp_tris.push_back({ tri_verts[0], tri_verts[1], tri_verts[2], color_rgba(100, 100, 100, 45) });
@@ -3804,11 +3845,16 @@ void LevelInspector::DrawCFORM()
 			});
 		}
 		bool delete_last = false;
-		if (selected_prim.id != -1)
+		if (selected_prim.tris_id != -1)
 		{
 			delete_last = true;
-			auto& TriVerts = selected_prim.verts;
-			Fvector tri_verts[3] = { TriVerts[0], TriVerts[1], TriVerts[2] };
+			// TODO: Convert verts from instance to global
+			auto& TriVerts = selected_prim.model->tris[selected_prim.tris_id].verts;
+			Fvector tri_verts[3] = {
+				selected_prim.model->verts[TriVerts[0]],
+				selected_prim.model->verts[TriVerts[1]],
+				selected_prim.model->verts[TriVerts[2]]
+			};
 			temp_prims[prims_render].temp_tris.push_back({ tri_verts[0], tri_verts[1], tri_verts[2], color_rgba(20, 20, 255, 45) });
 			temp_prims[prims_render].temp_lines.push_back({ tri_verts[0], tri_verts[1], color_rgba(10, 10, 10, 255) });
 			temp_prims[prims_render].temp_lines.push_back({ tri_verts[0], tri_verts[2], color_rgba(10, 10, 10, 255) });
@@ -3826,9 +3872,13 @@ void LevelInspector::DrawCFORM()
 			
 			Fvector perp1, perp2;
 			if (abs(normal.x) < 0.9f)
+			{
 				perp1.set(1.0f, 0.0f, 0.0f);
+			}
 			else
+			{
 				perp1.set(0.0f, 1.0f, 0.0f);
+			}
 
 			perp2.crossproduct(perp1, normal).normalize();
 			perp1.crossproduct(normal, perp2).normalize();
@@ -3844,8 +3894,11 @@ void LevelInspector::DrawCFORM()
 
 			temp_prims[prims_render].temp_lines.push_back({ arrow_pos[0], arrow_pos[1], color_rgba(10, 220, 255, 255) });
 
-			if (SGameMtl* mtl = GMLib.GetMaterialByIdx(selected_prim.material))
-				append_text3d(arrow_pos[1], shared_str().printf("%s id[%d] idx[%d] s[%d]", *mtl->m_Name, mtl->ID, selected_prim.material, selected_prim.sector));
+			auto& tris = selected_prim.model->tris[selected_prim.tris_id];
+			if (SGameMtl* mtl = GMLib.GetMaterialByIdx(tris.material))
+			{
+				append_text3d(arrow_pos[1], shared_str().printf("%s id[%d] idx[%d] s[%d]", *mtl->m_Name, mtl->ID, tris.material, tris.sector));
+			}
 		}
 
 		if (tris.empty() && lines.empty() && (!temp_prims[prims_render].temp_tris.empty() || !temp_prims[prims_render].temp_lines.empty()))

@@ -332,7 +332,7 @@ struct cform_frustum_collider final
 
 	bool bClass3, bFirst;
 
-	ICF void Prim(ElementID InPrim)
+	ICF void Prim(ElementID InPrim, const Fmatrix& ToWorldTransform)
 	{
 		VERIFY(InPrim.IsNotPointer);
 		if (InPrim.IsInstance)
@@ -342,7 +342,7 @@ struct cform_frustum_collider final
 			auto& Prototype = Instances[InPrim.Index];
 			auto& Models = CurModel.get_models();
 			auto& ChildModel = Models[Prototype.ModelIndex];
-			stack->Push(ChildModel);
+			stack->Push(*ChildModel);
 			xr_scope_exit g = [&]()
 			{
 				stack->Pop();
@@ -356,7 +356,9 @@ struct cform_frustum_collider final
 				LocalPlane.d += Prototype.Transform.c.dotproduct(F->planes[i].n);
 				LocalF._add(LocalPlane);
 			}
-
+			
+			Fmatrix NewToWorld;
+			NewToWorld.mul(ToWorldTransform, Prototype.Transform);
 			cform_frustum_collider FC{
 				dest,
 				stack,
@@ -364,7 +366,7 @@ struct cform_frustum_collider final
 				bClass3,
 				bFirst
 			};
-			FC.Stab(ChildModel.tree->GetNodes()[0], F->getMask());
+			FC.Stab(ChildModel->tree->GetNodes()[0], F->getMask(), NewToWorld);
 			return;
 		}
 		
@@ -388,6 +390,7 @@ struct cform_frustum_collider final
 			if (F->ClipPoly(Src, Dst))
 			{
 				RESULT& R = dest->emplace_back();
+				R.ModelWorldTransform = ToWorldTransform;
 				R.model = &CurModel;
 				R.tris_id = InPrim.Index;
 			}
@@ -395,12 +398,13 @@ struct cform_frustum_collider final
 		else
 		{
 			RESULT& R = dest->emplace_back();
+			R.ModelWorldTransform = ToWorldTransform;
 			R.model = &CurModel;
 			R.tris_id = InPrim.Index;
 		}
 	}
 
-	void Stab(const BVHNode& node, u32 mask)
+	void Stab(const BVHNode& node, u32 mask, const Fmatrix& ToWorldTransform)
 	{
 		// Actual frustum/aabb test
 		if (fcvNone == F->testAABB(node.GetAABB().data(), mask))
@@ -411,10 +415,10 @@ struct cform_frustum_collider final
 		// 1st chield
 		if (node.HasPosNode())
 		{
-			Stab(node.GetPosNode(), mask);
+			Stab(node.GetPosNode(), mask, ToWorldTransform);
 		} else
 		{
-			Prim(node.GetPos());
+			Prim(node.GetPos(), ToWorldTransform);
 		}
 
 		// Early exit for "only first"
@@ -426,10 +430,10 @@ struct cform_frustum_collider final
 		// 2nd chield
 		if (node.HasNegNode())
 		{
-			Stab(node.GetNegNode(), mask);
+			Stab(node.GetNegNode(), mask, ToWorldTransform);
 		} else
 		{
-			Prim(node.GetNeg());
+			Prim(node.GetNeg(), ToWorldTransform);
 		}
 	}
 };
@@ -437,10 +441,10 @@ struct cform_frustum_collider final
 void COLLIDER::frustum_query(const MODEL* m_def, const CFrustum& F)
 {
 	PROF_EVENT("COLLIDER::frustum_query");
-	if (!m_def || m_def->tree == nullptr)
+	/*if (!m_def || m_def->tree == nullptr)
 		return;
 
-	m_def->wait_loading();
+	m_def->wait_loading();*/
 
 	r_clear();
 	r_vec().reserve(16);
@@ -454,7 +458,7 @@ void COLLIDER::frustum_query(const MODEL* m_def, const CFrustum& F)
 	BC.F = &F;
 	BC.bClass3 = box_mode & OPT_FULL_TEST;
 	BC.bFirst = box_mode & OPT_ONLYFIRST;
-	BC.Stab(Nodes[0], F.getMask());
+	BC.Stab(Nodes[0], F.getMask(), Fmatrix{Fmatrix::Identity});
 }
 
 struct cform_box_collider final
@@ -464,7 +468,7 @@ struct cform_box_collider final
 	Fbox box;
 	bool bClass3, bFirst;
 
-	ICF void Prim(ElementID InPrim)
+	ICF void Prim(ElementID InPrim, const Fmatrix& ToWorldTransform)
 	{
 		VERIFY(InPrim.IsNotPointer);
 		if (InPrim.IsInstance)
@@ -474,7 +478,7 @@ struct cform_box_collider final
 			auto& Prototype = Instances[InPrim.Index];
 			auto& Models = CurModel.get_models();
 			auto& ChildModel = Models[Prototype.ModelIndex];
-			stack->Push(ChildModel);
+			stack->Push(*ChildModel);
 			xr_scope_exit g = [&]()
 			{
 				stack->Pop();
@@ -496,6 +500,8 @@ struct cform_box_collider final
 			PlaneFunc({0,0,1}, -box.min.z);
 			PlaneFunc({0,0,-1,}, box.max.z);
 
+			Fmatrix NewToWorld;
+			NewToWorld.mul(ToWorldTransform, Prototype.Transform);
 			cform_frustum_collider FC{
 				dest,
 				stack,
@@ -503,7 +509,7 @@ struct cform_box_collider final
 				bClass3,
 				bFirst
 			};
-			FC.Stab(ChildModel.tree->GetNodes()[0], LocalF.getMask());
+			FC.Stab(ChildModel->tree->GetNodes()[0], LocalF.getMask(), NewToWorld);
 			return;
 		}
 		
@@ -521,11 +527,12 @@ struct cform_box_collider final
 		}
 
 		RESULT& R = dest->emplace_back();
+		R.ModelWorldTransform = ToWorldTransform;
 		R.model = &CurModel;
 		R.tris_id = InPrim.Index;
 	}
 	
-	void Stab(const BVHNode& node)
+	void Stab(const BVHNode& node, const Fmatrix& ToWorldTransform)
 	{
 		// Actual box-box test
 		if (!box.intersect(node.GetAABB()))
@@ -536,10 +543,10 @@ struct cform_box_collider final
 		// 1st chield
 		if (node.HasPosNode())
 		{
-			Stab(node.GetPosNode());
+			Stab(node.GetPosNode(), ToWorldTransform);
 		} else
 		{
-			Prim(node.GetPos());
+			Prim(node.GetPos(), ToWorldTransform);
 		}
 		
 		// Early exit for "only first"
@@ -551,10 +558,10 @@ struct cform_box_collider final
 		// 2nd chield
 		if (node.HasNegNode())
 		{
-			Stab(node.GetNegNode());
+			Stab(node.GetNegNode(), ToWorldTransform);
 		} else
 		{
-			Prim(node.GetNeg());
+			Prim(node.GetNeg(), ToWorldTransform);
 		}
 	}
 };
@@ -580,7 +587,7 @@ void COLLIDER::box_query(const MODEL *m_def, const Fbox& _box)
 	BC.box = _box;
 	BC.bClass3 = box_mode & OPT_FULL_TEST;
 	BC.bFirst = box_mode & OPT_ONLYFIRST;
-	BC.Stab(Nodes[0]);
+	BC.Stab(Nodes[0], Fmatrix{Fmatrix::Identity});
 }
 
 struct cform_obb_collider final
@@ -593,7 +600,7 @@ struct cform_obb_collider final
 	bool bClass3 = false;
 	bool bFirst = false;
 
-	ICF void Prim(ElementID prim)
+	ICF void Prim(ElementID prim, const Fmatrix& ToWorldTransform)
 	{
 		VERIFY(prim.IsNotPointer);
 		if (prim.IsInstance)
@@ -603,7 +610,7 @@ struct cform_obb_collider final
 			auto& Prototype = Instances[prim.Index];
 			auto& Models = CurModel.get_models();
 			auto& ChildModel = Models[Prototype.ModelIndex];
-			stack->Push(ChildModel);
+			stack->Push(*ChildModel);
 			xr_scope_exit g = [&]()
 			{
 				stack->Pop();
@@ -625,6 +632,8 @@ struct cform_obb_collider final
 			PlaneFunc(obb.m_rotate.k, -(obb.m_rotate.k*obb.m_translate + obb.m_halfsize.z));
 			PlaneFunc(-obb.m_rotate.k, obb.m_rotate.k*obb.m_translate - obb.m_halfsize.z);
 
+			Fmatrix NewToWorld;
+			NewToWorld.mul(ToWorldTransform, Prototype.Transform);
 			cform_frustum_collider BC{
 				dest,
 				stack,
@@ -632,7 +641,7 @@ struct cform_obb_collider final
 				bClass3,
 				bFirst
 			};
-			BC.Stab(ChildModel.tree->GetNodes()[0], LocalF.getMask());
+			BC.Stab(ChildModel->tree->GetNodes()[0], LocalF.getMask(), NewToWorld);
 			return;
 		}
 		
@@ -651,11 +660,12 @@ struct cform_obb_collider final
 		}
 
 		RESULT& R = dest->emplace_back();
+		R.ModelWorldTransform = ToWorldTransform;
 		R.model = &CurModel;
 		R.tris_id = prim.Index;
 	}
 
-	void Stab(const BVHNode& node)
+	void Stab(const BVHNode& node, const Fmatrix& ToWorldTransform)
 	{
 		VERIFY(dest);
 		VERIFY(stack);
@@ -669,11 +679,11 @@ struct cform_obb_collider final
 		// 1st child
 		if (node.HasPosNode())
 		{
-			Stab(node.GetPosNode());
+			Stab(node.GetPosNode(), ToWorldTransform);
 		}
 		else
 		{
-			Prim(node.GetPos());
+			Prim(node.GetPos(), ToWorldTransform);
 		}
 
 		// Early exit for "only first"
@@ -685,11 +695,11 @@ struct cform_obb_collider final
 		// 2nd child
 		if (node.HasNegNode())
 		{
-			Stab(node.GetNegNode());
+			Stab(node.GetNegNode(), ToWorldTransform);
 		}
 		else
 		{
-			Prim(node.GetNeg());
+			Prim(node.GetNeg(), ToWorldTransform);
 		}
 	}
 };
@@ -721,7 +731,7 @@ void COLLIDER::obb_query(const MODEL* m_def, const Fobb& obb)
 		!!(obb_mode & OPT_FULL_TEST),
 		!!(obb_mode & OPT_ONLYFIRST)
 	};
-	OC.Stab(Nodes[0]);
+	OC.Stab(Nodes[0], Fmatrix{Fmatrix::Identity});
 }
 
 struct cform_sphere_collider final
@@ -734,7 +744,7 @@ struct cform_sphere_collider final
 	bool bClass3 = false;
 	bool bFirst = false;
 
-	ICF void Prim(ElementID prim)
+	ICF void Prim(ElementID prim, const Fmatrix& ToWorldTransform)
 	{
 		VERIFY(prim.IsNotPointer);
 		if (prim.IsInstance)
@@ -744,7 +754,7 @@ struct cform_sphere_collider final
 			auto& Prototype = Instances[prim.Index];
 			auto& Models = CurModel.get_models();
 			auto& ChildModel = Models[Prototype.ModelIndex];
-			stack->Push(ChildModel);
+			stack->Push(*ChildModel);
 			xr_scope_exit g = [&]()
 			{
 				stack->Pop();
@@ -779,6 +789,8 @@ struct cform_sphere_collider final
 			PlaneFunc(obb.m_rotate.k, -(obb.m_rotate.k*obb.m_translate + obb.m_halfsize.z));
 			PlaneFunc(-obb.m_rotate.k, obb.m_rotate.k*obb.m_translate - obb.m_halfsize.z);
 
+			Fmatrix NewToWorld;
+			NewToWorld.mul(ToWorldTransform, Prototype.Transform);
 			xr_vector<RESULT> local_results;
 			cform_frustum_collider BC{
 				&local_results,
@@ -787,7 +799,7 @@ struct cform_sphere_collider final
 				bClass3,
 				bFirst
 			};
-			BC.Stab(ChildModel.tree->GetNodes()[0], LocalF.getMask());
+			BC.Stab(ChildModel->tree->GetNodes()[0], LocalF.getMask(), NewToWorld);
 
 			for(auto& R : local_results)
 			{
@@ -821,11 +833,12 @@ struct cform_sphere_collider final
 		}
 
 		RESULT& R = dest->emplace_back();
+		R.ModelWorldTransform = ToWorldTransform;
 		R.model = &CurModel;
 		R.tris_id = prim.Index;
 	}
 
-	void Stab(const BVHNode& node)
+	void Stab(const BVHNode& node, const Fmatrix& ToWorldTransform)
 	{
 		// Actual Sphere-AABB test
 		Fvector center, extents;
@@ -838,11 +851,11 @@ struct cform_sphere_collider final
 		// 1st child
 		if (node.HasPosNode())
 		{
-			Stab(node.GetPosNode());
+			Stab(node.GetPosNode(), ToWorldTransform);
 		}
 		else
 		{
-			Prim(node.GetPos());
+			Prim(node.GetPos(), ToWorldTransform);
 		}
 
 		// Early exit for "only first"
@@ -854,11 +867,11 @@ struct cform_sphere_collider final
 		// 2nd child
 		if (node.HasNegNode())
 		{
-			Stab(node.GetNegNode());
+			Stab(node.GetNegNode(), ToWorldTransform);
 		}
 		else
 		{
-			Prim(node.GetNeg());
+			Prim(node.GetNeg(), ToWorldTransform);
 		}
 	}
 };
@@ -890,55 +903,95 @@ void COLLIDER::sphere_query(const MODEL* m_def, const Fsphere& sphere)
 		!!(sphere_mode & OPT_FULL_TEST),
 		!!(sphere_mode & OPT_ONLYFIRST)
 	};
-	SC.Stab(Nodes[0]);
+	SC.Stab(Nodes[0], Fmatrix{Fmatrix::Identity});
 }
 
 struct cform_custom_collider final
 {
-	bool(*AABBCheck)(const Fvector&, const Fvector&, bool, void*);
+	cform_stack* stack = nullptr;
+	CDB::COLLIDER::CheckFunc AABBCheck = nullptr;
 	void* paabbc = nullptr;
-	void(*GetTris)(size_t, void*);
+	CDB::COLLIDER::TrisFunc GetTris = nullptr;
 	void* ptric = nullptr;
-	void Stab(const AABBNoLeafNode* node)
+
+	void Prim(ElementID prim, const Fmatrix& ToWorldTransform)
 	{
-		bool pos_leaf = node->HasPosLeaf();
-		bool neg_leaf = node->HasNegLeaf();
-		if (nullptr==AABBCheck || !AABBCheck((Fvector&)node->mAABB.mCenter, (Fvector&)node->mAABB.mExtents, pos_leaf||neg_leaf, paabbc)) return;
-
-		// 1st chield
-		if (pos_leaf)
+		VERIFY(prim.IsNotPointer);
+		if(prim.IsInstance)
 		{
-			if (GetTris)
-				GetTris(node->GetPosPrimitive(), ptric);
+			auto& CurModel = stack->GetCurrentTree();
+			auto& Instances = CurModel.get_instances();
+			auto& Prototype = Instances[prim.Index];
+			auto& Models = CurModel.get_models();
+			auto& ChildModel = Models[Prototype.ModelIndex];
+			stack->Push(*ChildModel);
+			xr_scope_exit g = [&]()
+			{
+				stack->Pop();
+			};
+
+			Fmatrix NewToWorld;
+			NewToWorld.mul(ToWorldTransform, Prototype.Transform);
+			Stab(ChildModel.tree->GetNodes()[0], NewToWorld);
+			return;
+		}
+		
+		if (GetTris)
+		{
+			GetTris(stack->GetCurrentTree(), ToWorldTransform, prim, ptric);
+		}
+	}
+	
+	void Stab(const BVHNode& node, const Fmatrix& ToWorldTransform)
+	{
+		/*bool pos_leaf = node->HasPosLeaf();
+		bool neg_leaf = node->HasNegLeaf();*/
+		if (nullptr==AABBCheck || !AABBCheck(stack->GetCurrentTree(), ToWorldTransform, node, paabbc))
+		{
+			return;
+		}
+
+		// 1st child
+		if (node.HasPosNode())
+		{
+			Stab(node.GetPosNode(), ToWorldTransform);
 		}
 		else
-			Stab(node->GetPos());
-
-		// 2nd chield
-		if (neg_leaf)
 		{
-			if (GetTris)
-				GetTris(node->GetNegPrimitive(), ptric);
+			Prim(node.GetPos(), ToWorldTransform);
+		}
+
+		// 2nd child
+		if (node.HasNegNode())
+		{
+			Stab(node.GetNegNode(), ToWorldTransform);
 		}
 		else
-			Stab(node->GetNeg());
+		{
+			Prim(node.GetNeg(), ToWorldTransform);
+		}
 	}
 };
 
-void COLLIDER::custom_query(const MODEL* m_def, bool(AABBCheckF)(const Fvector&, const Fvector&, bool, void*), void* paabbc, void(GetTrisF)(size_t, void*), void* ptric)
+void COLLIDER::custom_query(const MODEL* m_def, CheckFunc AABBCheckF, void* paabbc, TrisFunc GetTrisF, void* ptric)
 {
 	PROF_EVENT("COLLIDER::custom_query");
-	if (!m_def || m_def->tree == nullptr)
+	/*if (!m_def || m_def->tree == nullptr)
 		return;
 
-	m_def->wait_loading();
+	m_def->wait_loading();*/
+	
+	// Get nodes
+	auto& Nodes = m_def->tree->GetNodes();
 
+	cform_stack S = *m_def;
 	cform_custom_collider CC
 	{
+		&S,
 		AABBCheckF,
 		paabbc,
 		GetTrisF,
 		ptric
 	};
-	CC.Stab(m_def->tree->GetCDBTree()->GetNodes());
+	CC.Stab(Nodes[0], Fmatrix{Fmatrix::Identity});
 }

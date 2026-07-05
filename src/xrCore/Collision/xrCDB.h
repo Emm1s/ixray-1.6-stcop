@@ -28,6 +28,7 @@ namespace CDB
 {
 	struct BuilderConfig;
 	class BVHModel;
+	class BVHNode;
 
 // Triangle
 
@@ -81,21 +82,14 @@ namespace CDB
 
 		ICF xr_vector<Fvector>& get_verts() { return verts; }
 		ICF xr_vector<TRI>& get_tris() { return tris; }
-		ICF xr_vector<MODEL>& get_models() { return models; }
-		ICF xr_vector<InstanceData>& get_instances() { return Instances; }
+		ICF xr_vector<MODEL*>& get_models() { return models; }
+		ICF xr_vector<InstanceData>& get_instances() { return instances; }
 		
 		ICF const xr_vector<Fvector>& get_verts() const { return verts; }
 		ICF const xr_vector<TRI>& get_tris() const { return tris; }
-		ICF const xr_vector<MODEL>& get_models() const { return models; }
-		ICF const xr_vector<InstanceData>& get_instances() const { return Instances; }
+		ICF const xr_vector<MODEL*>& get_models() const { return models; }
+		ICF const xr_vector<InstanceData>& get_instances() const { return instances; }
 
-		ICF void wait_loading() const
-		{
-			if (S_READY==status.load())
-				return;
-
-			load_task.wait();
-		}
 		void build(const BuilderConfig& config, build_callback* bc=nullptr, void* bcp=nullptr, void* pRW = nullptr, bool RWMode = false, bool UseDelay = true);
 		u32 memory();
 		void build_simple();
@@ -104,7 +98,7 @@ namespace CDB
 	// Collider result
 	struct XRCORE_API RESULT final
 	{
-		//Fmatrix ParentTransform{Fmatrix::EIdentity::Identity};
+		Fmatrix ModelWorldTransform{Fmatrix::EIdentity::Identity};
 		const MODEL* model;
 		size_t tris_id;
 		float range, u, v;
@@ -132,6 +126,18 @@ namespace CDB
 		OPT_FULL_TEST   = (1<<3)		// for box & frustum queries - enable class III test(s)
 	};
 
+	union ElementID
+	{
+		BVHNode* p;
+		struct
+		{
+			size_t Index:62;
+			size_t IsInstance:1;
+			size_t IsNotPointer:1;
+		};
+	};
+	static_assert(sizeof(ElementID) == sizeof(size_t));
+
 	// Collider itself
 	class XRCORE_API COLLIDER final
 	{
@@ -145,6 +151,9 @@ namespace CDB
 		// Result management
 		xr_vector<RESULT> rd;
 	public:
+		using CheckFunc = bool(*)(const MODEL& CurrentModel, const Fmatrix& ToWorldTransform, const BVHNode& CurrentNode, void* Ptr);
+		using TrisFunc = void(*)(const MODEL& CurrentModel, const Fmatrix& ToWorldTransform, ElementID CurrentElement, void* Ptr);
+		
  		// Older
 		ICF void		ray_options		(u32 f)	{	ray_mode = f;		}
 		void			ray_query		(const MODEL *m_def, const Fvector& r_start,  const Fvector& r_dir, float r_range = 10000.f);
@@ -164,7 +173,7 @@ namespace CDB
 		ICF void		sphere_query(const MODEL* m_def, const Fvector& P, float R) { sphere_query(m_def, Fsphere{P,R}); }
 
 		ICF void		custom_options(u32 f) { obb_mode = f; }
-		void			custom_query(const MODEL* m_def, bool(AABBCheckF)(const Fvector&, const Fvector&, bool, void*), void* paabbc, void(GetTrisF)(size_t, void*), void* ptric);
+		void			custom_query(const MODEL* m_def, CheckFunc AABBCheckF, void* paabbc, TrisFunc GetTrisF, void* ptric);
 
 		ICF RESULT*		r_begin			(){return &*rd.begin();};
 		ICF RESULT*		r_end			(){return &*rd.end();};

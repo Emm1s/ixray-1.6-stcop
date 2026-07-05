@@ -10,18 +10,6 @@ namespace CDB
 {
 	class BVHNode;
 
-	union ElementID
-	{
-		BVHNode* p;
-		struct
-		{
-			size_t Index:62;
-			size_t IsInstance:1;
-			size_t IsNotPointer:1;
-		};
-	};
-	static_assert(sizeof(ElementID) == sizeof(size_t));
-
 	class BVHNode
 	{
 		Fbox AABB;
