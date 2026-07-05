@@ -12,7 +12,6 @@
 
 #define XR_EPROPS_API
 #define ECORE_API
-#define NVTT_SHARED 1
 
 #undef min
 #undef max
