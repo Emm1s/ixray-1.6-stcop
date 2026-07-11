@@ -15,7 +15,7 @@
 #include "../xrEngine/StatGraph.h"
 #include "PhraseDialogManager.h"
 #include "../../xrUI/ui_defs.h"
-
+#include "ControllerAutoaim.h"
 #include "step_manager.h"
 #include "../xrScripts/script_export_space.h"
 #include "CustomDevice.h"
@@ -85,6 +85,7 @@ class CActor:
 private:
 	typedef CEntityAlive	inherited;
 	CPickUpManager* pPickup = nullptr;
+	CAutoAim* pAutoaim = nullptr;
 
 	const char* m_onBeforeHitCallback = {};
 	bool m_isBeforeHitCallback = false;
