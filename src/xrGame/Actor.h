@@ -63,6 +63,7 @@ class CEncyclopediaRegistryWrapper;
 class CLocationManager;
 class CPickUpManager;
 class CCustomDevice;
+class CAutoAim;
 
 class CNightVisionEffector;
 class CHudAnimatorManager;
