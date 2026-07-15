@@ -2815,7 +2815,7 @@ bool CWeapon::CanAimNow()
 
 			if (IsScopeAttached())
 			{
-				sect = ScopeAttachable() ? GetScopeName() : cNameSect();
+				sect = ScopeAttachable() ? GetCurrentScopeSection() : cNameSect();
 			}
 
 			if (READ_IF_EXISTS(pSettings, r_bool, sect, "prohibit_aim_for_grenade_mode", false))
@@ -3182,8 +3182,8 @@ void CWeapon::SwitchState(u8 S)
 	}
 #endif // #ifndef MASTER_GOLD
 
-	SetNextState		( S );
-	if (CHudItem::object().Local() && !CHudItem::object().getDestroy() && m_pInventory && OnServer())	
+	SetNextState(S);
+	if (CHudItem::object().Local() && !CHudItem::object().getDestroy() && OnServer())
 	{
 		// !!! Just single entry for given state !!!
 		NET_Packet		P;
@@ -4566,13 +4566,15 @@ void CWeapon::UpdateCollimatorSight()
 
 u32 CWeapon::FakeReload()
 {
+	const u32 MagCapacity = GetMagCapacity();
+
 	if (unlimited_ammo())
 	{
-		return GetMagCapacity();
+		return MagCapacity;
 	}
 
-	u32 in_box = GetAmmoCount(GetTargetAmmoType(IsGrenadeMode())) + iAmmoElapsed;
-	return clampr(in_box, (u32)0, (u32)iMagazineSize);
+	const u32 InBox = GetAmmoCount(GetTargetAmmoType(IsGrenadeMode())) + iAmmoElapsed;
+	return clampr(InBox, 0u, MagCapacity);
 }
 
 void CWeapon::OnMotionMark(u8 state, const motion_marks& mark)

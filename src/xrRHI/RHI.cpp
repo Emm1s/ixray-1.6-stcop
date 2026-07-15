@@ -38,7 +38,6 @@ CRHI::CRHI()
 
 CRHI::~CRHI()
 {
-	PROF_GPU_CTX_DESTROY();
 	GRHIRenderViewManager.Clear();
 
 	xr_delete(DevicePtr);

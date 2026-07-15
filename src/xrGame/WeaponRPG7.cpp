@@ -100,7 +100,7 @@ void CWeaponRPG7::FireTrace(const Fvector& P, const Fvector& D)
 
 		CExplosiveRocket* pGrenade = getCurrentRocket()->cast_explosive_rocket();
 		VERIFY(pGrenade);
-		pGrenade->SetInitiator(H_Parent()->ID());
+		pGrenade->SetInitiator(H_Parent() ? H_Parent()->ID() : ID());
 
 		if (OnServer())
 		{
@@ -238,6 +238,11 @@ void CWeaponRPG7::FireStart()
 
 void CWeaponRPG7::ReactiveHit()
 {
+	if (iAmmoElapsed == 0)
+	{
+		return;
+	}
+
 	//При стрельбе НПС не применяем поражение реактивной струей
 	if (H_Parent() && !H_Parent()->cast_actor())
 	{

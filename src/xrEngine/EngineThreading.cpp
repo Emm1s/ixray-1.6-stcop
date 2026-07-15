@@ -21,7 +21,7 @@ void XRay::Engine::PreRenderThread()
 			it();
 	}
 
-	if(g_pGamePersistent)
+	if (g_pGamePersistent && !g_pGamePersistent->m_pMainMenu->IsActive())
 	{
 		if (g_pGamePersistent->pEnvironment && g_pGamePersistent->pEnvironment->eff_Rain)
 			g_pGamePersistent->pEnvironment->eff_Rain->UpdateItems();
@@ -82,7 +82,7 @@ void XRay::Engine::GameThread()
 	if (::Sound != nullptr)
 	{
 		Device.Statistic->Sound.Begin();
-		::Sound->update(Device.mView, Device.vCameraPosition, Device.vCameraDirection, Device.vCameraTop);
+		::Sound->update(Device.mView_saved, Device.vCameraPosition_saved, Device.vCameraDirection_saved, Device.vCameraTop_saved);
 		Device.Statistic->Sound.End();
 	}
 }

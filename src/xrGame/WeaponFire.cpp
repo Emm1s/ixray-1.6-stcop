@@ -108,12 +108,21 @@ void CWeapon::FireTrace		(const Fvector& P, const Fvector& D)
 			fire_disp = GetFireDispersion(true);
 		}
 	}
-	
-	bool SendHit = SendHitAllowed(H_Parent());
+
+	u16 weapon_id = ID();
+	u16 initiator_id = H_Parent() ? H_Parent()->ID() : Initiator();
+	bool SendHit = SendHitAllowed(H_Parent() ? H_Parent() : this);
+
 	//выстерлить пулю (с учетом возможной стрельбы дробью)
-	for(int i = 0; i < l_cartridge.param_s.buckShot; ++i) 
+	for (int i = 0; i < l_cartridge.param_s.buckShot; ++i)
 	{
-		FireBullet(P, D, fire_disp, l_cartridge, H_Parent()->ID(), ID(), SendHit);
+		FireBullet(P,
+		           D,
+		           fire_disp,
+		           l_cartridge,
+		           initiator_id,
+		           weapon_id,
+		           SendHit);
 	}
 	
 	if(m_bLightShotEnabled) 
@@ -205,12 +214,19 @@ void CWeapon::FireTraceChamber(const Fvector& P, const Fvector& D)
 		}
 	}
 
-
-	bool SendHit = SendHitAllowed(H_Parent());
-
+	u16 weapon_id = ID();
+	u16 initiator_id = H_Parent() ? H_Parent()->ID() : Initiator();
+	bool SendHit = SendHitAllowed(H_Parent() ? H_Parent() : this);
+	
 	for (int i = 0; i < l_cartridge.param_s.buckShot; ++i)
 	{
-		FireBullet(P, D, fire_disp, l_cartridge, H_Parent()->ID(), ID(), SendHit);
+		FireBullet(P,
+				   D,
+				   fire_disp,
+				   l_cartridge,
+				   initiator_id,
+				   weapon_id,
+				   SendHit);
 	}
 
 	if (m_bLightShotEnabled)
@@ -267,6 +283,7 @@ void CWeapon::StopShooting()
 
 	StopShotEffector();
 	StopPattern();
+	StopLight();
 
 	bWorking = false;
 }

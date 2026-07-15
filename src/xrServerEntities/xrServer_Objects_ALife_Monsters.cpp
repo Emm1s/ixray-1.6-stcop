@@ -1518,6 +1518,8 @@ void CSE_ALifeCreatureActor::UPDATE_Read	(NET_Packet	&tNetPacket)
 	////////////////////////////////////////////////////
 	tNetPacket.r_u16			(m_u16NumItems);
 	
+	use_ai_locations(true); // force this because mobs are bugged overwise
+	
 	if (!m_u16NumItems) return;
 
 	if (m_u16NumItems == 1)
@@ -1558,6 +1560,9 @@ void CSE_ALifeCreatureActor::UPDATE_Write	(NET_Packet	&tNetPacket)
 	tNetPacket.w_u8				(weapon		);
 	////////////////////////////////////////////////////
 	tNetPacket.w_u16			(m_u16NumItems);
+	
+	use_ai_locations(true); // force this because mobs are bugged overwise
+	
 	if (!m_u16NumItems)
 		return;	
 
