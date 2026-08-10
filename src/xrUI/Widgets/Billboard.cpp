@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "StdAfx.h"
 #include "Billboard.h"
 //#include "ui_base.h"
 #include "UIXmlInit.h"
